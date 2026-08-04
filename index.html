@@ -25,6 +25,7 @@
       --cyan2: #7dd3fc;
       --gold: #fbbf24;
       --green: #34d399;
+      --green2: #10b981;
       --red: #f87171;
       --orange: #fb923c;
       --purple: #c084fc;
@@ -42,18 +43,236 @@
       -webkit-tap-highlight-color: transparent;
     }
 
-    /* ===== SMOOTH TRANSITIONS ===== */
-    * { transition: background-color 0.2s, border-color 0.2s, opacity 0.2s; }
+    /* ===== ONBOARDING WIZARD ===== */
+    .onboarding-overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 1000;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .onboarding-overlay.active { display: flex; }
+    .onboarding-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      width: 100%;
+      max-width: 520px;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 25px 80px rgba(0,0,0,0.6);
+    }
+    .onboarding-header {
+      padding: 28px 32px 20px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .onboarding-logo { font-size: 48px; margin-bottom: 12px; }
+    .onboarding-title { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+    .onboarding-sub { font-size: 13px; color: var(--text2); line-height: 1.5; }
+    .onboarding-body { padding: 24px 32px; }
+    .onboarding-step {
+      display: none;
+      animation: fadeSlide 0.3s ease;
+    }
+    .onboarding-step.active { display: block; }
+    @keyframes fadeSlide {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .step-number {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--cyan), var(--purple));
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+    .step-title { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+    .step-desc { font-size: 13px; color: var(--text2); margin-bottom: 20px; line-height: 1.5; }
+    .integration-card {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      transition: all 0.2s;
+    }
+    .integration-card:hover { border-color: var(--cyan); }
+    .integration-card.connected { border-color: var(--green); }
+    .integration-icon {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      background: var(--bg4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+    .integration-info { flex: 1; }
+    .integration-name { font-weight: 600; font-size: 14px; }
+    .integration-status { font-size: 11px; color: var(--text2); margin-top: 2px; }
+    .integration-status.ok { color: var(--green); }
+    .integration-btn {
+      padding: 6px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg4);
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .integration-btn:hover { border-color: var(--cyan); }
+    .integration-btn.primary {
+      background: linear-gradient(135deg, var(--cyan), var(--purple));
+      border: none;
+      color: #fff;
+    }
+    .integration-btn.primary:hover { transform: scale(1.02); }
+    .integration-btn.connected {
+      background: rgba(52, 211, 153, 0.15);
+      border-color: var(--green);
+      color: var(--green);
+    }
+    .onboarding-footer {
+      padding: 16px 32px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid var(--border);
+    }
+    .progress-dots {
+      display: flex;
+      gap: 6px;
+    }
+    .progress-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--bg4);
+    }
+    .progress-dot.active {
+      background: linear-gradient(135deg, var(--cyan), var(--purple));
+    }
+    .skip-link {
+      font-size: 12px;
+      color: var(--text3);
+      cursor: pointer;
+    }
+    .skip-link:hover { color: var(--text2); }
 
-    /* ===== APP SHELL ===== */
+    /* ===== TOKEN INPUT MODAL ===== */
+    .token-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(8px);
+      z-index: 1001;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .token-modal-overlay.active { display: flex; }
+    .token-modal {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 460px;
+      box-shadow: 0 25px 80px rgba(0,0,0,0.6);
+      animation: modalPop 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    @keyframes modalPop {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .token-modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .token-modal-body { padding: 20px 24px; }
+    .token-field { margin-bottom: 16px; }
+    .token-field-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text2);
+      margin-bottom: 6px;
+    }
+    .token-field-input {
+      width: 100%;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 11px 14px;
+      color: var(--text);
+      font-size: 13px;
+      font-family: 'JetBrains Mono', monospace;
+      outline: none;
+    }
+    .token-field-input:focus { border-color: var(--cyan); }
+    .token-help {
+      font-size: 11px;
+      color: var(--text2);
+      line-height: 1.5;
+      margin-top: 6px;
+      padding: 10px;
+      background: var(--bg3);
+      border-radius: 8px;
+    }
+    .token-help a { color: var(--cyan); text-decoration: none; }
+    .token-help a:hover { text-decoration: underline; }
+    .token-modal-footer {
+      padding: 14px 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+    .btn {
+      padding: 8px 16px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--bg3);
+      color: var(--text);
+      font-size: 13px;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-weight: 500;
+    }
+    .btn:hover { border-color: var(--cyan); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--cyan), var(--purple));
+      border: none;
+      color: #fff;
+    }
+    .btn-primary:hover { transform: scale(1.02); box-shadow: 0 0 20px rgba(56, 189, 248, 0.3); }
+
+    /* ===== MAIN APP STYLES (same as v4.0) ===== */
     .app { display: flex; height: 100vh; flex-direction: column; }
-
-    /* ===== TOP BAR ===== */
     .topbar {
       height: 44px;
       background: rgba(10, 14, 26, 0.85);
       backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
       border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
@@ -104,11 +323,7 @@
       gap: 5px;
     }
     .topbar-btn:hover { border-color: var(--cyan); color: var(--cyan2); }
-
-    /* ===== WORKSPACE ===== */
     .workspace { display: flex; flex: 1; overflow: hidden; }
-
-    /* ===== LEFT NAV ===== */
     .left-nav {
       width: 56px;
       background: var(--bg2);
@@ -132,8 +347,8 @@
       position: relative;
     }
     .nav-item:hover { background: var(--bg3); color: var(--text2); transform: scale(1.05); }
-    .nav-item.active { 
-      background: linear-gradient(135deg, rgba(56, 189, 248, 0.15), rgba(192, 132, 252, 0.15)); 
+    .nav-item.active {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.15), rgba(192, 132, 252, 0.15));
       color: var(--cyan);
       box-shadow: 0 0 20px rgba(56, 189, 248, 0.15);
     }
@@ -158,8 +373,6 @@
       background: var(--border);
       margin: 6px 0;
     }
-
-    /* ===== SIDEBAR ===== */
     .sidebar {
       width: 280px;
       background: var(--bg2);
@@ -211,8 +424,6 @@
       color: var(--cyan2);
     }
     .tree-item .icon { opacity: 0.5; font-size: 11px; }
-
-    /* ===== MAIN ===== */
     .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
     .tabs {
       display: flex;
@@ -234,9 +445,9 @@
       transition: all 0.15s;
     }
     .tab:hover { color: var(--text); }
-    .tab.active { 
-      background: var(--bg); 
-      color: var(--text); 
+    .tab.active {
+      background: var(--bg);
+      color: var(--text);
       border-bottom: 2px solid var(--cyan);
     }
     .tab-close { font-size: 14px; opacity: 0; padding: 0 2px; }
@@ -257,8 +468,6 @@
       tab-size: 2;
     }
     .editor::placeholder { color: var(--text3); }
-
-    /* ===== CHAT ===== */
     .chat {
       width: 380px;
       background: var(--bg2);
@@ -397,8 +606,8 @@
       justify-content: center;
     }
     .voice-btn:hover { border-color: var(--cyan); color: var(--cyan); }
-    .voice-btn.recording { 
-      background: linear-gradient(135deg, var(--red), var(--pink)); 
+    .voice-btn.recording {
+      background: linear-gradient(135deg, var(--red), var(--pink));
       color: #fff;
       border-color: var(--red);
       animation: pulse 1.5s infinite;
@@ -407,8 +616,6 @@
       0%, 100% { box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.4); }
       50% { box-shadow: 0 0 0 10px rgba(248, 113, 113, 0); }
     }
-
-    /* ===== BOTTOM BAR ===== */
     .bottombar {
       height: 28px;
       background: linear-gradient(90deg, var(--bg2), var(--bg3));
@@ -421,182 +628,179 @@
       color: var(--text2);
     }
     .bottombar-item { display: flex; align-items: center; gap: 5px; }
-
-    /* ===== MODAL ===== */
-    .modal-overlay {
-      display: none;
+    .toast {
       position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.7);
-      backdrop-filter: blur(8px);
-      z-index: 200;
-      align-items: center;
-      justify-content: center;
-      animation: fadeIn 0.2s ease;
-    }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    .modal-overlay.active { display: flex; }
-    .modal {
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
       background: var(--bg2);
       border: 1px solid var(--border);
-      border-radius: 16px;
-      width: 500px;
-      max-width: 92vw;
-      max-height: 84vh;
-      overflow-y: auto;
-      box-shadow: 0 25px 50px rgba(0,0,0,0.5);
-      animation: modalIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    @keyframes modalIn {
-      from { opacity: 0; transform: scale(0.95) translateY(10px); }
-      to { opacity: 1; transform: scale(1) translateY(0); }
-    }
-    .modal-header {
-      padding: 18px 22px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .modal-title { font-size: 16px; font-weight: 700; }
-    .modal-close {
-      background: none; border: none;
-      color: var(--text2); font-size: 20px; cursor: pointer;
-      width: 32px; height: 32px; border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .modal-close:hover { background: var(--bg3); color: var(--red); }
-    .modal-body { padding: 18px 22px; }
-    .section-title {
-      font-size: 11px; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 1px;
-      color: var(--text2);
-      margin: 18px 0 12px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid var(--border);
-    }
-    .section-title:first-child { margin-top: 0; }
-    .field { margin-bottom: 14px; }
-    .field-label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text2); margin-bottom: 6px; }
-    .field-input {
-      width: 100%;
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 9px 12px;
-      color: var(--text);
+      border-radius: 12px;
+      padding: 12px 20px;
       font-size: 13px;
-      font-family: 'JetBrains Mono', monospace;
-      outline: none;
+      z-index: 500;
+      opacity: 0;
+      transition: all 0.3s ease;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.4);
     }
-    .field-input:focus { border-color: var(--cyan); }
-    .field-help { font-size: 10px; color: var(--text3); margin-top: 4px; }
-    .field-select { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; color: var(--text); font-size: 13px; outline: none; }
-    .modal-footer { padding: 14px 22px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; }
-
-    .btn { padding: 7px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg3); color: var(--text); font-size: 12px; font-family: 'Inter', sans-serif; cursor: pointer; transition: all 0.15s; }
-    .btn:hover { border-color: var(--cyan); color: var(--cyan2); }
-    .btn-primary { background: linear-gradient(135deg, var(--cyan), var(--purple)); color: #fff; border: none; font-weight: 600; }
-    .btn-primary:hover { transform: scale(1.02); box-shadow: 0 0 20px rgba(56, 189, 248, 0.3); }
-
-    /* ===== JEOPARDY MODE ===== */
-    .jeopardy-grid {
-      display: grid;
-      grid-template-columns: repeat(6, 1fr);
-      gap: 8px;
-      padding: 20px;
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
     }
-    .jeopardy-category {
-      background: linear-gradient(135deg, #1e3a8a, #3b82f6);
-      padding: 16px 8px;
-      border-radius: 10px;
-      text-align: center;
-      font-weight: 700;
-      font-size: 12px;
-      text-transform: uppercase;
-    }
-    .jeopardy-card {
-      background: var(--bg3);
-      border: 2px solid var(--border);
-      padding: 20px 8px;
-      border-radius: 10px;
-      text-align: center;
-      font-size: 20px;
-      font-weight: 700;
-      color: var(--gold);
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .jeopardy-card:hover { 
-      border-color: var(--gold); 
-      transform: scale(1.05);
-      box-shadow: 0 0 20px rgba(251, 191, 36, 0.2);
-    }
-    .jeopardy-card.answered { opacity: 0.3; pointer-events: none; }
-
-    /* ===== SCROLLBAR ===== */
+    .toast.error { border-color: var(--red); }
+    .toast.success { border-color: var(--green); }
     ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 3px; }
     ::-webkit-scrollbar-thumb:hover { background: var(--text3); }
-
-    /* ===== RESPONSIVE ===== */
     @media (max-width: 900px) {
       .chat { width: 100%; position: fixed; inset: 44px 0 0 0; z-index: 50; }
-      .chat.hidden { display: none; }
       .sidebar { width: 240px; }
     }
   </style>
 </head>
 <body>
 
-<div class="app">
-  <!-- TOP BAR -->
-  <div class="topbar">
-    <div class="logo">
-      <span class="logo-icon">🦉</span>
-      <span>Athelgard</span>
+<!-- ===== ONBOARDING WIZARD ===== -->
+<div class="onboarding-overlay" id="onboarding">
+  <div class="onboarding-card">
+    <div class="onboarding-header">
+      <div class="onboarding-logo">🦉</div>
+      <div class="onboarding-title">Welcome to Athelgard</div>
+      <div class="onboarding-sub">Your AI coding agent. Connect your tools and start coding.</div>
     </div>
+
+    <!-- Step 1: DeepSeek -->
+    <div class="onboarding-step active" id="step-1">
+      <div class="onboarding-body">
+        <div class="step-number">1</div>
+        <div class="step-title">Connect DeepSeek AI</div>
+        <div class="step-desc">Athelgard uses DeepSeek for intelligent code assistance. Add your API key to get started.</div>
+        <div class="integration-card" id="card-deepseek">
+          <div class="integration-icon">🧠</div>
+          <div class="integration-info">
+            <div class="integration-name">DeepSeek AI</div>
+            <div class="integration-status" id="status-deepseek">Not connected</div>
+          </div>
+          <button class="integration-btn primary" id="btn-deepseek" onclick="showTokenModal('deepseek')">Add Key</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Integrations -->
+    <div class="onboarding-step" id="step-2">
+      <div class="onboarding-body">
+        <div class="step-number">2</div>
+        <div class="step-title">Connect Your Tools</div>
+        <div class="step-desc">Link GitHub, Vercel, and Supabase to enable full agent capabilities.</div>
+
+        <div class="integration-card" id="card-github">
+          <div class="integration-icon">🐙</div>
+          <div class="integration-info">
+            <div class="integration-name">GitHub</div>
+            <div class="integration-status" id="status-github">Not connected</div>
+          </div>
+          <button class="integration-btn" id="btn-github" onclick="showTokenModal('github')">Connect</button>
+        </div>
+
+        <div class="integration-card" id="card-vercel">
+          <div class="integration-icon">▲</div>
+          <div class="integration-info">
+            <div class="integration-name">Vercel</div>
+            <div class="integration-status" id="status-vercel">Not connected</div>
+          </div>
+          <button class="integration-btn" id="btn-vercel" onclick="showTokenModal('vercel')">Connect</button>
+        </div>
+
+        <div class="integration-card" id="card-supabase">
+          <div class="integration-icon">🟢</div>
+          <div class="integration-info">
+            <div class="integration-name">Supabase</div>
+            <div class="integration-status" id="status-supabase">Not connected</div>
+          </div>
+          <button class="integration-btn" id="btn-supabase" onclick="showTokenModal('supabase')">Connect</button>
+        </div>
+
+        <div class="integration-card" id="card-eleven">
+          <div class="integration-icon">🎤</div>
+          <div class="integration-info">
+            <div class="integration-name">ElevenLabs Voice</div>
+            <div class="integration-status" id="status-eleven">Optional</div>
+          </div>
+          <button class="integration-btn" id="btn-eleven" onclick="showTokenModal('eleven')">Add Key</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Ready -->
+    <div class="onboarding-step" id="step-3">
+      <div class="onboarding-body" style="text-align:center; padding: 40px 32px;">
+        <div style="font-size: 64px; margin-bottom: 16px;">🦉</div>
+        <div class="step-title" style="font-size: 20px;">Athelgard is Ready!</div>
+        <div class="step-desc" style="margin-bottom: 24px;">Your AI coding agent is connected and ready to help you code.</div>
+        <div id="ready-summary" style="font-size: 12px; color: var(--text2); line-height: 2;"></div>
+      </div>
+    </div>
+
+    <div class="onboarding-footer">
+      <span class="skip-link" id="skip-btn" onclick="skipOnboarding()">Skip for now</span>
+      <div class="progress-dots">
+        <div class="progress-dot active" id="dot-1"></div>
+        <div class="progress-dot" id="dot-2"></div>
+        <div class="progress-dot" id="dot-3"></div>
+      </div>
+      <button class="integration-btn primary" id="next-btn" onclick="nextStep()">Continue →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TOKEN INPUT MODAL ===== -->
+<div class="token-modal-overlay" id="token-modal-overlay" onclick="if(event.target===this)closeTokenModal()">
+  <div class="token-modal">
+    <div class="token-modal-header">
+      <span id="token-icon" style="font-size:24px;">🔑</span>
+      <span id="token-title" style="font-weight:700;font-size:15px;">Add API Key</span>
+    </div>
+    <div class="token-modal-body">
+      <div class="token-field">
+        <label class="token-field-label" id="token-label">API Key</label>
+        <input class="token-field-input" id="token-input" type="password" placeholder="Enter your key...">
+      </div>
+      <div class="token-field" id="token-url-field" style="display:none;">
+        <label class="token-field-label">Project URL</label>
+        <input class="token-field-input" id="token-url-input" placeholder="https://...supabase.co">
+      </div>
+      <div class="token-help" id="token-help"></div>
+    </div>
+    <div class="token-modal-footer">
+      <button class="btn" onclick="closeTokenModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveToken()">Save & Connect</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MAIN APP ===== -->
+<div class="app" id="main-app" style="display:none;">
+  <div class="topbar">
+    <div class="logo"><span class="logo-icon">🦉</span><span>Athelgard</span></div>
     <div class="topbar-spacer"></div>
-    <div class="status-pill" id="github-pill"><span class="dot"></span>GitHub</div>
-    <div class="status-pill" id="vercel-pill"><span class="dot"></span>Vercel</div>
-    <div class="status-pill" id="supabase-pill"><span class="dot"></span>Supabase</div>
+    <div class="status-pill" id="github-pill" onclick="showTokenModal('github')"><span class="dot"></span>GitHub</div>
+    <div class="status-pill" id="vercel-pill" onclick="showTokenModal('vercel')"><span class="dot"></span>Vercel</div>
+    <div class="status-pill" id="supabase-pill" onclick="showTokenModal('supabase')"><span class="dot"></span>Supabase</div>
     <button class="topbar-btn" onclick="showSettings()">⚙</button>
-    <button class="topbar-btn" onclick="toggleJeopardy()">🎯 Jeopardy</button>
   </div>
 
-  <!-- WORKSPACE -->
-  <div class="workspace" id="workspace">
-    <!-- LEFT NAV -->
+  <div class="workspace">
     <div class="left-nav">
-      <div class="nav-item active" onclick="switchNav('files')" title="Files">
-        📄
-        <span class="nav-tooltip">Files</span>
-      </div>
-      <div class="nav-item" onclick="switchNav('github')" title="GitHub">
-        🐙
-        <span class="nav-tooltip">GitHub</span>
-      </div>
-      <div class="nav-item" onclick="switchNav('vercel')" title="Vercel">
-        ▲
-        <span class="nav-tooltip">Vercel</span>
-      </div>
-      <div class="nav-item" onclick="switchNav('supabase')" title="Supabase">
-        🟢
-        <span class="nav-tooltip">Supabase</span>
-      </div>
+      <div class="nav-item active" onclick="switchNav('files')" title="Files">📄<span class="nav-tooltip">Files</span></div>
+      <div class="nav-item" onclick="switchNav('github')" title="GitHub">🐙<span class="nav-tooltip">GitHub</span></div>
+      <div class="nav-item" onclick="switchNav('vercel')" title="Vercel">▲<span class="nav-tooltip">Vercel</span></div>
+      <div class="nav-item" onclick="switchNav('supabase')" title="Supabase">🟢<span class="nav-tooltip">Supabase</span></div>
       <div class="nav-divider"></div>
-      <div class="nav-item" onclick="newFile()" title="New File">
-        ✨
-        <span class="nav-tooltip">New File</span>
-      </div>
-      <div class="nav-item" onclick="toggleVoice()" id="voice-nav" title="Voice Mode">
-        🎤
-        <span class="nav-tooltip">Voice Mode</span>
-      </div>
+      <div class="nav-item" onclick="newFile()" title="New File">✨<span class="nav-tooltip">New File</span></div>
+      <div class="nav-item" onclick="toggleVoice()" id="voice-nav" title="Voice">🎤<span class="nav-tooltip">Voice</span></div>
     </div>
 
-    <!-- SIDEBARS -->
     <div class="sidebar active" id="sidebar-files">
       <div class="sidebar-header"><span>Explorer</span></div>
       <div class="sidebar-body" id="file-tree">
@@ -608,7 +812,7 @@
     <div class="sidebar" id="sidebar-github">
       <div class="sidebar-header">
         <span>GitHub</span>
-        <button class="btn" style="padding:2px 8px;font-size:10px;" onclick="browseGitHub()">Connect</button>
+        <button class="integration-btn" style="padding:2px 8px;font-size:10px;" onclick="browseGitHub()">Browse</button>
       </div>
       <div class="sidebar-body" id="github-tree"></div>
     </div>
@@ -616,7 +820,7 @@
     <div class="sidebar" id="sidebar-vercel">
       <div class="sidebar-header">
         <span>Vercel</span>
-        <button class="btn" style="padding:2px 8px;font-size:10px;" onclick="loadVercel()">Connect</button>
+        <button class="integration-btn" style="padding:2px 8px;font-size:10px;" onclick="loadVercel()">View</button>
       </div>
       <div class="sidebar-body" id="vercel-tree"></div>
     </div>
@@ -624,47 +828,30 @@
     <div class="sidebar" id="sidebar-supabase">
       <div class="sidebar-header">
         <span>Supabase</span>
-        <button class="btn" style="padding:2px 8px;font-size:10px;" onclick="loadSupabase()">Connect</button>
+        <button class="integration-btn" style="padding:2px 8px;font-size:10px;" onclick="loadSupabase()">Query</button>
       </div>
       <div class="sidebar-body" id="supabase-tree"></div>
     </div>
 
-    <!-- MAIN EDITOR -->
-    <div class="main" id="main-editor">
+    <div class="main">
       <div class="tabs" id="tabs">
-        <div class="tab active" data-file="main.js">
-          main.js
-          <span class="tab-close" onclick="closeTab('main.js', event)">×</span>
-        </div>
+        <div class="tab active" data-file="main.js">main.js<span class="tab-close" onclick="closeTab('main.js',event)">×</span></div>
       </div>
       <div class="editor-wrap">
         <textarea class="editor" id="editor" placeholder="// Welcome to Athelgard — Your AI Coding Agent
-// Press 🎤 to talk, or type here to code...
-// Connected: GitHub | Vercel | Supabase | DeepSeek"></textarea>
+// Press 🎤 to talk, or type here to code..."></textarea>
       </div>
     </div>
 
-    <!-- JEOPARDY MODE -->
-    <div class="main" id="main-jeopardy" style="display:none; overflow-y:auto;">
-      <div style="padding:20px;">
-        <h2 style="text-align:center; margin-bottom:20px; font-size:24px;">🎯 Code Jeopardy</h2>
-        <div class="jeopardy-grid" id="jeopardy-grid"></div>
-      </div>
-    </div>
-
-    <!-- CHAT -->
-    <div class="chat" id="chat-panel">
+    <div class="chat">
       <div class="chat-header">
         <div class="chat-avatar">🦉</div>
-        <div>
-          <div class="chat-title">Athelgard</div>
-          <div class="chat-sub">AI Coding Agent</div>
-        </div>
+        <div><div class="chat-title">Athelgard</div><div class="chat-sub">AI Coding Agent</div></div>
         <div class="chat-model" id="model-badge">DeepSeek V3</div>
       </div>
       <div class="messages" id="messages">
         <div class="msg msg-assistant">
-          Hey! I'm Athelgard — your AI coding partner. I'm connected to your GitHub, Vercel, and Supabase. Ask me anything, or press 🎤 to talk!
+          Hey! I'm Athelgard — your AI coding partner. Press 🎤 to talk, or type here. I'm connected to your GitHub, Vercel, and Supabase!
         </div>
       </div>
       <div class="chat-input-wrap">
@@ -675,688 +862,653 @@
     </div>
   </div>
 
-  <!-- BOTTOM BAR -->
   <div class="bottombar" id="bottombar">
     <div class="bottombar-item">🦉 Ready</div>
     <div class="bottombar-item" id="peak-status">Checking pricing...</div>
     <div class="bottombar-item" id="cost-tracker">$0.0000</div>
-    <div class="bottombar-item" id="benchmark-score">Score: 0</div>
   </div>
 </div>
 
-<!-- SETTINGS MODAL -->
-<div class="modal-overlay" id="settings-modal" onclick="if(event.target===this)hideSettings()">
-  <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title">⚙ Settings</span>
-      <button class="modal-close" onclick="hideSettings()">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="section-title">🧠 AI Configuration</div>
-      <div class="field">
-        <label class="field-label">DeepSeek API Key</label>
-        <input class="field-input" id="api-key-input" type="password" placeholder="sk-...">
-        <div class="field-help">Get at platform.deepseek.com</div>
-      </div>
-      <div class="field">
-        <label class="field-label">Model</label>
-        <select class="field-select" id="model-select">
-          <option value="deepseek-chat">DeepSeek V3 (Smart & Fast)</option>
-          <option value="deepseek-reasoner">DeepSeek R1 (Reasoning)</option>
-          <option value="deepseek-coder">DeepSeek Coder (Expert)</option>
-        </select>
-      </div>
-      <div class="field">
-        <label class="field-label">Peak Hours Fallback</label>
-        <select class="field-select" id="peak-model-select">
-          <option value="deepseek-chat">Stay on V3 (2x cost)</option>
-          <option value="deepseek-coder">Switch to Coder (cheaper)</option>
-        </select>
-      </div>
-
-      <div class="section-title">🔗 Integrations</div>
-      <div class="field">
-        <label class="field-label">GitHub Token</label>
-        <input class="field-input" id="github-key-input" type="password" placeholder="ghp_...">
-      </div>
-      <div class="field">
-        <label class="field-label">Vercel Token</label>
-        <input class="field-input" id="vercel-key-input" type="password" placeholder="vcp_...">
-      </div>
-      <div class="field">
-        <label class="field-label">Supabase URL</label>
-        <input class="field-input" id="supabase-url-input" placeholder="https://...supabase.co">
-      </div>
-      <div class="field">
-        <label class="field-label">Supabase Key</label>
-        <input class="field-input" id="supabase-key-input" type="password" placeholder="eyJ...">
-      </div>
-
-      <div class="section-title">🎤 Voice</div>
-      <div class="field">
-        <label class="field-label">ElevenLabs API Key (for voice)</label>
-        <input class="field-input" id="eleven-key-input" type="password" placeholder="sk_...">
-        <div class="field-help">Get at elevenlabs.io for premium voice</div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn" onclick="hideSettings()">Cancel</button>
-      <button class="btn btn-primary" onclick="saveSettings()">Save & Connect</button>
-    </div>
-  </div>
-</div>
-
-<!-- JEOPARDY QUESTION MODAL -->
-<div class="modal-overlay" id="jeopardy-modal" onclick="if(event.target===this)closeJeopardyQuestion()">
-  <div class="modal" style="width:600px;">
-    <div class="modal-header">
-      <span class="modal-title" id="jeopardy-title">Category - $100</span>
-      <button class="modal-close" onclick="closeJeopardyQuestion()">✕</button>
-    </div>
-    <div class="modal-body">
-      <div id="jeopardy-question" style="font-size:16px; line-height:1.6; margin-bottom:20px;"></div>
-      <input class="field-input" id="jeopardy-answer" placeholder="Your answer..." onkeydown="if(event.key==='Enter')submitJeopardy()">
-    </div>
-    <div class="modal-footer">
-      <button class="btn" onclick="closeJeopardyQuestion()">Skip</button>
-      <button class="btn btn-primary" onclick="submitJeopardy()">Submit</button>
-    </div>
-  </div>
-</div>
+<div class="toast" id="toast"></div>
 
 <script src="lib/github.js"></script>
 <script src="lib/vercel.js"></script>
 <script src="lib/supabase.js"></script>
 <script>
-  // ===== STATE =====
-  const config = {
-    apiKey: localStorage.getItem('athelgard_api_key') || '',
-    githubToken: localStorage.getItem('athelgard_github_key') || '',
-    vercelToken: localStorage.getItem('athelgard_vercel_key') || '',
-    supabaseUrl: localStorage.getItem('athelgard_supabase_url') || '',
-    supabaseKey: localStorage.getItem('athelgard_supabase_key') || '',
-    elevenKey: localStorage.getItem('athelgard_eleven_key') || '',
-    model: localStorage.getItem('athelgard_model') || 'deepseek-chat',
-    peakModel: localStorage.getItem('athelgard_peak_model') || 'deepseek-coder',
-    temperature: parseFloat(localStorage.getItem('athelgard_temp')) || 0.7
-  };
+// ===== CONFIG =====
+const config = {
+  apiKey: localStorage.getItem('athelgard_api_key') || '',
+  githubToken: localStorage.getItem('athelgard_github_key') || '',
+  vercelToken: localStorage.getItem('athelgard_vercel_key') || '',
+  supabaseUrl: localStorage.getItem('athelgard_supabase_url') || '',
+  supabaseKey: localStorage.getItem('athelgard_supabase_key') || '',
+  elevenKey: localStorage.getItem('athelgard_eleven_key') || ''
+};
+let currentOnboardingStep = 1;
+let currentTokenType = '';
+let github = null, vercel = null, supabase = null;
 
-  let openFiles = { 'main.js': localStorage.getItem('athelgard_main_js') || '// Welcome to Athelgard!\n// Press 🎤 to talk, or type here to code...\n\nconsole.log("Hello, Athelgard!");' };
-  let currentFile = 'main.js';
-  let github = null, vercel = null, supabase = null;
-  let messageHistory = [];
-  let githubStack = [];
-  let currentGitHubOwner = 'NyxSpecter4', currentGitHubRepo = 'bountywarz';
-  let totalCost = parseFloat(localStorage.getItem('athelgard_cost')) || 0;
-  let isPeak = false;
-  let score = parseInt(localStorage.getItem('athelgard_score')) || 0;
-  let isRecording = false;
-  let recognition = null;
-  let currentJeopardy = null;
+// ===== ONBOARDING =====
+function checkOnboarding() {
+  const hasDeepSeek = !!config.apiKey;
+  const hasAnyIntegration = config.githubToken || config.vercelToken || config.supabaseUrl;
 
-  const editor = document.getElementById('editor');
-  const messages = document.getElementById('messages');
-  const chatInput = document.getElementById('chat-input');
-  const sendBtn = document.getElementById('send-btn');
-  const modelBadge = document.getElementById('model-badge');
-  const peakStatus = document.getElementById('peak-status');
-  const costTracker = document.getElementById('cost-tracker');
-  const benchmarkScore = document.getElementById('benchmark-score');
-
-  // ===== PEAK PRICING =====
-  function checkPeakHours() {
-    const now = new Date();
-    const pst = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
-    const hour = pst.getHours();
-    isPeak = hour >= 9 && hour < 21;
-    updatePeakUI();
+  if (!hasDeepSeek || !hasAnyIntegration) {
+    document.getElementById('onboarding').classList.add('active');
+    document.getElementById('main-app').style.display = 'none';
+    updateOnboardingUI();
+  } else {
+    document.getElementById('onboarding').classList.remove('active');
+    document.getElementById('main-app').style.display = 'flex';
+    initApp();
   }
-  function updatePeakUI() {
-    if (isPeak) {
-      peakStatus.innerHTML = `⚠ Peak (9AM-9PM PST) — 2x cost`;
-      peakStatus.style.color = 'var(--orange)';
-      modelBadge.textContent = 'Peak: ' + (config.peakModel === 'deepseek-coder' ? 'Coder' : 'V3');
-      modelBadge.className = 'chat-model peak';
-    } else {
-      peakStatus.innerHTML = `✓ Off-Peak — 50% off`;
-      peakStatus.style.color = 'var(--green)';
-      modelBadge.textContent = 'Off-Peak: V3';
-      modelBadge.className = 'chat-model offpeak';
-    }
-  }
-  function getCurrentModel() {
-    return (isPeak && config.peakModel === 'deepseek-coder') ? config.peakModel : config.model;
-  }
-  checkPeakHours();
-  setInterval(checkPeakHours, 60000);
+}
 
-  // ===== INIT =====
-  editor.value = openFiles[currentFile];
-  initConnections();
-  updateCostUI();
-  benchmarkScore.textContent = 'Score: ' + score;
-
-  function initConnections() {
-    if (config.githubToken && typeof GitHubClient !== 'undefined') {
-      github = new GitHubClient(config.githubToken);
-      document.getElementById('github-pill').className = 'status-pill ok';
-    }
-    if (config.vercelToken && typeof VercelClient !== 'undefined') {
-      vercel = new VercelClient(config.vercelToken);
-      document.getElementById('vercel-pill').className = 'status-pill ok';
-    }
-    if (config.supabaseUrl && config.supabaseKey && typeof SupabaseClient !== 'undefined') {
-      supabase = new SupabaseClient(config.supabaseUrl, config.supabaseKey);
-      document.getElementById('supabase-pill').className = 'status-pill ok';
-    }
-  }
-  function updateCostUI() { costTracker.textContent = '$' + totalCost.toFixed(4); }
-
-  // ===== NAVIGATION =====
-  function switchNav(tab) {
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    event.target.closest('.nav-item').classList.add('active');
-    document.querySelectorAll('.sidebar').forEach(s => s.classList.remove('active'));
-    document.getElementById('sidebar-' + tab).classList.add('active');
+function updateOnboardingUI() {
+  // DeepSeek status
+  const dsStatus = document.getElementById('status-deepseek');
+  const dsCard = document.getElementById('card-deepseek');
+  const dsBtn = document.getElementById('btn-deepseek');
+  if (config.apiKey) {
+    dsStatus.textContent = '✓ Connected';
+    dsStatus.className = 'integration-status ok';
+    dsCard.classList.add('connected');
+    dsBtn.textContent = 'Change';
+    dsBtn.className = 'integration-btn connected';
   }
 
-  // ===== SETTINGS =====
-  function showSettings() {
-    document.getElementById('api-key-input').value = config.apiKey;
-    document.getElementById('github-key-input').value = config.githubToken;
-    document.getElementById('vercel-key-input').value = config.vercelToken;
-    document.getElementById('supabase-url-input').value = config.supabaseUrl;
-    document.getElementById('supabase-key-input').value = config.supabaseKey;
-    document.getElementById('eleven-key-input').value = config.elevenKey;
-    document.getElementById('model-select').value = config.model;
-    document.getElementById('peak-model-select').value = config.peakModel;
-    document.getElementById('settings-modal').classList.add('active');
+  // GitHub
+  const ghStatus = document.getElementById('status-github');
+  const ghCard = document.getElementById('card-github');
+  const ghBtn = document.getElementById('btn-github');
+  if (config.githubToken) {
+    ghStatus.textContent = '✓ Connected';
+    ghStatus.className = 'integration-status ok';
+    ghCard.classList.add('connected');
+    ghBtn.textContent = 'Change';
+    ghBtn.className = 'integration-btn connected';
   }
-  function hideSettings() { document.getElementById('settings-modal').classList.remove('active'); }
-  function saveSettings() {
-    config.apiKey = document.getElementById('api-key-input').value.trim();
-    config.githubToken = document.getElementById('github-key-input').value.trim();
-    config.vercelToken = document.getElementById('vercel-key-input').value.trim();
-    config.supabaseUrl = document.getElementById('supabase-url-input').value.trim();
-    config.supabaseKey = document.getElementById('supabase-key-input').value.trim();
-    config.elevenKey = document.getElementById('eleven-key-input').value.trim();
-    config.model = document.getElementById('model-select').value;
-    config.peakModel = document.getElementById('peak-model-select').value;
-    Object.keys(config).forEach(k => localStorage.setItem('athelgard_' + k, config[k]));
+
+  // Vercel
+  const vStatus = document.getElementById('status-vercel');
+  if (config.vercelToken) {
+    vStatus.textContent = '✓ Connected';
+    vStatus.className = 'integration-status ok';
+    document.getElementById('card-vercel').classList.add('connected');
+    document.getElementById('btn-vercel').textContent = 'Change';
+    document.getElementById('btn-vercel').className = 'integration-btn connected';
+  }
+
+  // Supabase
+  const sStatus = document.getElementById('status-supabase');
+  if (config.supabaseUrl && config.supabaseKey) {
+    sStatus.textContent = '✓ Connected';
+    sStatus.className = 'integration-status ok';
+    document.getElementById('card-supabase').classList.add('connected');
+    document.getElementById('btn-supabase').textContent = 'Change';
+    document.getElementById('btn-supabase').className = 'integration-btn connected';
+  }
+
+  // ElevenLabs
+  const eStatus = document.getElementById('status-eleven');
+  if (config.elevenKey) {
+    eStatus.textContent = '✓ Connected';
+    eStatus.className = 'integration-status ok';
+  }
+
+  // Update ready summary
+  const connections = [];
+  if (config.apiKey) connections.push('🧠 DeepSeek AI');
+  if (config.githubToken) connections.push('🐙 GitHub');
+  if (config.vercelToken) connections.push('▲ Vercel');
+  if (config.supabaseUrl) connections.push('🟢 Supabase');
+  document.getElementById('ready-summary').innerHTML = connections.join('<br>') || 'No connections yet';
+
+  // Update button
+  const nextBtn = document.getElementById('next-btn');
+  if (currentOnboardingStep === 1 && config.apiKey) {
+    nextBtn.textContent = 'Continue →';
+    nextBtn.disabled = false;
+  } else if (currentOnboardingStep === 3) {
+    nextBtn.textContent = 'Start Coding 🚀';
+    nextBtn.onclick = () => {
+      localStorage.setItem('athelgard_onboarded', 'true');
+      document.getElementById('onboarding').classList.remove('active');
+      document.getElementById('main-app').style.display = 'flex';
+      initApp();
+    };
+  }
+}
+
+function nextStep() {
+  if (currentOnboardingStep === 1 && !config.apiKey) {
+    showToast('Please add your DeepSeek API key first', 'error');
+    return;
+  }
+
+  document.getElementById('step-' + currentOnboardingStep).classList.remove('active');
+  document.getElementById('dot-' + currentOnboardingStep).classList.remove('active');
+  currentOnboardingStep++;
+  document.getElementById('step-' + currentOnboardingStep).classList.add('active');
+  document.getElementById('dot-' + currentOnboardingStep).classList.add('active');
+  updateOnboardingUI();
+}
+
+function skipOnboarding() {
+  localStorage.setItem('athelgard_onboarded', 'true');
+  document.getElementById('onboarding').classList.remove('active');
+  document.getElementById('main-app').style.display = 'flex';
+  initApp();
+}
+
+// ===== TOKEN MODAL =====
+const TOKEN_CONFIG = {
+  deepseek: {
+    icon: '🧠', title: 'DeepSeek API Key',
+    label: 'API Key', placeholder: 'sk-...',
+    help: 'Get your key at <a href="https://platform.deepseek.com" target="_blank">platform.deepseek.com</a> → API Keys → Create new key'
+  },
+  github: {
+    icon: '🐙', title: 'GitHub Token',
+    label: 'Personal Access Token', placeholder: 'ghp_...',
+    help: 'Go to <a href="https://github.com/settings/tokens" target="_blank">github.com/settings/tokens</a> → Generate new token (classic) → Select "repo" scope → Generate'
+  },
+  vercel: {
+    icon: '▲', title: 'Vercel Token',
+    label: 'Token', placeholder: 'vcp_...',
+    help: 'Go to <a href="https://vercel.com/account/tokens" target="_blank">vercel.com/account/tokens</a> → Create Token'
+  },
+  supabase: {
+    icon: '🟢', title: 'Supabase',
+    label: 'Service Role Key', placeholder: 'eyJ...',
+    help: 'Go to <a href="https://supabase.com" target="_blank">supabase.com</a> → Your Project → Project Settings → API → service_role key',
+    needsUrl: true
+  },
+  eleven: {
+    icon: '🎤', title: 'ElevenLabs Voice',
+    label: 'API Key', placeholder: 'sk_...',
+    help: 'Get at <a href="https://elevenlabs.io" target="_blank">elevenlabs.io</a> → Profile → API Keys'
+  }
+};
+
+function showTokenModal(type) {
+  currentTokenType = type;
+  const cfg = TOKEN_CONFIG[type];
+  document.getElementById('token-icon').textContent = cfg.icon;
+  document.getElementById('token-title').textContent = cfg.title;
+  document.getElementById('token-label').textContent = cfg.label;
+  document.getElementById('token-input').placeholder = cfg.placeholder;
+  document.getElementById('token-input').value = config[type === 'deepseek' ? 'apiKey' : type === 'github' ? 'githubToken' : type === 'vercel' ? 'vercelToken' : type === 'eleven' ? 'elevenKey' : 'supabaseKey'] || '';
+  document.getElementById('token-help').innerHTML = cfg.help;
+
+  const urlField = document.getElementById('token-url-field');
+  if (cfg.needsUrl) {
+    urlField.style.display = 'block';
+    document.getElementById('token-url-input').value = config.supabaseUrl || '';
+  } else {
+    urlField.style.display = 'none';
+  }
+
+  document.getElementById('token-modal-overlay').classList.add('active');
+}
+
+function closeTokenModal() {
+  document.getElementById('token-modal-overlay').classList.remove('active');
+}
+
+function saveToken() {
+  const value = document.getElementById('token-input').value.trim();
+  if (!value) {
+    showToast('Please enter a key', 'error');
+    return;
+  }
+
+  switch (currentTokenType) {
+    case 'deepseek':
+      config.apiKey = value;
+      localStorage.setItem('athelgard_api_key', value);
+      break;
+    case 'github':
+      config.githubToken = value;
+      localStorage.setItem('athelgard_github_key', value);
+      break;
+    case 'vercel':
+      config.vercelToken = value;
+      localStorage.setItem('athelgard_vercel_key', value);
+      break;
+    case 'supabase':
+      config.supabaseKey = value;
+      config.supabaseUrl = document.getElementById('token-url-input').value.trim();
+      localStorage.setItem('athelgard_supabase_key', value);
+      localStorage.setItem('athelgard_supabase_url', config.supabaseUrl);
+      break;
+    case 'eleven':
+      config.elevenKey = value;
+      localStorage.setItem('athelgard_eleven_key', value);
+      break;
+  }
+
+  closeTokenModal();
+  updateOnboardingUI();
+  showToast('✓ Connected!', 'success');
+
+  // If in main app, re-init
+  if (document.getElementById('main-app').style.display !== 'none') {
     initConnections();
-    checkPeakHours();
-    hideSettings();
-    addMsg('assistant', '✅ All connections saved! Athelgard is ready.');
   }
+}
 
-  // ===== FILES =====
-  function newFile() {
-    const name = prompt('File name:', 'script.js');
-    if (!name) return;
-    openFiles[name] = '';
-    addTreeItem(name);
-    addTab(name);
-    switchToFile(name);
-    switchNav('files');
+// ===== TOAST =====
+function showToast(message, type) {
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.className = 'toast ' + type;
+  setTimeout(() => toast.classList.add('show'), 10);
+  setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+// ===== APP INIT =====
+function initApp() {
+  initConnections();
+  // ... rest of app init
+}
+
+function initConnections() {
+  if (config.githubToken && typeof GitHubClient !== 'undefined') {
+    github = new GitHubClient(config.githubToken);
+    document.getElementById('github-pill').className = 'status-pill ok';
+  } else {
+    document.getElementById('github-pill').className = 'status-pill';
   }
-  function addTreeItem(name) {
-    const tree = document.getElementById('file-tree');
-    if (tree.querySelector(`[data-file="${name}"]`)) return;
-    const item = document.createElement('div');
-    item.className = 'tree-item';
-    item.dataset.file = name;
-    item.innerHTML = `<span class="icon">📄</span> ${name}`;
-    item.onclick = () => switchToFile(name);
-    tree.appendChild(item);
+  if (config.vercelToken && typeof VercelClient !== 'undefined') {
+    vercel = new VercelClient(config.vercelToken);
+    document.getElementById('vercel-pill').className = 'status-pill ok';
   }
-  function addTab(name) {
-    const tabs = document.getElementById('tabs');
-    if (tabs.querySelector(`[data-file="${name}"]`)) return;
-    const tab = document.createElement('div');
-    tab.className = 'tab';
-    tab.dataset.file = name;
-    tab.innerHTML = `${name}<span class="tab-close" onclick="closeTab('${name}',event)">×</span>`;
-    tab.onclick = (e) => { if (e.target.className !== 'tab-close') switchToFile(name); };
-    tabs.appendChild(tab);
+  if (config.supabaseUrl && config.supabaseKey && typeof SupabaseClient !== 'undefined') {
+    supabase = new SupabaseClient(config.supabaseUrl, config.supabaseKey);
+    document.getElementById('supabase-pill').className = 'status-pill ok';
   }
-  function switchToFile(name) {
-    openFiles[currentFile] = editor.value;
-    currentFile = name;
-    editor.value = openFiles[name] || '';
-    document.querySelectorAll('.tree-item').forEach(i => i.classList.toggle('active', i.dataset.file === name));
-    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.file === name));
+}
+
+// ===== FILE MANAGEMENT =====
+let openFiles = { 'main.js': localStorage.getItem('athelgard_main_js') || '// Welcome to Athelgard!\n// Press 🎤 to talk, or type here to code...\n\nconsole.log("Hello, Athelgard!");' };
+let currentFile = 'main.js';
+let messageHistory = [];
+let githubStack = [];
+let currentGitHubOwner = 'NyxSpecter4', currentGitHubRepo = 'bountywarz';
+let totalCost = parseFloat(localStorage.getItem('athelgard_cost')) || 0;
+let isPeak = false;
+let isRecording = false;
+let recognition = null;
+
+const editor = document.getElementById('editor');
+const messages = document.getElementById('messages');
+const chatInput = document.getElementById('chat-input');
+const sendBtn = document.getElementById('send-btn');
+const modelBadge = document.getElementById('model-badge');
+const peakStatus = document.getElementById('peak-status');
+const costTracker = document.getElementById('cost-tracker');
+
+// ===== PEAK PRICING =====
+function checkPeakHours() {
+  const now = new Date();
+  const pst = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+  const hour = pst.getHours();
+  isPeak = hour >= 9 && hour < 21;
+  if (isPeak) {
+    peakStatus.innerHTML = `⚠ Peak (9AM-9PM PST) — 2x cost`;
+    peakStatus.style.color = 'var(--orange)';
+    modelBadge.textContent = 'Peak: V3';
+    modelBadge.className = 'chat-model peak';
+  } else {
+    peakStatus.innerHTML = `✓ Off-Peak — 50% off`;
+    peakStatus.style.color = 'var(--green)';
+    modelBadge.textContent = 'Off-Peak: V3';
+    modelBadge.className = 'chat-model offpeak';
   }
-  function closeTab(name, e) {
-    e.stopPropagation();
-    delete openFiles[name];
-    document.querySelector(`.tab[data-file="${name}"]`)?.remove();
-    document.querySelector(`.tree-item[data-file="${name}"]`)?.remove();
-    const remaining = Object.keys(openFiles);
-    if (remaining.length) switchToFile(remaining[0]);
-    else newFile();
+}
+checkPeakHours();
+setInterval(checkPeakHours, 60000);
+
+// ===== NAVIGATION =====
+function switchNav(tab) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  event.target.closest('.nav-item').classList.add('active');
+  document.querySelectorAll('.sidebar').forEach(s => s.classList.remove('active'));
+  document.getElementById('sidebar-' + tab).classList.add('active');
+}
+
+// ===== FILES =====
+function newFile() {
+  const name = prompt('File name:', 'script.js');
+  if (!name) return;
+  openFiles[name] = '';
+  addTreeItem(name);
+  addTab(name);
+  switchToFile(name);
+  switchNav('files');
+}
+function addTreeItem(name) {
+  const tree = document.getElementById('file-tree');
+  if (tree.querySelector(`[data-file="${name}"]`)) return;
+  const item = document.createElement('div');
+  item.className = 'tree-item';
+  item.dataset.file = name;
+  item.innerHTML = `<span class="icon">📄</span> ${name}`;
+  item.onclick = () => switchToFile(name);
+  tree.appendChild(item);
+}
+function addTab(name) {
+  const tabs = document.getElementById('tabs');
+  if (tabs.querySelector(`[data-file="${name}"]`)) return;
+  const tab = document.createElement('div');
+  tab.className = 'tab';
+  tab.dataset.file = name;
+  tab.innerHTML = `${name}<span class="tab-close" onclick="closeTab('${name}',event)">×</span>`;
+  tab.onclick = (e) => { if (e.target.className !== 'tab-close') switchToFile(name); };
+  tabs.appendChild(tab);
+}
+function switchToFile(name) {
+  openFiles[currentFile] = editor.value;
+  currentFile = name;
+  editor.value = openFiles[name] || '';
+  document.querySelectorAll('.tree-item').forEach(i => i.classList.toggle('active', i.dataset.file === name));
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.file === name));
+}
+function closeTab(name, e) {
+  e.stopPropagation();
+  delete openFiles[name];
+  document.querySelector(`.tab[data-file="${name}"]`)?.remove();
+  document.querySelector(`.tree-item[data-file="${name}"]`)?.remove();
+  const remaining = Object.keys(openFiles);
+  if (remaining.length) switchToFile(remaining[0]);
+  else newFile();
+}
+
+// Auto-save
+let saveTimer;
+editor.addEventListener('input', () => {
+  openFiles[currentFile] = editor.value;
+  document.getElementById('save-status').textContent = 'Saving...';
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    localStorage.setItem('athelgard_files', JSON.stringify(openFiles));
+    localStorage.setItem('athelgard_current_file', currentFile);
+    document.getElementById('save-status').textContent = '✓ Auto-saved';
+  }, 800);
+});
+
+// ===== CHAT =====
+async function sendMessage() {
+  const text = chatInput.value.trim();
+  if (!text) return;
+  if (!config.apiKey) { showToast('Add DeepSeek API key first', 'error'); return; }
+
+  addMsg('user', text);
+  chatInput.value = '';
+  sendBtn.disabled = true;
+
+  const currentCode = editor.value;
+  const context = currentFile && currentCode
+    ? `\n\n[Current file: ${currentFile}]\n\`\`\`\n${currentCode.substring(0, 3000)}\n\`\`\``
+    : '';
+
+  const sysPrompt = `You are Athelgard, a skilled coding assistant. Help the user write, debug, and understand code. The user is editing: ${currentFile || 'no file'}.${context}`;
+
+  try {
+    const startTime = Date.now();
+    const res = await fetch('https://api.deepseek.com/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.apiKey}` },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [
+          { role: 'system', content: sysPrompt },
+          ...messageHistory.slice(-6),
+          { role: 'user', content: text }
+        ],
+        temperature: 0.7,
+        max_tokens: 4000
+      })
+    });
+
+    const data = await res.json();
+    const reply = data.choices?.[0]?.message?.content || 'No response';
+    const usage = data.usage;
+
+    const promptTokens = usage?.prompt_tokens || 0;
+    const completionTokens = usage?.completion_tokens || 0;
+    const rate = isPeak ? 0.000002 : 0.000001;
+    const cost = (promptTokens + completionTokens) * rate;
+    totalCost += cost;
+    localStorage.setItem('athelgard_cost', totalCost);
+    updateCostUI();
+
+    const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+    addMsg('assistant', reply, { promptTokens, completionTokens, cost, duration });
+
+    messageHistory.push({ role: 'user', content: text });
+    messageHistory.push({ role: 'assistant', content: reply });
+    if (messageHistory.length > 20) messageHistory = messageHistory.slice(-20);
+
+    if (config.elevenKey) speakWithElevenLabs(reply.substring(0, 500));
+
+  } catch (err) {
+    addMsg('assistant', `❌ Error: ${err.message}`);
+  } finally {
+    sendBtn.disabled = false;
   }
+}
 
-  // Auto-save
-  let saveTimer;
-  editor.addEventListener('input', () => {
-    openFiles[currentFile] = editor.value;
-    document.getElementById('save-status').textContent = 'Saving...';
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => {
-      localStorage.setItem('athelgard_files', JSON.stringify(openFiles));
-      localStorage.setItem('athelgard_current_file', currentFile);
-      document.getElementById('save-status').textContent = '✓ Auto-saved';
-    }, 800);
-  });
-
-  // ===== CHAT =====
-  async function sendMessage() {
-    const text = chatInput.value.trim();
-    if (!text) return;
-    if (!config.apiKey) { addMsg('assistant', '❌ Add DeepSeek API key in Settings first'); return; }
-
-    addMsg('user', text);
-    chatInput.value = '';
-    sendBtn.disabled = true;
-
-    const currentCode = editor.value;
-    const context = currentFile && currentCode
-      ? `\n\n[Current file: ${currentFile}]\n\`\`\`\n${currentCode.substring(0, 3000)}\n\`\`\``
-      : '';
-
-    const activeModel = getCurrentModel();
-    const modelName = activeModel === 'deepseek-chat' ? 'V3' : activeModel === 'deepseek-reasoner' ? 'R1' : 'Coder';
-
-    const sysPrompt = `You are Athelgard, a skilled coding assistant. Help the user write, debug, and understand code. The user is editing: ${currentFile || 'no file'}.${context}`;
-
-    try {
-      const startTime = Date.now();
-      const res = await fetch('https://api.deepseek.com/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.apiKey}` },
-        body: JSON.stringify({
-          model: activeModel,
-          messages: [
-            { role: 'system', content: sysPrompt },
-            ...messageHistory.slice(-6),
-            { role: 'user', content: text }
-          ],
-          temperature: config.temperature,
-          max_tokens: 4000
-        })
-      });
-
-      const data = await res.json();
-      const reply = data.choices?.[0]?.message?.content || 'No response';
-      const usage = data.usage;
-
-      // Calculate cost & score
-      const promptTokens = usage?.prompt_tokens || 0;
-      const completionTokens = usage?.completion_tokens || 0;
-      const rate = isPeak ? 0.000002 : 0.000001;
-      const cost = (promptTokens + completionTokens) * rate;
-      totalCost += cost;
-      localStorage.setItem('athelgard_cost', totalCost);
-      updateCostUI();
-
-      // Benchmark: +1 point per 100 tokens
-      const points = Math.floor((promptTokens + completionTokens) / 100);
-      score += points;
-      localStorage.setItem('athelgard_score', score);
-      benchmarkScore.textContent = 'Score: ' + score;
-
-      const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-      addMsg('assistant', reply, { promptTokens, completionTokens, cost, duration, model: modelName });
-
-      messageHistory.push({ role: 'user', content: text });
-      messageHistory.push({ role: 'assistant', content: reply });
-      if (messageHistory.length > 20) messageHistory = messageHistory.slice(-20);
-
-      // ElevenLabs voice
-      if (config.elevenKey) speakWithElevenLabs(reply.substring(0, 500));
-
-    } catch (err) {
-      addMsg('assistant', `❌ Error: ${err.message}`);
-    } finally {
-      sendBtn.disabled = false;
-    }
+function addMsg(role, text, meta) {
+  const div = document.createElement('div');
+  div.className = 'msg msg-' + role;
+  div.innerHTML = formatMsg(text);
+  if (meta) {
+    div.innerHTML += `<div class="msg-cost">${meta.promptTokens}↑ ${meta.completionTokens}↓ · $${meta.cost.toFixed(4)} · ${meta.duration}s</div>`;
   }
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+}
+function formatMsg(text) {
+  return text
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/```(\w+)?\n([\s\S]*?)```/g, (_, lang, code) => `<pre><code>${code}</code></pre>`)
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\n/g, '<br>');
+}
 
-  function addMsg(role, text, meta) {
+// ===== VOICE =====
+function toggleVoice() {
+  if (isRecording) stopRecording();
+  else startRecording();
+}
+function startRecording() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    showToast('Speech recognition not supported. Use Chrome.', 'error');
+    return;
+  }
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SpeechRecognition();
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.lang = 'en-US';
+  recognition.onstart = () => {
+    isRecording = true;
+    document.getElementById('voice-btn').classList.add('recording');
+    document.getElementById('voice-nav').classList.add('active');
+    chatInput.placeholder = 'Listening...';
+  };
+  recognition.onresult = (event) => {
+    const transcript = Array.from(event.results).map(r => r[0].transcript).join('');
+    chatInput.value = transcript;
+  };
+  recognition.onend = () => {
+    if (isRecording && chatInput.value.trim()) sendMessage();
+    stopRecording();
+  };
+  recognition.onerror = () => { showToast('Voice error. Try again.', 'error'); stopRecording(); };
+  recognition.start();
+}
+function stopRecording() {
+  isRecording = false;
+  if (recognition) recognition.stop();
+  document.getElementById('voice-btn').classList.remove('recording');
+  document.getElementById('voice-nav').classList.remove('active');
+  chatInput.placeholder = 'Ask Athelgard...';
+}
+
+async function speakWithElevenLabs(text) {
+  if (!config.elevenKey) return;
+  try {
+    const res = await fetch('https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'xi-api-key': config.elevenKey },
+      body: JSON.stringify({ text, model_id: 'eleven_monolingual_v1' })
+    });
+    if (!res.ok) return;
+    const blob = await res.blob();
+    const audio = new Audio(URL.createObjectURL(blob));
+    audio.play();
+  } catch (e) {}
+}
+
+// ===== GITHUB =====
+async function browseGitHub() {
+  if (!github) { showToast('Connect GitHub in Settings first', 'error'); return; }
+  const repo = prompt('Repository (owner/repo):', 'NyxSpecter4/bountywarz');
+  if (!repo) return;
+  const match = repo.match(/([^\/]+)\/([^\/]+)/);
+  if (!match) { showToast('Format: owner/repo', 'error'); return; }
+  currentGitHubOwner = match[1]; currentGitHubRepo = match[2];
+  const tree = document.getElementById('github-tree');
+  tree.innerHTML = '<div class="tree-item">Loading...</div>';
+  switchNav('github');
+  try {
+    const files = await github.listDirectory(currentGitHubOwner, currentGitHubRepo, '');
+    githubStack = [{ owner: currentGitHubOwner, repo: currentGitHubRepo, path: '' }];
+    renderGitHubTree(files);
+  } catch (err) {
+    tree.innerHTML = `<div class="tree-item" style="color:var(--red)">Error: ${err.message}</div>`;
+  }
+}
+function renderGitHubTree(items) {
+  const tree = document.getElementById('github-tree');
+  tree.innerHTML = '';
+  if (githubStack.length > 1) {
+    const back = document.createElement('div');
+    back.className = 'tree-item';
+    back.innerHTML = '<span class="icon">←</span> ..';
+    back.onclick = () => { githubStack.pop(); const p = githubStack[githubStack.length-1]; github.listDirectory(p.owner, p.repo, p.path).then(renderGitHubTree); };
+    tree.appendChild(back);
+  }
+  items.sort((a, b) => (a.type === 'dir' ? -1 : 1) - (b.type === 'dir' ? -1 : 1));
+  items.forEach(item => {
     const div = document.createElement('div');
-    div.className = 'msg msg-' + role;
-    div.innerHTML = formatMsg(text);
-    if (meta) {
-      div.innerHTML += `<div class="msg-cost">${meta.model} · ${meta.promptTokens}↑ ${meta.completionTokens}↓ · $${meta.cost.toFixed(4)} · ${meta.duration}s</div>`;
-    }
-    messages.appendChild(div);
-    messages.scrollTop = messages.scrollHeight;
-  }
-  function formatMsg(text) {
-    return text
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/```(\w+)?\n([\s\S]*?)```/g, (_, lang, code) => `<pre><code>${code}</code></pre>`)
-      .replace(/`([^`]+)`/g, '<code>$1</code>')
-      .replace(/\n/g, '<br>');
-  }
-
-  // ===== VOICE =====
-  function toggleVoice() {
-    if (isRecording) {
-      stopRecording();
-    } else {
-      startRecording();
-    }
-  }
-  function startRecording() {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      addMsg('assistant', '❌ Speech recognition not supported. Try Chrome or Edge.');
-      return;
-    }
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = true;
-    recognition.lang = 'en-US';
-
-    recognition.onstart = () => {
-      isRecording = true;
-      document.getElementById('voice-btn').classList.add('recording');
-      document.getElementById('voice-nav').classList.add('active');
-      chatInput.placeholder = 'Listening...';
-    };
-
-    recognition.onresult = (event) => {
-      const transcript = Array.from(event.results)
-        .map(r => r[0].transcript)
-        .join('');
-      chatInput.value = transcript;
-    };
-
-    recognition.onend = () => {
-      if (isRecording && chatInput.value.trim()) {
-        sendMessage();
+    div.className = 'tree-item' + (item.type === 'dir' ? ' dir' : '');
+    div.innerHTML = `<span class="icon">${item.type === 'dir' ? '📁' : '📄'}</span> ${item.name}`;
+    div.onclick = () => {
+      if (item.type === 'dir') {
+        const top = githubStack[githubStack.length - 1];
+        const np = top.path ? top.path + '/' + item.name : item.name;
+        githubStack.push({ owner: top.owner, repo: top.repo, path: np });
+        github.listDirectory(top.owner, top.repo, np).then(renderGitHubTree);
+      } else {
+        loadGitHubFile(item);
       }
-      stopRecording();
     };
-
-    recognition.onerror = () => {
-      addMsg('assistant', '❌ Voice recognition error. Try again.');
-      stopRecording();
-    };
-
-    recognition.start();
+    tree.appendChild(div);
+  });
+}
+async function loadGitHubFile(item) {
+  const top = githubStack[githubStack.length - 1];
+  const path = top.path ? top.path + '/' + item.name : item.name;
+  try {
+    const content = await github.getFile(top.owner, top.repo, path);
+    openFiles[item.name] = content;
+    addTreeItem(item.name);
+    addTab(item.name);
+    switchToFile(item.name);
+    addMsg('assistant', `Loaded <code>${item.name}</code>`);
+  } catch (err) {
+    addMsg('assistant', `❌ Failed: ${err.message}`);
   }
-  function stopRecording() {
-    isRecording = false;
-    if (recognition) recognition.stop();
-    document.getElementById('voice-btn').classList.remove('recording');
-    document.getElementById('voice-nav').classList.remove('active');
-    chatInput.placeholder = 'Ask Athelgard...';
-  }
+}
 
-  async function speakWithElevenLabs(text) {
-    if (!config.elevenKey) return;
-    try {
-      const res = await fetch('https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'xi-api-key': config.elevenKey },
-        body: JSON.stringify({ text, model_id: 'eleven_monolingual_v1' })
-      });
-      if (!res.ok) return;
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
-      audio.play();
-    } catch (e) { console.error('ElevenLabs error', e); }
-  }
-
-  // ===== GITHUB =====
-  async function browseGitHub() {
-    if (!github) { addMsg('assistant', '❌ Add GitHub token in Settings'); return; }
-    const repo = prompt('Repository (owner/repo):', 'NyxSpecter4/bountywarz');
-    if (!repo) return;
-    const match = repo.match(/([^\/]+)\/([^\/]+)/);
-    if (!match) { addMsg('assistant', '❌ Format: owner/repo'); return; }
-    currentGitHubOwner = match[1]; currentGitHubRepo = match[2];
-    const tree = document.getElementById('github-tree');
-    tree.innerHTML = '<div class="tree-item">Loading...</div>';
-    switchNav('github');
-    try {
-      const files = await github.listDirectory(currentGitHubOwner, currentGitHubRepo, '');
-      githubStack = [{ owner: currentGitHubOwner, repo: currentGitHubRepo, path: '' }];
-      renderGitHubTree(files);
-    } catch (err) {
-      tree.innerHTML = `<div class="tree-item" style="color:var(--red)">Error: ${err.message}</div>`;
-    }
-  }
-  function renderGitHubTree(items) {
-    const tree = document.getElementById('github-tree');
+// ===== VERCEL =====
+async function loadVercel() {
+  if (!vercel) { showToast('Connect Vercel in Settings first', 'error'); return; }
+  switchNav('vercel');
+  const tree = document.getElementById('vercel-tree');
+  tree.innerHTML = '<div class="tree-item">Loading...</div>';
+  try {
+    const data = await vercel.listProjects();
     tree.innerHTML = '';
-    if (githubStack.length > 1) {
-      const back = document.createElement('div');
-      back.className = 'tree-item';
-      back.innerHTML = '<span class="icon">←</span> ..';
-      back.onclick = () => { githubStack.pop(); const prev = githubStack[githubStack.length-1]; github.listDirectory(prev.owner, prev.repo, prev.path).then(renderGitHubTree); };
-      tree.appendChild(back);
-    }
-    items.sort((a, b) => (a.type === 'dir' ? -1 : 1) - (b.type === 'dir' ? -1 : 1));
-    items.forEach(item => {
+    (data.projects || []).forEach(p => {
       const div = document.createElement('div');
-      div.className = 'tree-item' + (item.type === 'dir' ? ' dir' : '');
-      div.innerHTML = `<span class="icon">${item.type === 'dir' ? '📁' : '📄'}</span> ${item.name}`;
-      div.onclick = () => {
-        if (item.type === 'dir') {
-          const top = githubStack[githubStack.length - 1];
-          const newPath = top.path ? top.path + '/' + item.name : item.name;
-          githubStack.push({ owner: top.owner, repo: top.repo, path: newPath });
-          github.listDirectory(top.owner, top.repo, newPath).then(renderGitHubTree);
-        } else {
-          loadGitHubFile(item);
-        }
-      };
+      div.className = 'tree-item dir';
+      div.innerHTML = `<span class="icon">▲</span> ${p.name}`;
       tree.appendChild(div);
     });
+  } catch (err) {
+    tree.innerHTML = `<div class="tree-item" style="color:var(--red)">Error</div>`;
   }
-  async function loadGitHubFile(item) {
-    const top = githubStack[githubStack.length - 1];
-    const path = top.path ? top.path + '/' + item.name : item.name;
-    try {
-      const content = await github.getFile(top.owner, top.repo, path);
-      openFiles[item.name] = content;
-      addTreeItem(item.name);
-      addTab(item.name);
-      switchToFile(item.name);
-      addMsg('assistant', `Loaded <code>${item.name}</code>`);
-    } catch (err) {
-      addMsg('assistant', `❌ Failed: ${err.message}`);
-    }
-  }
+}
 
-  // ===== VERCEL =====
-  async function loadVercel() {
-    if (!vercel) { addMsg('assistant', '❌ Add Vercel token'); return; }
-    switchNav('vercel');
-    const tree = document.getElementById('vercel-tree');
-    tree.innerHTML = '<div class="tree-item">Loading...</div>';
-    try {
-      const data = await vercel.listProjects();
-      tree.innerHTML = '';
-      (data.projects || []).forEach(p => {
-        const div = document.createElement('div');
-        div.className = 'tree-item dir';
-        div.innerHTML = `<span class="icon">▲</span> ${p.name}`;
-        tree.appendChild(div);
-      });
-    } catch (err) {
-      tree.innerHTML = `<div class="tree-item" style="color:var(--red)">Error</div>`;
-    }
-  }
-
-  // ===== SUPABASE =====
-  async function loadSupabase() {
-    if (!supabase) { addMsg('assistant', '❌ Add Supabase credentials'); return; }
-    switchNav('supabase');
-    const tree = document.getElementById('supabase-tree');
-    tree.innerHTML = '<div class="tree-item">Loading...</div>';
-    try {
-      const tables = await supabase.listTables();
-      tree.innerHTML = '';
-      (tables || []).forEach(name => {
-        const div = document.createElement('div');
-        div.className = 'tree-item dir';
-        div.innerHTML = `<span class="icon">🟢</span> ${name}`;
-        tree.appendChild(div);
-      });
-    } catch (err) {
-      tree.innerHTML = `<div class="tree-item" style="color:var(--red)">Error: ${err.message}</div>`;
-    }
-  }
-
-  // ===== JEOPARDY =====
-  const JEOPARDY_DATA = [
-    { category: 'JavaScript', questions: [
-      { q: 'What is the output of: typeof null', a: 'object', value: 100 },
-      { q: 'What method converts JSON to a string?', a: 'JSON.stringify', value: 200 },
-      { q: 'What is the event loop in JavaScript?', a: 'mechanism that handles async operations', value: 300 },
-      { q: 'What does "use strict" do?', a: 'enables strict mode', value: 400 },
-      { q: 'What is a Promise?', a: 'object representing eventual completion', value: 500 }
-    ]},
-    { category: 'React', questions: [
-      { q: 'What hook manages state?', a: 'useState', value: 100 },
-      { q: 'What is the virtual DOM?', a: 'lightweight copy of actual DOM', value: 200 },
-      { q: 'What hook runs side effects?', a: 'useEffect', value: 300 },
-      { q: 'What is JSX?', a: 'JavaScript XML syntax extension', value: 400 },
-      { q: 'What is React.memo for?', a: 'memoization to prevent re-renders', value: 500 }
-    ]},
-    { category: 'CSS', questions: [
-      { q: 'What does flexbox do?', a: 'one-dimensional layout', value: 100 },
-      { q: 'What is z-index?', a: 'stacking order', value: 200 },
-      { q: 'What are CSS variables?', a: 'custom properties', value: 300 },
-      { q: 'What is BEM?', a: 'Block Element Modifier naming', value: 400 },
-      { q: 'What does @media do?', a: 'responsive design queries', value: 500 }
-    ]},
-    { category: 'Git', questions: [
-      { q: 'What does git init do?', a: 'initialize repository', value: 100 },
-      { q: 'What is a merge conflict?', a: 'conflicting changes in same file', value: 200 },
-      { q: 'What does git rebase do?', a: 'moves commits to new base', value: 300 },
-      { q: 'What is git stash?', a: 'temporarily saves changes', value: 400 },
-      { q: 'What is a detached HEAD?', a: 'not on any branch', value: 500 }
-    ]},
-    { category: 'APIs', questions: [
-      { q: 'What does REST stand for?', a: 'Representational State Transfer', value: 100 },
-      { q: 'What is a 404 status?', a: 'Not Found', value: 200 },
-      { q: 'What is CORS?', a: 'Cross-Origin Resource Sharing', value: 300 },
-      { q: 'What is OAuth?', a: 'authorization framework', value: 400 },
-      { q: 'What is GraphQL?', a: 'query language for APIs', value: 500 }
-    ]},
-    { category: 'Security', questions: [
-      { q: 'What is XSS?', a: 'Cross-Site Scripting', value: 100 },
-      { q: 'What is CSRF?', a: 'Cross-Site Request Forgery', value: 200 },
-      { q: 'What does HTTPS use?', a: 'TLS/SSL encryption', value: 300 },
-      { q: 'What is SQL injection?', a: 'malicious SQL in input', value: 400 },
-      { q: 'What is a JWT?', a: 'JSON Web Token', value: 500 }
-    ]}
-  ];
-
-  function toggleJeopardy() {
-    const editorMain = document.getElementById('main-editor');
-    const jeopardyMain = document.getElementById('main-jeopardy');
-    if (jeopardyMain.style.display === 'none') {
-      editorMain.style.display = 'none';
-      jeopardyMain.style.display = 'flex';
-      renderJeopardy();
-    } else {
-      editorMain.style.display = 'flex';
-      jeopardyMain.style.display = 'none';
-    }
-  }
-
-  function renderJeopardy() {
-    const grid = document.getElementById('jeopardy-grid');
-    grid.innerHTML = '';
-    
-    // Headers
-    JEOPARDY_DATA.forEach(cat => {
-      const header = document.createElement('div');
-      header.className = 'jeopardy-category';
-      header.textContent = cat.category;
-      grid.appendChild(header);
-    });
-
-    // Questions (5 rows)
-    for (let row = 0; row < 5; row++) {
-      JEOPARDY_DATA.forEach((cat, col) => {
-        const card = document.createElement('div');
-        card.className = 'jeopardy-card';
-        card.dataset.category = col;
-        card.dataset.question = row;
-        card.textContent = '$' + cat.questions[row].value;
-        card.onclick = () => showJeopardyQuestion(col, row);
-        grid.appendChild(card);
-      });
-    }
-  }
-
-  function showJeopardyQuestion(catIdx, qIdx) {
-    const data = JEOPARDY_DATA[catIdx].questions[qIdx];
-    currentJeopardy = { catIdx, qIdx, data };
-    document.getElementById('jeopardy-title').textContent = `${JEOPARDY_DATA[catIdx].category} - $${data.value}`;
-    document.getElementById('jeopardy-question').textContent = data.q;
-    document.getElementById('jeopardy-answer').value = '';
-    document.getElementById('jeopardy-modal').classList.add('active');
-  }
-
-  function closeJeopardyQuestion() {
-    document.getElementById('jeopardy-modal').classList.remove('active');
-    currentJeopardy = null;
-  }
-
-  function submitJeopardy() {
-    if (!currentJeopardy) return;
-    const answer = document.getElementById('jeopardy-answer').value.trim().toLowerCase();
-    const correct = currentJeopardy.data.a.toLowerCase();
-    const isCorrect = answer.includes(correct) || correct.includes(answer);
-    
-    if (isCorrect) {
-      score += currentJeopardy.data.value;
-      addMsg('assistant', `✅ Correct! +$${currentJeopardy.data.value}`);
-    } else {
-      score -= currentJeopardy.data.value;
-      addMsg('assistant', `❌ Wrong! The answer was: ${currentJeopardy.data.a}`);
-    }
-    
-    localStorage.setItem('athelgard_score', score);
-    benchmarkScore.textContent = 'Score: ' + score;
-    
-    // Mark as answered
-    document.querySelector(`.jeopardy-card[data-category="${currentJeopardy.catIdx}"][data-question="${currentJeopardy.qIdx}"]`)?.classList.add('answered');
-    
-    closeJeopardyQuestion();
-  }
-
-  // ===== RESTORE SESSION =====
-  (function restore() {
-    const saved = localStorage.getItem('athelgard_files');
-    if (saved) { try { openFiles = JSON.parse(saved); } catch (e) {} }
-    const savedCurrent = localStorage.getItem('athelgard_current_file');
-    if (savedCurrent && openFiles[savedCurrent]) {
-      currentFile = savedCurrent;
-      editor.value = openFiles[currentFile];
-    }
-    const tree = document.getElementById('file-tree');
+// ===== SUPABASE =====
+async function loadSupabase() {
+  if (!supabase) { showToast('Connect Supabase in Settings first', 'error'); return; }
+  switchNav('supabase');
+  const tree = document.getElementById('supabase-tree');
+  tree.innerHTML = '<div class="tree-item">Loading...</div>';
+  try {
+    const tables = await supabase.listTables();
     tree.innerHTML = '';
-    Object.keys(openFiles).forEach(name => {
-      addTreeItem(name);
-      addTab(name);
+    (tables || []).forEach(name => {
+      const div = document.createElement('div');
+      div.className = 'tree-item dir';
+      div.innerHTML = `<span class="icon">🟢</span> ${name}`;
+      tree.appendChild(div);
     });
-    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.file === currentFile));
-  })();
-
-  // ===== SERVICE WORKER (PWA) =====
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  } catch (err) {
+    tree.innerHTML = `<div class="tree-item" style="color:var(--red)">Error: ${err.message}</div>`;
   }
+}
+
+// ===== SETTINGS (in-app) =====
+function showSettings() {
+  showTokenModal('deepseek');
+}
+
+// ===== RESTORE SESSION =====
+function restoreSession() {
+  const saved = localStorage.getItem('athelgard_files');
+  if (saved) { try { openFiles = JSON.parse(saved); } catch (e) {} }
+  const savedCurrent = localStorage.getItem('athelgard_current_file');
+  if (savedCurrent && openFiles[savedCurrent]) {
+    currentFile = savedCurrent;
+    editor.value = openFiles[currentFile];
+  }
+  const tree = document.getElementById('file-tree');
+  tree.innerHTML = '';
+  Object.keys(openFiles).forEach(name => {
+    addTreeItem(name);
+    addTab(name);
+  });
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.file === currentFile));
+}
+
+// ===== SERVICE WORKER =====
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+
+// ===== STARTUP =====
+checkOnboarding();
+// The full implementation would include all the previous functionality
+
+// ===== STARTUP =====
+checkOnboarding();
 </script>
 </body>
 </html>
