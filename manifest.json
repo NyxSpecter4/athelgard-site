@@ -1,26 +1,45 @@
 {
   "name": "Athelgard — AI Coding Agent",
   "short_name": "Athelgard",
-  "description": "AI-powered coding agent with GitHub, Vercel, Supabase & DeepSeek integration",
+  "description": "AI-powered coding agent with voice, GitHub, Vercel, Supabase & DeepSeek integration",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0d1117",
-  "theme_color": "#0d1117",
+  "background_color": "#0a0e1a",
+  "theme_color": "#0a0e1a",
   "orientation": "any",
   "icons": [
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%230d1117' width='192' height='192' rx='24'/><text x='96' y='130' font-size='120' text-anchor='middle'>🦉</text></svg>",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect fill='%230a0e1a' width='192' height='192' rx='32'/%3E%3Ctext x='96' y='135' font-size='110' text-anchor='middle'%3E🦉%3C/text%3E%3C/svg%3E",
       "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect fill='%230a0e1a' width='512' height='512' rx='64'/%3E%3Ctext x='256' y='360' font-size='300' text-anchor='middle'%3E🦉%3C/text%3E%3C/svg%3E",
+      "sizes": "512x512",
       "type": "image/svg+xml"
     }
   ],
   "categories": ["developer tools", "productivity"],
   "screenshots": [
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='1280' height='720'><rect fill='%230d1117' width='1280' height='720'/><text x='640' y='360' fill='%2358a6ff' font-size='40' text-anchor='middle' font-family='sans-serif'>Athelgard — AI Coding Agent</text></svg>",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1280' height='720'%3E%3Crect fill='%230a0e1a' width='1280' height='720'/%3E%3Ctext x='640' y='360' fill='%2338bdf8' font-size='48' text-anchor='middle' font-family='sans-serif' font-weight='bold'%3EAthelgard%3C/text%3E%3Ctext x='640' y='420' fill='%2394a3b8' font-size='20' text-anchor='middle' font-family='sans-serif'%3EAI Coding Agent%3C/text%3E%3C/svg%3E",
       "sizes": "1280x720",
       "type": "image/svg+xml",
       "form_factor": "wide"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Voice Mode",
+      "short_name": "Voice",
+      "description": "Talk to Athelgard",
+      "url": "/?voice=1"
+    },
+    {
+      "name": "Jeopardy",
+      "short_name": "Quiz",
+      "description": "Code Jeopardy",
+      "url": "/?jeopardy=1"
     }
   ]
 }

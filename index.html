@@ -2,32 +2,36 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0d1117">
-  <title>Athelgard — AI Coding Agent</title>
-  <link rel="manifest" href="manifest.json">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦉</text></svg>">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0e1a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Athelgard</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect fill='%230a0e1a' width='180' height='180' rx='40'/%3E%3Ctext x='90' y='125' font-size='100' text-anchor='middle'%3E🦉%3C/text%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #0d1117;
-      --bg2: #161b22;
-      --bg3: #21262d;
-      --bg4: #30363d;
-      --border: #30363d;
-      --text: #c9d1d9;
-      --text2: #8b949e;
-      --text3: #484f58;
-      --cyan: #58a6ff;
-      --cyan2: #79c0ff;
-      --gold: #e3b341;
-      --green: #3fb950;
-      --red: #f85149;
-      --orange: #f0883e;
-      --purple: #bc8cff;
+      --bg: #0a0e1a;
+      --bg2: #111827;
+      --bg3: #1a2236;
+      --bg4: #243049;
+      --border: #1e3a5f;
+      --text: #e2e8f0;
+      --text2: #94a3b8;
+      --text3: #475569;
+      --cyan: #38bdf8;
+      --cyan2: #7dd3fc;
+      --gold: #fbbf24;
+      --green: #34d399;
+      --red: #f87171;
+      --orange: #fb923c;
+      --purple: #c084fc;
+      --pink: #f472b6;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { height: 100%; }
     body {
       font-family: 'Inter', sans-serif;
       background: var(--bg);
@@ -35,176 +39,181 @@
       height: 100vh;
       overflow: hidden;
       -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent;
     }
+
+    /* ===== SMOOTH TRANSITIONS ===== */
+    * { transition: background-color 0.2s, border-color 0.2s, opacity 0.2s; }
 
     /* ===== APP SHELL ===== */
     .app { display: flex; height: 100vh; flex-direction: column; }
-    
+
     /* ===== TOP BAR ===== */
     .topbar {
-      height: 40px;
-      background: var(--bg2);
+      height: 44px;
+      background: rgba(10, 14, 26, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
-      padding: 0 12px;
-      gap: 8px;
-      -webkit-app-region: drag;
+      padding: 0 14px;
+      gap: 10px;
+      z-index: 100;
     }
-    .topbar .logo {
+    .logo {
       font-weight: 700;
-      font-size: 13px;
-      color: var(--cyan);
+      font-size: 14px;
+      background: linear-gradient(135deg, var(--cyan), var(--purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
       display: flex;
       align-items: center;
-      gap: 6px;
-      -webkit-app-region: no-drag;
+      gap: 7px;
     }
+    .logo-icon { font-size: 18px; -webkit-text-fill-color: initial; }
     .topbar-spacer { flex: 1; }
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 12px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      font-size: 10px;
+      color: var(--text2);
+      cursor: pointer;
+    }
+    .status-pill:hover { border-color: var(--cyan); }
+    .status-pill.ok { border-color: var(--green); color: var(--green); }
+    .status-pill.warn { border-color: var(--orange); color: var(--orange); }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
     .topbar-btn {
-      padding: 4px 10px;
-      border-radius: 5px;
+      padding: 5px 12px;
+      border-radius: 8px;
       border: 1px solid var(--border);
       background: var(--bg3);
       color: var(--text2);
       font-size: 11px;
       font-family: 'Inter', sans-serif;
       cursor: pointer;
-      -webkit-app-region: no-drag;
-      transition: all 0.15s;
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 5px;
     }
     .topbar-btn:hover { border-color: var(--cyan); color: var(--cyan2); }
-    .topbar-btn.active { border-color: var(--cyan); color: var(--cyan); background: rgba(88,166,255,0.08); }
-    .topbar-status {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      color: var(--text2);
-      -webkit-app-region: no-drag;
-    }
-    .status-pill {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      padding: 2px 8px;
-      border-radius: 10px;
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      font-size: 10px;
-    }
-    .status-pill.ok { border-color: var(--green); color: var(--green); }
-    .status-pill.warn { border-color: var(--orange); color: var(--orange); }
-    .status-pill.error { border-color: var(--red); color: var(--red); }
-    .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 
     /* ===== WORKSPACE ===== */
     .workspace { display: flex; flex: 1; overflow: hidden; }
 
     /* ===== LEFT NAV ===== */
     .left-nav {
-      width: 48px;
+      width: 56px;
       background: var(--bg2);
       border-right: 1px solid var(--border);
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 8px 0;
-      gap: 2px;
+      padding: 10px 0;
+      gap: 3px;
     }
     .nav-item {
-      width: 36px; height: 36px;
-      border-radius: 8px;
+      width: 42px; height: 42px;
+      border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 18px;
+      font-size: 20px;
       cursor: pointer;
-      color: var(--text2);
-      transition: all 0.15s;
+      color: var(--text3);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       position: relative;
     }
-    .nav-item:hover { background: var(--bg3); color: var(--text); }
-    .nav-item.active { background: rgba(88,166,255,0.12); color: var(--cyan); }
+    .nav-item:hover { background: var(--bg3); color: var(--text2); transform: scale(1.05); }
+    .nav-item.active { 
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.15), rgba(192, 132, 252, 0.15)); 
+      color: var(--cyan);
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.15);
+    }
     .nav-tooltip {
       position: absolute;
-      left: 44px;
+      left: 50px;
       background: var(--bg3);
       border: 1px solid var(--border);
-      padding: 4px 10px;
-      border-radius: 6px;
+      padding: 5px 12px;
+      border-radius: 8px;
       font-size: 11px;
       white-space: nowrap;
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.15s;
       z-index: 100;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     }
     .nav-item:hover .nav-tooltip { opacity: 1; }
     .nav-divider {
-      width: 24px; height: 1px;
+      width: 28px; height: 1px;
       background: var(--border);
-      margin: 4px 0;
+      margin: 6px 0;
     }
 
-    /* ===== SIDEBAR PANEL ===== */
+    /* ===== SIDEBAR ===== */
     .sidebar {
-      width: 260px;
+      width: 280px;
       background: var(--bg2);
       border-right: 1px solid var(--border);
       display: none;
       flex-direction: column;
+      animation: slideIn 0.2s ease;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-10px); }
+      to { opacity: 1; transform: translateX(0); }
     }
     .sidebar.active { display: flex; }
     .sidebar-header {
-      padding: 10px 14px;
+      padding: 12px 16px;
       font-size: 11px;
-      font-weight: 600;
+      font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.8px;
+      letter-spacing: 1px;
       color: var(--text2);
       border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
-    .sidebar-body { flex: 1; overflow-y: auto; padding: 6px 0; }
+    .sidebar-body { flex: 1; overflow-y: auto; padding: 8px 0; }
     .sidebar-footer {
-      padding: 8px 12px;
+      padding: 10px 14px;
       border-top: 1px solid var(--border);
       font-size: 10px;
       color: var(--text3);
     }
-
-    /* Tree items */
     .tree-item {
-      padding: 5px 12px 5px 22px;
+      padding: 6px 14px 6px 26px;
       font-size: 12px;
       font-family: 'JetBrains Mono', monospace;
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 7px;
       border-left: 2px solid transparent;
       color: var(--text);
+      transition: all 0.15s;
     }
     .tree-item:hover { background: var(--bg3); }
     .tree-item.active {
-      background: rgba(88, 166, 255, 0.08);
+      background: linear-gradient(90deg, rgba(56, 189, 248, 0.08), transparent);
       border-left-color: var(--cyan);
       color: var(--cyan2);
     }
     .tree-item .icon { opacity: 0.5; font-size: 11px; }
-    .tree-item.dir { color: var(--cyan2); }
-    .tree-item.dir .icon { opacity: 0.7; }
 
-    /* ===== MAIN CONTENT ===== */
+    /* ===== MAIN ===== */
     .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-
-    /* Tabs */
     .tabs {
       display: flex;
       background: var(--bg2);
@@ -212,7 +221,7 @@
       overflow-x: auto;
     }
     .tab {
-      padding: 8px 14px;
+      padding: 9px 16px;
       font-size: 12px;
       font-family: 'JetBrains Mono', monospace;
       cursor: pointer;
@@ -221,15 +230,18 @@
       white-space: nowrap;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 7px;
+      transition: all 0.15s;
     }
     .tab:hover { color: var(--text); }
-    .tab.active { background: var(--bg); color: var(--text); border-bottom: 2px solid var(--cyan); }
+    .tab.active { 
+      background: var(--bg); 
+      color: var(--text); 
+      border-bottom: 2px solid var(--cyan);
+    }
     .tab-close { font-size: 14px; opacity: 0; padding: 0 2px; }
     .tab:hover .tab-close { opacity: 0.5; }
     .tab-close:hover { opacity: 1 !important; color: var(--red); }
-
-    /* Editor */
     .editor-wrap { flex: 1; display: flex; flex-direction: column; position: relative; }
     .editor {
       flex: 1;
@@ -237,106 +249,79 @@
       color: var(--text);
       border: none;
       outline: none;
-      padding: 16px 20px;
+      padding: 18px 22px;
       font-family: 'JetBrains Mono', monospace;
-      font-size: 13.5px;
-      line-height: 1.6;
+      font-size: 14px;
+      line-height: 1.65;
       resize: none;
       tab-size: 2;
     }
     .editor::placeholder { color: var(--text3); }
 
-    /* Panel overlays (GitHub/Vercel/Supabase browser) */
-    .panel-overlay {
-      display: none;
-      position: absolute;
-      inset: 0;
-      background: var(--bg);
-      z-index: 50;
-      flex-direction: column;
-    }
-    .panel-overlay.active { display: flex; }
-    .panel-header {
-      padding: 10px 16px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-    .panel-input {
-      flex: 1;
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 6px 10px;
-      color: var(--text);
-      font-size: 12px;
-      font-family: 'JetBrains Mono', monospace;
-      outline: none;
-    }
-    .panel-input:focus { border-color: var(--cyan); }
-    .panel-body { flex: 1; overflow-y: auto; padding: 8px 0; }
-    .panel-close { margin-left: auto; background: none; border: none; color: var(--text2); cursor: pointer; font-size: 16px; }
-    .panel-close:hover { color: var(--red); }
-
-    /* ===== RIGHT CHAT ===== */
+    /* ===== CHAT ===== */
     .chat {
-      width: 360px;
+      width: 380px;
       background: var(--bg2);
       border-left: 1px solid var(--border);
       display: flex;
       flex-direction: column;
     }
     .chat-header {
-      padding: 12px 16px;
+      padding: 14px 18px;
       border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
       gap: 10px;
     }
     .chat-avatar {
-      width: 32px; height: 32px;
+      width: 36px; height: 36px;
       border-radius: 50%;
-      background: var(--cyan);
+      background: linear-gradient(135deg, var(--cyan), var(--purple));
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 16px;
+      font-size: 18px;
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
     }
-    .chat-title { font-weight: 600; font-size: 13px; }
+    .chat-title { font-weight: 700; font-size: 14px; }
     .chat-sub { font-size: 10px; color: var(--text2); }
     .chat-model {
       margin-left: auto;
       font-size: 10px;
-      padding: 2px 8px;
-      border-radius: 10px;
+      padding: 3px 10px;
+      border-radius: 12px;
       background: var(--bg3);
       border: 1px solid var(--border);
       color: var(--text2);
       font-family: 'JetBrains Mono', monospace;
+      cursor: pointer;
     }
     .chat-model.peak { border-color: var(--orange); color: var(--orange); }
     .chat-model.offpeak { border-color: var(--green); color: var(--green); }
-
     .messages {
       flex: 1;
       overflow-y: auto;
-      padding: 12px;
+      padding: 14px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 12px;
     }
     .msg {
-      padding: 10px 13px;
-      border-radius: 12px;
-      font-size: 12.5px;
-      line-height: 1.55;
+      padding: 12px 15px;
+      border-radius: 14px;
+      font-size: 13px;
+      line-height: 1.6;
       max-width: 100%;
       word-wrap: break-word;
+      animation: msgIn 0.25s ease;
+    }
+    @keyframes msgIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
     }
     .msg-user {
-      background: var(--cyan);
-      color: #000;
+      background: linear-gradient(135deg, var(--cyan), var(--purple));
+      color: #fff;
       align-self: flex-end;
       border-bottom-right-radius: 3px;
     }
@@ -347,39 +332,37 @@
     }
     .msg pre {
       background: rgba(0,0,0,0.25);
-      padding: 8px;
-      border-radius: 6px;
+      padding: 10px;
+      border-radius: 8px;
       overflow-x: auto;
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
-      margin-top: 6px;
+      margin-top: 8px;
     }
     .msg code {
       font-family: 'JetBrains Mono', monospace;
       background: rgba(0,0,0,0.15);
-      padding: 1px 4px;
-      border-radius: 3px;
+      padding: 2px 5px;
+      border-radius: 4px;
       font-size: 11px;
     }
     .msg-cost {
       font-size: 9px;
-      color: var(--text2);
-      margin-top: 4px;
-      opacity: 0.6;
+      color: var(--text3);
+      margin-top: 5px;
     }
-
     .chat-input-wrap {
-      padding: 10px 12px;
+      padding: 12px 14px;
       border-top: 1px solid var(--border);
       display: flex;
-      gap: 8px;
+      gap: 10px;
     }
     .chat-input {
       flex: 1;
       background: var(--bg3);
       border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 9px 13px;
+      border-radius: 12px;
+      padding: 10px 14px;
       color: var(--text);
       font-size: 13px;
       outline: none;
@@ -387,99 +370,169 @@
     }
     .chat-input:focus { border-color: var(--cyan); }
     .chat-send {
-      background: var(--cyan);
+      background: linear-gradient(135deg, var(--cyan), var(--purple));
       border: none;
-      border-radius: 10px;
-      width: 38px;
-      color: #000;
+      border-radius: 12px;
+      width: 42px;
+      color: #fff;
       cursor: pointer;
-      font-size: 16px;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
+    }
+    .chat-send:hover { transform: scale(1.05); }
+    .chat-send:disabled { opacity: 0.4; cursor: not-allowed; }
+    .voice-btn {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      width: 42px;
+      color: var(--text2);
+      cursor: pointer;
+      font-size: 18px;
       display: flex;
       align-items: center;
       justify-content: center;
     }
-    .chat-send:hover { background: var(--cyan2); }
-    .chat-send:disabled { opacity: 0.4; cursor: not-allowed; }
+    .voice-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+    .voice-btn.recording { 
+      background: linear-gradient(135deg, var(--red), var(--pink)); 
+      color: #fff;
+      border-color: var(--red);
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.4); }
+      50% { box-shadow: 0 0 0 10px rgba(248, 113, 113, 0); }
+    }
 
     /* ===== BOTTOM BAR ===== */
     .bottombar {
-      height: 26px;
-      background: var(--cyan);
-      color: #000;
+      height: 28px;
+      background: linear-gradient(90deg, var(--bg2), var(--bg3));
+      border-top: 1px solid var(--border);
       display: flex;
       align-items: center;
-      padding: 0 12px;
+      padding: 0 14px;
       font-size: 11px;
-      font-weight: 500;
-      gap: 16px;
+      gap: 18px;
+      color: var(--text2);
     }
-    .bottombar-item { display: flex; align-items: center; gap: 4px; }
+    .bottombar-item { display: flex; align-items: center; gap: 5px; }
 
-    /* ===== SETTINGS MODAL ===== */
+    /* ===== MODAL ===== */
     .modal-overlay {
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.6);
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(8px);
       z-index: 200;
       align-items: center;
       justify-content: center;
+      animation: fadeIn 0.2s ease;
     }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     .modal-overlay.active { display: flex; }
     .modal {
       background: var(--bg2);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      width: 480px;
+      border-radius: 16px;
+      width: 500px;
       max-width: 92vw;
       max-height: 84vh;
       overflow-y: auto;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+      animation: modalIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(0.95) translateY(10px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
     }
     .modal-header {
-      padding: 16px 20px;
+      padding: 18px 22px;
       border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
-    .modal-title { font-size: 15px; font-weight: 600; }
-    .modal-close { background: none; border: none; color: var(--text2); font-size: 18px; cursor: pointer; }
-    .modal-close:hover { color: var(--red); }
-    .modal-body { padding: 16px 20px; }
+    .modal-title { font-size: 16px; font-weight: 700; }
+    .modal-close {
+      background: none; border: none;
+      color: var(--text2); font-size: 20px; cursor: pointer;
+      width: 32px; height: 32px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .modal-close:hover { background: var(--bg3); color: var(--red); }
+    .modal-body { padding: 18px 22px; }
     .section-title {
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 1px;
       color: var(--text2);
-      margin: 16px 0 10px;
-      padding-bottom: 6px;
+      margin: 18px 0 12px;
+      padding-bottom: 8px;
       border-bottom: 1px solid var(--border);
     }
     .section-title:first-child { margin-top: 0; }
-    .field { margin-bottom: 12px; }
-    .field-label { display: block; font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text2); margin-bottom: 5px; }
+    .field { margin-bottom: 14px; }
+    .field-label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text2); margin-bottom: 6px; }
     .field-input {
       width: 100%;
       background: var(--bg3);
       border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 8px 10px;
+      border-radius: 8px;
+      padding: 9px 12px;
       color: var(--text);
       font-size: 13px;
       font-family: 'JetBrains Mono', monospace;
       outline: none;
     }
     .field-input:focus { border-color: var(--cyan); }
-    .field-help { font-size: 10px; color: var(--text3); margin-top: 3px; }
-    .field-select { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; color: var(--text); font-size: 13px; outline: none; }
-    .modal-footer { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+    .field-help { font-size: 10px; color: var(--text3); margin-top: 4px; }
+    .field-select { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; color: var(--text); font-size: 13px; outline: none; }
+    .modal-footer { padding: 14px 22px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; }
 
-    .btn { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg3); color: var(--text); font-size: 12px; font-family: 'Inter', sans-serif; cursor: pointer; transition: all 0.15s; }
+    .btn { padding: 7px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg3); color: var(--text); font-size: 12px; font-family: 'Inter', sans-serif; cursor: pointer; transition: all 0.15s; }
     .btn:hover { border-color: var(--cyan); color: var(--cyan2); }
-    .btn-primary { background: var(--cyan); color: #000; border-color: var(--cyan); font-weight: 500; }
-    .btn-primary:hover { background: var(--cyan2); color: #000; }
-    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-primary { background: linear-gradient(135deg, var(--cyan), var(--purple)); color: #fff; border: none; font-weight: 600; }
+    .btn-primary:hover { transform: scale(1.02); box-shadow: 0 0 20px rgba(56, 189, 248, 0.3); }
+
+    /* ===== JEOPARDY MODE ===== */
+    .jeopardy-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 8px;
+      padding: 20px;
+    }
+    .jeopardy-category {
+      background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+      padding: 16px 8px;
+      border-radius: 10px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+    .jeopardy-card {
+      background: var(--bg3);
+      border: 2px solid var(--border);
+      padding: 20px 8px;
+      border-radius: 10px;
+      text-align: center;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--gold);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .jeopardy-card:hover { 
+      border-color: var(--gold); 
+      transform: scale(1.05);
+      box-shadow: 0 0 20px rgba(251, 191, 36, 0.2);
+    }
+    .jeopardy-card.answered { opacity: 0.3; pointer-events: none; }
 
     /* ===== SCROLLBAR ===== */
     ::-webkit-scrollbar { width: 5px; height: 5px; }
@@ -489,8 +542,9 @@
 
     /* ===== RESPONSIVE ===== */
     @media (max-width: 900px) {
-      .chat { width: 300px; }
-      .sidebar { width: 220px; }
+      .chat { width: 100%; position: fixed; inset: 44px 0 0 0; z-index: 50; }
+      .chat.hidden { display: none; }
+      .sidebar { width: 240px; }
     }
   </style>
 </head>
@@ -500,20 +554,19 @@
   <!-- TOP BAR -->
   <div class="topbar">
     <div class="logo">
-      <span>🦉</span>
+      <span class="logo-icon">🦉</span>
       <span>Athelgard</span>
     </div>
     <div class="topbar-spacer"></div>
-    <div class="topbar-status">
-      <div class="status-pill" id="github-pill"><span class="dot"></span>GitHub</div>
-      <div class="status-pill" id="vercel-pill"><span class="dot"></span>Vercel</div>
-      <div class="status-pill" id="supabase-pill"><span class="dot"></span>Supabase</div>
-    </div>
-    <button class="topbar-btn" onclick="showSettings()">⚙ Settings</button>
+    <div class="status-pill" id="github-pill"><span class="dot"></span>GitHub</div>
+    <div class="status-pill" id="vercel-pill"><span class="dot"></span>Vercel</div>
+    <div class="status-pill" id="supabase-pill"><span class="dot"></span>Supabase</div>
+    <button class="topbar-btn" onclick="showSettings()">⚙</button>
+    <button class="topbar-btn" onclick="toggleJeopardy()">🎯 Jeopardy</button>
   </div>
 
   <!-- WORKSPACE -->
-  <div class="workspace">
+  <div class="workspace" id="workspace">
     <!-- LEFT NAV -->
     <div class="left-nav">
       <div class="nav-item active" onclick="switchNav('files')" title="Files">
@@ -534,26 +587,28 @@
       </div>
       <div class="nav-divider"></div>
       <div class="nav-item" onclick="newFile()" title="New File">
-        +
+        ✨
         <span class="nav-tooltip">New File</span>
+      </div>
+      <div class="nav-item" onclick="toggleVoice()" id="voice-nav" title="Voice Mode">
+        🎤
+        <span class="nav-tooltip">Voice Mode</span>
       </div>
     </div>
 
-    <!-- SIDEBAR -->
+    <!-- SIDEBARS -->
     <div class="sidebar active" id="sidebar-files">
-      <div class="sidebar-header">
-        <span>Files</span>
-      </div>
+      <div class="sidebar-header"><span>Explorer</span></div>
       <div class="sidebar-body" id="file-tree">
         <div class="tree-item active" data-file="main.js"><span class="icon">📄</span> main.js</div>
       </div>
-      <div class="sidebar-footer" id="save-status">Auto-saved</div>
+      <div class="sidebar-footer" id="save-status">✓ Auto-saved</div>
     </div>
 
     <div class="sidebar" id="sidebar-github">
       <div class="sidebar-header">
         <span>GitHub</span>
-        <button class="btn" style="padding:2px 8px;font-size:10px;" onclick="browseGitHub()">🔗 Connect</button>
+        <button class="btn" style="padding:2px 8px;font-size:10px;" onclick="browseGitHub()">Connect</button>
       </div>
       <div class="sidebar-body" id="github-tree"></div>
     </div>
@@ -561,7 +616,7 @@
     <div class="sidebar" id="sidebar-vercel">
       <div class="sidebar-header">
         <span>Vercel</span>
-        <button class="btn" style="padding:2px 8px;font-size:10px;" onclick="loadVercel()">▲ Connect</button>
+        <button class="btn" style="padding:2px 8px;font-size:10px;" onclick="loadVercel()">Connect</button>
       </div>
       <div class="sidebar-body" id="vercel-tree"></div>
     </div>
@@ -569,13 +624,13 @@
     <div class="sidebar" id="sidebar-supabase">
       <div class="sidebar-header">
         <span>Supabase</span>
-        <button class="btn" style="padding:2px 8px;font-size:10px;" onclick="loadSupabase()">🟢 Connect</button>
+        <button class="btn" style="padding:2px 8px;font-size:10px;" onclick="loadSupabase()">Connect</button>
       </div>
       <div class="sidebar-body" id="supabase-tree"></div>
     </div>
 
-    <!-- MAIN -->
-    <div class="main">
+    <!-- MAIN EDITOR -->
+    <div class="main" id="main-editor">
       <div class="tabs" id="tabs">
         <div class="tab active" data-file="main.js">
           main.js
@@ -584,13 +639,21 @@
       </div>
       <div class="editor-wrap">
         <textarea class="editor" id="editor" placeholder="// Welcome to Athelgard — Your AI Coding Agent
-// Connected to: GitHub | Vercel | Supabase | DeepSeek
-// Ask me anything, or start coding..."></textarea>
+// Press 🎤 to talk, or type here to code...
+// Connected: GitHub | Vercel | Supabase | DeepSeek"></textarea>
+      </div>
+    </div>
+
+    <!-- JEOPARDY MODE -->
+    <div class="main" id="main-jeopardy" style="display:none; overflow-y:auto;">
+      <div style="padding:20px;">
+        <h2 style="text-align:center; margin-bottom:20px; font-size:24px;">🎯 Code Jeopardy</h2>
+        <div class="jeopardy-grid" id="jeopardy-grid"></div>
       </div>
     </div>
 
     <!-- CHAT -->
-    <div class="chat">
+    <div class="chat" id="chat-panel">
       <div class="chat-header">
         <div class="chat-avatar">🦉</div>
         <div>
@@ -601,10 +664,11 @@
       </div>
       <div class="messages" id="messages">
         <div class="msg msg-assistant">
-          Hey! I'm Athelgard — your AI coding partner. I'm connected to your GitHub, Vercel, and Supabase accounts. Ask me to code, deploy, or query your database!
+          Hey! I'm Athelgard — your AI coding partner. I'm connected to your GitHub, Vercel, and Supabase. Ask me anything, or press 🎤 to talk!
         </div>
       </div>
       <div class="chat-input-wrap">
+        <button class="voice-btn" id="voice-btn" onclick="toggleVoice()">🎤</button>
         <input class="chat-input" id="chat-input" placeholder="Ask Athelgard..." onkeydown="if(event.key==='Enter')sendMessage()">
         <button class="chat-send" id="send-btn" onclick="sendMessage()">➤</button>
       </div>
@@ -613,9 +677,10 @@
 
   <!-- BOTTOM BAR -->
   <div class="bottombar" id="bottombar">
-    <div class="bottombar-item">🦉 Athelgard Ready</div>
-    <div class="bottombar-item" id="peak-status">Checking DeepSeek pricing...</div>
+    <div class="bottombar-item">🦉 Ready</div>
+    <div class="bottombar-item" id="peak-status">Checking pricing...</div>
     <div class="bottombar-item" id="cost-tracker">$0.0000</div>
+    <div class="bottombar-item" id="benchmark-score">Score: 0</div>
   </div>
 </div>
 
@@ -627,18 +692,18 @@
       <button class="modal-close" onclick="hideSettings()">✕</button>
     </div>
     <div class="modal-body">
-      <div class="section-title">🧠 AI Model</div>
+      <div class="section-title">🧠 AI Configuration</div>
       <div class="field">
         <label class="field-label">DeepSeek API Key</label>
         <input class="field-input" id="api-key-input" type="password" placeholder="sk-...">
-        <div class="field-help">platform.deepseek.com</div>
+        <div class="field-help">Get at platform.deepseek.com</div>
       </div>
       <div class="field">
-        <label class="field-label">Primary Model</label>
+        <label class="field-label">Model</label>
         <select class="field-select" id="model-select">
           <option value="deepseek-chat">DeepSeek V3 (Smart & Fast)</option>
-          <option value="deepseek-reasoner">DeepSeek R1 (Deep Reasoning)</option>
-          <option value="deepseek-coder">DeepSeek Coder (Code Expert)</option>
+          <option value="deepseek-reasoner">DeepSeek R1 (Reasoning)</option>
+          <option value="deepseek-coder">DeepSeek Coder (Expert)</option>
         </select>
       </div>
       <div class="field">
@@ -647,36 +712,31 @@
           <option value="deepseek-chat">Stay on V3 (2x cost)</option>
           <option value="deepseek-coder">Switch to Coder (cheaper)</option>
         </select>
-        <div class="field-help">During 9AM-9PM PST, DeepSeek V3 costs 2x. Auto-switch to save money.</div>
-      </div>
-      <div class="field">
-        <label class="field-label">Temperature</label>
-        <input class="field-input" id="temp-input" type="number" min="0" max="2" step="0.1" value="0.7">
       </div>
 
-      <div class="section-title">🔗 GitHub</div>
+      <div class="section-title">🔗 Integrations</div>
       <div class="field">
         <label class="field-label">GitHub Token</label>
         <input class="field-input" id="github-key-input" type="password" placeholder="ghp_...">
-        <div class="field-help">github.com/settings/tokens → Classic token with 'repo' scope</div>
       </div>
-
-      <div class="section-title">▲ Vercel</div>
       <div class="field">
         <label class="field-label">Vercel Token</label>
         <input class="field-input" id="vercel-key-input" type="password" placeholder="vcp_...">
-        <div class="field-help">vercel.com/account/tokens</div>
+      </div>
+      <div class="field">
+        <label class="field-label">Supabase URL</label>
+        <input class="field-input" id="supabase-url-input" placeholder="https://...supabase.co">
+      </div>
+      <div class="field">
+        <label class="field-label">Supabase Key</label>
+        <input class="field-input" id="supabase-key-input" type="password" placeholder="eyJ...">
       </div>
 
-      <div class="section-title">🟢 Supabase</div>
+      <div class="section-title">🎤 Voice</div>
       <div class="field">
-        <label class="field-label">Project URL</label>
-        <input class="field-input" id="supabase-url-input" placeholder="https://xxxx.supabase.co">
-      </div>
-      <div class="field">
-        <label class="field-label">Service Role Key</label>
-        <input class="field-input" id="supabase-key-input" type="password" placeholder="eyJ...">
-        <div class="field-help">Supabase Dashboard → Project Settings → API</div>
+        <label class="field-label">ElevenLabs API Key (for voice)</label>
+        <input class="field-input" id="eleven-key-input" type="password" placeholder="sk_...">
+        <div class="field-help">Get at elevenlabs.io for premium voice</div>
       </div>
     </div>
     <div class="modal-footer">
@@ -686,30 +746,53 @@
   </div>
 </div>
 
+<!-- JEOPARDY QUESTION MODAL -->
+<div class="modal-overlay" id="jeopardy-modal" onclick="if(event.target===this)closeJeopardyQuestion()">
+  <div class="modal" style="width:600px;">
+    <div class="modal-header">
+      <span class="modal-title" id="jeopardy-title">Category - $100</span>
+      <button class="modal-close" onclick="closeJeopardyQuestion()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="jeopardy-question" style="font-size:16px; line-height:1.6; margin-bottom:20px;"></div>
+      <input class="field-input" id="jeopardy-answer" placeholder="Your answer..." onkeydown="if(event.key==='Enter')submitJeopardy()">
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeJeopardyQuestion()">Skip</button>
+      <button class="btn btn-primary" onclick="submitJeopardy()">Submit</button>
+    </div>
+  </div>
+</div>
+
 <script src="lib/github.js"></script>
 <script src="lib/vercel.js"></script>
 <script src="lib/supabase.js"></script>
 <script>
-  // ===== CONFIG =====
+  // ===== STATE =====
   const config = {
     apiKey: localStorage.getItem('athelgard_api_key') || '',
     githubToken: localStorage.getItem('athelgard_github_key') || '',
     vercelToken: localStorage.getItem('athelgard_vercel_key') || '',
     supabaseUrl: localStorage.getItem('athelgard_supabase_url') || '',
     supabaseKey: localStorage.getItem('athelgard_supabase_key') || '',
+    elevenKey: localStorage.getItem('athelgard_eleven_key') || '',
     model: localStorage.getItem('athelgard_model') || 'deepseek-chat',
     peakModel: localStorage.getItem('athelgard_peak_model') || 'deepseek-coder',
     temperature: parseFloat(localStorage.getItem('athelgard_temp')) || 0.7
   };
 
-  let openFiles = { 'main.js': localStorage.getItem('athelgard_main_js') || '// Welcome to Athelgard!\n// Ask me to write, debug, or explain code.\n\nconsole.log("Hello, Athelgard!");' };
+  let openFiles = { 'main.js': localStorage.getItem('athelgard_main_js') || '// Welcome to Athelgard!\n// Press 🎤 to talk, or type here to code...\n\nconsole.log("Hello, Athelgard!");' };
   let currentFile = 'main.js';
   let github = null, vercel = null, supabase = null;
   let messageHistory = [];
-  let githubStack = [], vercelStack = [];
+  let githubStack = [];
   let currentGitHubOwner = 'NyxSpecter4', currentGitHubRepo = 'bountywarz';
   let totalCost = parseFloat(localStorage.getItem('athelgard_cost')) || 0;
   let isPeak = false;
+  let score = parseInt(localStorage.getItem('athelgard_score')) || 0;
+  let isRecording = false;
+  let recognition = null;
+  let currentJeopardy = null;
 
   const editor = document.getElementById('editor');
   const messages = document.getElementById('messages');
@@ -718,36 +801,32 @@
   const modelBadge = document.getElementById('model-badge');
   const peakStatus = document.getElementById('peak-status');
   const costTracker = document.getElementById('cost-tracker');
+  const benchmarkScore = document.getElementById('benchmark-score');
 
-  // ===== PEAK/OFF-PEAK DETECTION =====
+  // ===== PEAK PRICING =====
   function checkPeakHours() {
     const now = new Date();
     const pst = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
     const hour = pst.getHours();
-    // Peak: 9AM - 9PM PST
     isPeak = hour >= 9 && hour < 21;
     updatePeakUI();
   }
-
   function updatePeakUI() {
     if (isPeak) {
-      peakStatus.textContent = `⚠ Peak Hours (9AM-9PM PST) — V3 costs 2x`;
+      peakStatus.innerHTML = `⚠ Peak (9AM-9PM PST) — 2x cost`;
       peakStatus.style.color = 'var(--orange)';
       modelBadge.textContent = 'Peak: ' + (config.peakModel === 'deepseek-coder' ? 'Coder' : 'V3');
       modelBadge.className = 'chat-model peak';
     } else {
-      peakStatus.textContent = `✓ Off-Peak — V3 at 50% discount`;
+      peakStatus.innerHTML = `✓ Off-Peak — 50% off`;
       peakStatus.style.color = 'var(--green)';
       modelBadge.textContent = 'Off-Peak: V3';
       modelBadge.className = 'chat-model offpeak';
     }
   }
-
   function getCurrentModel() {
     return (isPeak && config.peakModel === 'deepseek-coder') ? config.peakModel : config.model;
   }
-
-  // Check every minute
   checkPeakHours();
   setInterval(checkPeakHours, 60000);
 
@@ -755,34 +834,23 @@
   editor.value = openFiles[currentFile];
   initConnections();
   updateCostUI();
+  benchmarkScore.textContent = 'Score: ' + score;
 
   function initConnections() {
-    // GitHub
     if (config.githubToken && typeof GitHubClient !== 'undefined') {
       github = new GitHubClient(config.githubToken);
       document.getElementById('github-pill').className = 'status-pill ok';
-    } else {
-      document.getElementById('github-pill').className = 'status-pill error';
     }
-    // Vercel
     if (config.vercelToken && typeof VercelClient !== 'undefined') {
       vercel = new VercelClient(config.vercelToken);
       document.getElementById('vercel-pill').className = 'status-pill ok';
-    } else {
-      document.getElementById('vercel-pill').className = 'status-pill error';
     }
-    // Supabase
     if (config.supabaseUrl && config.supabaseKey && typeof SupabaseClient !== 'undefined') {
       supabase = new SupabaseClient(config.supabaseUrl, config.supabaseKey);
       document.getElementById('supabase-pill').className = 'status-pill ok';
-    } else {
-      document.getElementById('supabase-pill').className = 'status-pill error';
     }
   }
-
-  function updateCostUI() {
-    costTracker.textContent = '$' + totalCost.toFixed(4);
-  }
+  function updateCostUI() { costTracker.textContent = '$' + totalCost.toFixed(4); }
 
   // ===== NAVIGATION =====
   function switchNav(tab) {
@@ -799,36 +867,26 @@
     document.getElementById('vercel-key-input').value = config.vercelToken;
     document.getElementById('supabase-url-input').value = config.supabaseUrl;
     document.getElementById('supabase-key-input').value = config.supabaseKey;
+    document.getElementById('eleven-key-input').value = config.elevenKey;
     document.getElementById('model-select').value = config.model;
     document.getElementById('peak-model-select').value = config.peakModel;
-    document.getElementById('temp-input').value = config.temperature;
     document.getElementById('settings-modal').classList.add('active');
   }
   function hideSettings() { document.getElementById('settings-modal').classList.remove('active'); }
-
   function saveSettings() {
     config.apiKey = document.getElementById('api-key-input').value.trim();
     config.githubToken = document.getElementById('github-key-input').value.trim();
     config.vercelToken = document.getElementById('vercel-key-input').value.trim();
     config.supabaseUrl = document.getElementById('supabase-url-input').value.trim();
     config.supabaseKey = document.getElementById('supabase-key-input').value.trim();
+    config.elevenKey = document.getElementById('eleven-key-input').value.trim();
     config.model = document.getElementById('model-select').value;
     config.peakModel = document.getElementById('peak-model-select').value;
-    config.temperature = parseFloat(document.getElementById('temp-input').value);
-
-    localStorage.setItem('athelgard_api_key', config.apiKey);
-    localStorage.setItem('athelgard_github_key', config.githubToken);
-    localStorage.setItem('athelgard_vercel_key', config.vercelToken);
-    localStorage.setItem('athelgard_supabase_url', config.supabaseUrl);
-    localStorage.setItem('athelgard_supabase_key', config.supabaseKey);
-    localStorage.setItem('athelgard_model', config.model);
-    localStorage.setItem('athelgard_peak_model', config.peakModel);
-    localStorage.setItem('athelgard_temp', config.temperature);
-
+    Object.keys(config).forEach(k => localStorage.setItem('athelgard_' + k, config[k]));
     initConnections();
     checkPeakHours();
     hideSettings();
-    addMsg('assistant', '✅ All connections saved! GitHub, Vercel, Supabase, and DeepSeek are now linked.');
+    addMsg('assistant', '✅ All connections saved! Athelgard is ready.');
   }
 
   // ===== FILES =====
@@ -836,18 +894,21 @@
     const name = prompt('File name:', 'script.js');
     if (!name) return;
     openFiles[name] = '';
+    addTreeItem(name);
+    addTab(name);
+    switchToFile(name);
+    switchNav('files');
+  }
+  function addTreeItem(name) {
     const tree = document.getElementById('file-tree');
+    if (tree.querySelector(`[data-file="${name}"]`)) return;
     const item = document.createElement('div');
     item.className = 'tree-item';
     item.dataset.file = name;
     item.innerHTML = `<span class="icon">📄</span> ${name}`;
     item.onclick = () => switchToFile(name);
     tree.appendChild(item);
-    addTab(name);
-    switchToFile(name);
-    switchNav('files');
   }
-
   function addTab(name) {
     const tabs = document.getElementById('tabs');
     if (tabs.querySelector(`[data-file="${name}"]`)) return;
@@ -858,7 +919,6 @@
     tab.onclick = (e) => { if (e.target.className !== 'tab-close') switchToFile(name); };
     tabs.appendChild(tab);
   }
-
   function switchToFile(name) {
     openFiles[currentFile] = editor.value;
     currentFile = name;
@@ -866,7 +926,6 @@
     document.querySelectorAll('.tree-item').forEach(i => i.classList.toggle('active', i.dataset.file === name));
     document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.file === name));
   }
-
   function closeTab(name, e) {
     e.stopPropagation();
     delete openFiles[name];
@@ -886,7 +945,7 @@
     saveTimer = setTimeout(() => {
       localStorage.setItem('athelgard_files', JSON.stringify(openFiles));
       localStorage.setItem('athelgard_current_file', currentFile);
-      document.getElementById('save-status').textContent = 'Auto-saved';
+      document.getElementById('save-status').textContent = '✓ Auto-saved';
     }, 800);
   });
 
@@ -908,40 +967,43 @@
     const activeModel = getCurrentModel();
     const modelName = activeModel === 'deepseek-chat' ? 'V3' : activeModel === 'deepseek-reasoner' ? 'R1' : 'Coder';
 
-    const sysPrompt = `You are Athelgard, a skilled coding assistant. Help the user write, debug, and understand code. Be concise and practical. The user is currently editing: ${currentFile || 'no file'}.${context}`;
+    const sysPrompt = `You are Athelgard, a skilled coding assistant. Help the user write, debug, and understand code. The user is editing: ${currentFile || 'no file'}.${context}`;
 
     try {
-      const body = {
-        model: activeModel,
-        messages: [
-          { role: 'system', content: sysPrompt },
-          ...messageHistory.slice(-6),
-          { role: 'user', content: text }
-        ],
-        temperature: config.temperature,
-        max_tokens: 4000
-      };
-
       const startTime = Date.now();
       const res = await fetch('https://api.deepseek.com/chat/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.apiKey}` },
-        body: JSON.stringify(body)
+        body: JSON.stringify({
+          model: activeModel,
+          messages: [
+            { role: 'system', content: sysPrompt },
+            ...messageHistory.slice(-6),
+            { role: 'user', content: text }
+          ],
+          temperature: config.temperature,
+          max_tokens: 4000
+        })
       });
 
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       const reply = data.choices?.[0]?.message?.content || 'No response';
       const usage = data.usage;
 
-      // Calculate cost
+      // Calculate cost & score
       const promptTokens = usage?.prompt_tokens || 0;
       const completionTokens = usage?.completion_tokens || 0;
-      const rate = isPeak ? 0.000002 : 0.000001; // $2/M peak, $1/M off-peak
+      const rate = isPeak ? 0.000002 : 0.000001;
       const cost = (promptTokens + completionTokens) * rate;
       totalCost += cost;
       localStorage.setItem('athelgard_cost', totalCost);
       updateCostUI();
+
+      // Benchmark: +1 point per 100 tokens
+      const points = Math.floor((promptTokens + completionTokens) / 100);
+      score += points;
+      localStorage.setItem('athelgard_score', score);
+      benchmarkScore.textContent = 'Score: ' + score;
 
       const duration = ((Date.now() - startTime) / 1000).toFixed(1);
       addMsg('assistant', reply, { promptTokens, completionTokens, cost, duration, model: modelName });
@@ -949,6 +1011,9 @@
       messageHistory.push({ role: 'user', content: text });
       messageHistory.push({ role: 'assistant', content: reply });
       if (messageHistory.length > 20) messageHistory = messageHistory.slice(-20);
+
+      // ElevenLabs voice
+      if (config.elevenKey) speakWithElevenLabs(reply.substring(0, 500));
 
     } catch (err) {
       addMsg('assistant', `❌ Error: ${err.message}`);
@@ -967,7 +1032,6 @@
     messages.appendChild(div);
     messages.scrollTop = messages.scrollHeight;
   }
-
   function formatMsg(text) {
     return text
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -976,20 +1040,88 @@
       .replace(/\n/g, '<br>');
   }
 
-  // ===== GITHUB INTEGRATION =====
+  // ===== VOICE =====
+  function toggleVoice() {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  }
+  function startRecording() {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      addMsg('assistant', '❌ Speech recognition not supported. Try Chrome or Edge.');
+      return;
+    }
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    recognition.onstart = () => {
+      isRecording = true;
+      document.getElementById('voice-btn').classList.add('recording');
+      document.getElementById('voice-nav').classList.add('active');
+      chatInput.placeholder = 'Listening...';
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = Array.from(event.results)
+        .map(r => r[0].transcript)
+        .join('');
+      chatInput.value = transcript;
+    };
+
+    recognition.onend = () => {
+      if (isRecording && chatInput.value.trim()) {
+        sendMessage();
+      }
+      stopRecording();
+    };
+
+    recognition.onerror = () => {
+      addMsg('assistant', '❌ Voice recognition error. Try again.');
+      stopRecording();
+    };
+
+    recognition.start();
+  }
+  function stopRecording() {
+    isRecording = false;
+    if (recognition) recognition.stop();
+    document.getElementById('voice-btn').classList.remove('recording');
+    document.getElementById('voice-nav').classList.remove('active');
+    chatInput.placeholder = 'Ask Athelgard...';
+  }
+
+  async function speakWithElevenLabs(text) {
+    if (!config.elevenKey) return;
+    try {
+      const res = await fetch('https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'xi-api-key': config.elevenKey },
+        body: JSON.stringify({ text, model_id: 'eleven_monolingual_v1' })
+      });
+      if (!res.ok) return;
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.play();
+    } catch (e) { console.error('ElevenLabs error', e); }
+  }
+
+  // ===== GITHUB =====
   async function browseGitHub() {
-    if (!github) { addMsg('assistant', '❌ Add GitHub token in Settings first'); return; }
-    const repo = prompt('Enter repository (owner/repo):', 'NyxSpecter4/bountywarz');
+    if (!github) { addMsg('assistant', '❌ Add GitHub token in Settings'); return; }
+    const repo = prompt('Repository (owner/repo):', 'NyxSpecter4/bountywarz');
     if (!repo) return;
     const match = repo.match(/([^\/]+)\/([^\/]+)/);
     if (!match) { addMsg('assistant', '❌ Format: owner/repo'); return; }
-    currentGitHubOwner = match[1];
-    currentGitHubRepo = match[2];
-
+    currentGitHubOwner = match[1]; currentGitHubRepo = match[2];
     const tree = document.getElementById('github-tree');
     tree.innerHTML = '<div class="tree-item">Loading...</div>';
     switchNav('github');
-
     try {
       const files = await github.listDirectory(currentGitHubOwner, currentGitHubRepo, '');
       githubStack = [{ owner: currentGitHubOwner, repo: currentGitHubRepo, path: '' }];
@@ -998,7 +1130,6 @@
       tree.innerHTML = `<div class="tree-item" style="color:var(--red)">Error: ${err.message}</div>`;
     }
   }
-
   function renderGitHubTree(items) {
     const tree = document.getElementById('github-tree');
     tree.innerHTML = '';
@@ -1027,109 +1158,181 @@
       tree.appendChild(div);
     });
   }
-
   async function loadGitHubFile(item) {
     const top = githubStack[githubStack.length - 1];
     const path = top.path ? top.path + '/' + item.name : item.name;
     try {
       const content = await github.getFile(top.owner, top.repo, path);
       openFiles[item.name] = content;
-      const tree = document.getElementById('file-tree');
-      if (!tree.querySelector(`[data-file="${item.name}"]`)) {
-        const el = document.createElement('div');
-        el.className = 'tree-item';
-        el.dataset.file = item.name;
-        el.innerHTML = `<span class="icon">📄</span> ${item.name}`;
-        el.onclick = () => switchToFile(item.name);
-        tree.appendChild(el);
-      }
+      addTreeItem(item.name);
       addTab(item.name);
       switchToFile(item.name);
-      addMsg('assistant', `Loaded <code>${item.name}</code> from ${top.owner}/${top.repo}`);
+      addMsg('assistant', `Loaded <code>${item.name}</code>`);
     } catch (err) {
-      addMsg('assistant', `❌ Failed to load ${item.name}: ${err.message}`);
+      addMsg('assistant', `❌ Failed: ${err.message}`);
     }
   }
 
-  // ===== VERCEL INTEGRATION =====
+  // ===== VERCEL =====
   async function loadVercel() {
-    if (!vercel) { addMsg('assistant', '❌ Add Vercel token in Settings first'); return; }
+    if (!vercel) { addMsg('assistant', '❌ Add Vercel token'); return; }
     switchNav('vercel');
     const tree = document.getElementById('vercel-tree');
-    tree.innerHTML = '<div class="tree-item">Loading projects...</div>';
-
+    tree.innerHTML = '<div class="tree-item">Loading...</div>';
     try {
       const data = await vercel.listProjects();
       tree.innerHTML = '';
-      (data.projects || []).forEach(project => {
+      (data.projects || []).forEach(p => {
         const div = document.createElement('div');
         div.className = 'tree-item dir';
-        div.innerHTML = `<span class="icon">▲</span> ${project.name}`;
-        div.onclick = () => loadVercelProject(project);
+        div.innerHTML = `<span class="icon">▲</span> ${p.name}`;
         tree.appendChild(div);
       });
     } catch (err) {
-      tree.innerHTML = `<div class="tree-item" style="color:var(--red)">Error: ${err.message}</div>`;
+      tree.innerHTML = `<div class="tree-item" style="color:var(--red)">Error</div>`;
     }
   }
 
-  async function loadVercelProject(project) {
-    const tree = document.getElementById('vercel-tree');
-    tree.innerHTML = '<div class="tree-item">Loading deployments...</div>';
-    try {
-      const data = await vercel.listDeployments(project.id);
-      tree.innerHTML = `<div class="tree-item" onclick="loadVercel()"><span class="icon">←</span> Back</div>`;
-      (data.deployments || []).slice(0, 10).forEach(dep => {
-        const div = document.createElement('div');
-        div.className = 'tree-item';
-        const status = dep.state === 'READY' ? '✓' : dep.state === 'ERROR' ? '✕' : '○';
-        div.innerHTML = `<span class="icon">${status}</span> ${dep.url}`;
-        tree.appendChild(div);
-      });
-    } catch (err) {
-      tree.innerHTML = `<div class="tree-item" style="color:var(--red)">Error: ${err.message}</div>`;
-    }
-  }
-
-  // ===== SUPABASE INTEGRATION =====
+  // ===== SUPABASE =====
   async function loadSupabase() {
-    if (!supabase) { addMsg('assistant', '❌ Add Supabase URL & key in Settings first'); return; }
+    if (!supabase) { addMsg('assistant', '❌ Add Supabase credentials'); return; }
     switchNav('supabase');
     const tree = document.getElementById('supabase-tree');
-    tree.innerHTML = '<div class="tree-item">Loading tables...</div>';
-
+    tree.innerHTML = '<div class="tree-item">Loading...</div>';
     try {
-      const tableNames = await supabase.listTables();
+      const tables = await supabase.listTables();
       tree.innerHTML = '';
-      (tableNames || []).forEach(name => {
+      (tables || []).forEach(name => {
         const div = document.createElement('div');
         div.className = 'tree-item dir';
         div.innerHTML = `<span class="icon">🟢</span> ${name}`;
-        div.onclick = () => loadSupabaseTable(name);
         tree.appendChild(div);
       });
-      if (tree.children.length === 0) {
-        tree.innerHTML = '<div class="tree-item">No tables found</div>';
-      }
     } catch (err) {
       tree.innerHTML = `<div class="tree-item" style="color:var(--red)">Error: ${err.message}</div>`;
     }
   }
 
-  async function loadSupabaseTable(tableName) {
-    const tree = document.getElementById('supabase-tree');
-    tree.innerHTML = '<div class="tree-item">Loading data...</div>';
-    try {
-      const rows = await supabase.select(tableName, { limit: 20 });
-      tree.innerHTML = `<div class="tree-item" onclick="loadSupabase()"><span class="icon">←</span> Back</div>`;
-      const preview = document.createElement('div');
-      preview.className = 'tree-item';
-      preview.innerHTML = `<span class="icon">📊</span> ${rows.length} rows · ${Object.keys(rows[0] || {}).join(', ').substring(0, 40)}...`;
-      tree.appendChild(preview);
-      addMsg('assistant', `📊 Loaded <code>${tableName}</code> — ${rows.length} rows`);
-    } catch (err) {
-      tree.innerHTML = `<div class="tree-item" style="color:var(--red)">Error: ${err.message}</div>`;
+  // ===== JEOPARDY =====
+  const JEOPARDY_DATA = [
+    { category: 'JavaScript', questions: [
+      { q: 'What is the output of: typeof null', a: 'object', value: 100 },
+      { q: 'What method converts JSON to a string?', a: 'JSON.stringify', value: 200 },
+      { q: 'What is the event loop in JavaScript?', a: 'mechanism that handles async operations', value: 300 },
+      { q: 'What does "use strict" do?', a: 'enables strict mode', value: 400 },
+      { q: 'What is a Promise?', a: 'object representing eventual completion', value: 500 }
+    ]},
+    { category: 'React', questions: [
+      { q: 'What hook manages state?', a: 'useState', value: 100 },
+      { q: 'What is the virtual DOM?', a: 'lightweight copy of actual DOM', value: 200 },
+      { q: 'What hook runs side effects?', a: 'useEffect', value: 300 },
+      { q: 'What is JSX?', a: 'JavaScript XML syntax extension', value: 400 },
+      { q: 'What is React.memo for?', a: 'memoization to prevent re-renders', value: 500 }
+    ]},
+    { category: 'CSS', questions: [
+      { q: 'What does flexbox do?', a: 'one-dimensional layout', value: 100 },
+      { q: 'What is z-index?', a: 'stacking order', value: 200 },
+      { q: 'What are CSS variables?', a: 'custom properties', value: 300 },
+      { q: 'What is BEM?', a: 'Block Element Modifier naming', value: 400 },
+      { q: 'What does @media do?', a: 'responsive design queries', value: 500 }
+    ]},
+    { category: 'Git', questions: [
+      { q: 'What does git init do?', a: 'initialize repository', value: 100 },
+      { q: 'What is a merge conflict?', a: 'conflicting changes in same file', value: 200 },
+      { q: 'What does git rebase do?', a: 'moves commits to new base', value: 300 },
+      { q: 'What is git stash?', a: 'temporarily saves changes', value: 400 },
+      { q: 'What is a detached HEAD?', a: 'not on any branch', value: 500 }
+    ]},
+    { category: 'APIs', questions: [
+      { q: 'What does REST stand for?', a: 'Representational State Transfer', value: 100 },
+      { q: 'What is a 404 status?', a: 'Not Found', value: 200 },
+      { q: 'What is CORS?', a: 'Cross-Origin Resource Sharing', value: 300 },
+      { q: 'What is OAuth?', a: 'authorization framework', value: 400 },
+      { q: 'What is GraphQL?', a: 'query language for APIs', value: 500 }
+    ]},
+    { category: 'Security', questions: [
+      { q: 'What is XSS?', a: 'Cross-Site Scripting', value: 100 },
+      { q: 'What is CSRF?', a: 'Cross-Site Request Forgery', value: 200 },
+      { q: 'What does HTTPS use?', a: 'TLS/SSL encryption', value: 300 },
+      { q: 'What is SQL injection?', a: 'malicious SQL in input', value: 400 },
+      { q: 'What is a JWT?', a: 'JSON Web Token', value: 500 }
+    ]}
+  ];
+
+  function toggleJeopardy() {
+    const editorMain = document.getElementById('main-editor');
+    const jeopardyMain = document.getElementById('main-jeopardy');
+    if (jeopardyMain.style.display === 'none') {
+      editorMain.style.display = 'none';
+      jeopardyMain.style.display = 'flex';
+      renderJeopardy();
+    } else {
+      editorMain.style.display = 'flex';
+      jeopardyMain.style.display = 'none';
     }
+  }
+
+  function renderJeopardy() {
+    const grid = document.getElementById('jeopardy-grid');
+    grid.innerHTML = '';
+    
+    // Headers
+    JEOPARDY_DATA.forEach(cat => {
+      const header = document.createElement('div');
+      header.className = 'jeopardy-category';
+      header.textContent = cat.category;
+      grid.appendChild(header);
+    });
+
+    // Questions (5 rows)
+    for (let row = 0; row < 5; row++) {
+      JEOPARDY_DATA.forEach((cat, col) => {
+        const card = document.createElement('div');
+        card.className = 'jeopardy-card';
+        card.dataset.category = col;
+        card.dataset.question = row;
+        card.textContent = '$' + cat.questions[row].value;
+        card.onclick = () => showJeopardyQuestion(col, row);
+        grid.appendChild(card);
+      });
+    }
+  }
+
+  function showJeopardyQuestion(catIdx, qIdx) {
+    const data = JEOPARDY_DATA[catIdx].questions[qIdx];
+    currentJeopardy = { catIdx, qIdx, data };
+    document.getElementById('jeopardy-title').textContent = `${JEOPARDY_DATA[catIdx].category} - $${data.value}`;
+    document.getElementById('jeopardy-question').textContent = data.q;
+    document.getElementById('jeopardy-answer').value = '';
+    document.getElementById('jeopardy-modal').classList.add('active');
+  }
+
+  function closeJeopardyQuestion() {
+    document.getElementById('jeopardy-modal').classList.remove('active');
+    currentJeopardy = null;
+  }
+
+  function submitJeopardy() {
+    if (!currentJeopardy) return;
+    const answer = document.getElementById('jeopardy-answer').value.trim().toLowerCase();
+    const correct = currentJeopardy.data.a.toLowerCase();
+    const isCorrect = answer.includes(correct) || correct.includes(answer);
+    
+    if (isCorrect) {
+      score += currentJeopardy.data.value;
+      addMsg('assistant', `✅ Correct! +$${currentJeopardy.data.value}`);
+    } else {
+      score -= currentJeopardy.data.value;
+      addMsg('assistant', `❌ Wrong! The answer was: ${currentJeopardy.data.a}`);
+    }
+    
+    localStorage.setItem('athelgard_score', score);
+    benchmarkScore.textContent = 'Score: ' + score;
+    
+    // Mark as answered
+    document.querySelector(`.jeopardy-card[data-category="${currentJeopardy.catIdx}"][data-question="${currentJeopardy.qIdx}"]`)?.classList.add('answered');
+    
+    closeJeopardyQuestion();
   }
 
   // ===== RESTORE SESSION =====
@@ -1144,16 +1347,16 @@
     const tree = document.getElementById('file-tree');
     tree.innerHTML = '';
     Object.keys(openFiles).forEach(name => {
-      const item = document.createElement('div');
-      item.className = 'tree-item' + (name === currentFile ? ' active' : '');
-      item.dataset.file = name;
-      item.innerHTML = `<span class="icon">📄</span> ${name}`;
-      item.onclick = () => switchToFile(name);
-      tree.appendChild(item);
+      addTreeItem(name);
       addTab(name);
     });
     document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.file === currentFile));
   })();
+
+  // ===== SERVICE WORKER (PWA) =====
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  }
 </script>
 </body>
 </html>
