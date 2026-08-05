@@ -1,15 +1,10 @@
 {
   "version": 2,
-  "builds": [
-    { "src": "api/agent.js", "use": "@vercel/node" },
-    { "src": "api/github.js", "use": "@vercel/node" },
-    { "src": "api/athelgard/index.ts", "use": "@vercel/node" }
-  ],
   "routes": [
-    { "src": "/api/agent", "dest": "api/agent.js" },
-    { "src": "/api/github", "dest": "api/github.js" },
-    { "src": "/api/athelgard", "dest": "api/athelgard/index.ts" },
-    { "src": "/api/athelgard/(.*)", "dest": "api/athelgard/index.ts" },
+    { "src": "/api/agent", "dest": "/api/agent.js" },
+    { "src": "/api/github", "dest": "/api/github.js" },
+    { "src": "/api/athelgard", "dest": "/api/athelgard/index.ts" },
+    { "src": "/api/athelgard/(.*)", "dest": "/api/athelgard/index.ts" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
