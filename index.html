@@ -177,8 +177,11 @@ async function send() {
     // Check if GitHub repo command
     const repoMatch = text.match(/^\s*(?:show|list)\s+(?:my\s+)?repos?\s*$/i);
     const fileMatch = text.match(/^\s*(?:show|read)\s+file\s+(.+)\s+in\s+(.+)\s*$/i);
+    const connectedMatch = text.match(/^\s*(?:are you connected|github status|check github|am i connected)\s*$/i);
     
-    if(repoMatch) {
+    if(connectedMatch) {
+      await handleGitHubStatus();
+    } else if(repoMatch) {
       await handleListRepos();
     } else if(fileMatch) {
       await handleReadFile(fileMatch[1].trim(), fileMatch[2].trim());
@@ -241,6 +244,20 @@ async function handleReadFile(path, repoFull) {
     }
   } catch(e) {
     addMsg('ai','❌ Could not read file. Make sure GitHub is connected and the path is correct.');
+  }
+}
+
+async function handleGitHubStatus() {
+  try {
+    const res = await fetch('/api/github?action=status', {credentials:'same-origin'});
+    const data = await res.json();
+    if(data.connected) {
+      addMsg('ai',`✅ **GitHub Connected!**\n\nLogged in as: **${data.user.name || data.user.login}**\n\nYou can now:\n• Type "show my repos" to list repositories\n• Type "show file README.md in owner/repo" to read files`);
+    } else {
+      addMsg('ai','❌ **GitHub Not Connected**\n\nClick 🔒 **Connect GitHub** in the header to authorize.');
+    }
+  } catch(e) {
+    addMsg('ai','❌ Could not check GitHub status. The OAuth server may be misconfigured.');
   }
 }
 
