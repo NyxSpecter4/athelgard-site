@@ -178,10 +178,14 @@ async function send() {
     const repoMatch = text.match(/^\s*(?:show|list)\s+(?:my\s+)?repos?\s*$/i);
     const fileMatch = text.match(/^\s*(?:show|read)\s+file\s+(.+)\s+in\s+(.+)\s*$/i);
     const connectedMatch = text.match(/^\s*(?:are you connected|github status|check github|am i connected)\s*$/i);
+    const connectMatch = text.match(/\b(?:connect to github|link github|github login|authorize github)\b/i);
+    const repoQuestion = text.match(/\b(?:my repo|my github|my repositories)\b/i) && text.match(/\b(?:what|which|show|list|have)\b/i);
     
-    if(connectedMatch) {
+    if(connectMatch) {
+      addMsg('ai','🔒 Click **Connect GitHub** in the top-right header to authorize.');
+    } else if(connectedMatch) {
       await handleGitHubStatus();
-    } else if(repoMatch) {
+    } else if(repoMatch || repoQuestion) {
       await handleListRepos();
     } else if(fileMatch) {
       await handleReadFile(fileMatch[1].trim(), fileMatch[2].trim());
