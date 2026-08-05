@@ -482,12 +482,76 @@ checkPeak();
 setInterval(checkPeak, 60000);
 
 // ===== STATUS INDICATORS =====
-function updateStatus() {
-  document.getElementById('status-deepseek').className = 'status-dot ' + (config.apiKey ? 'ok' : 'off');
-  document.getElementById('status-kimi').className = 'status-dot ' + (config.kimiKey ? 'ok' : 'off');
-  document.getElementById('status-github').className = 'status-dot ' + (config.githubToken ? 'ok' : 'off');
+// ===== ROBUST CONNECTION TESTING =====
+let connectionStatus = { deepseek: false, kimi: false, github: false };
+
+async function testConnections() {
+  const dsDot = document.getElementById('status-deepseek');
+  const kimiDot = document.getElementById('status-kimi');
+  const ghDot = document.getElementById('status-github');
+  
+  // Test DeepSeek
+  if (config.apiKey) {
+    try {
+      const res = await fetch('https://api.deepseek.com/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.apiKey}` },
+        body: JSON.stringify({ model: 'deepseek-chat', messages: [{role:'user',content:'hi'}], max_tokens: 5 })
+      });
+      connectionStatus.deepseek = res.ok;
+      dsDot.className = 'status-dot ' + (res.ok ? 'ok' : 'warn');
+      if (!res.ok) console.error('DeepSeek test failed:', res.status);
+    } catch (e) {
+      connectionStatus.deepseek = false;
+      dsDot.className = 'status-dot warn';
+      console.error('DeepSeek test error:', e);
+    }
+  } else {
+    dsDot.className = 'status-dot off';
+  }
+  
+  // Test Kimi
+  if (config.kimiKey) {
+    try {
+      const res = await fetch('https://api.moonshot.cn/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.kimiKey}` },
+        body: JSON.stringify({ model: 'kimi-k2p6', messages: [{role:'user',content:'hi'}], max_tokens: 5 })
+      });
+      connectionStatus.kimi = res.ok;
+      kimiDot.className = 'status-dot ' + (res.ok ? 'ok' : 'warn');
+      if (!res.ok) console.error('Kimi test failed:', res.status);
+    } catch (e) {
+      connectionStatus.kimi = false;
+      kimiDot.className = 'status-dot warn';
+      console.error('Kimi test error:', e);
+    }
+  } else {
+    kimiDot.className = 'status-dot off';
+  }
+  
+  // Test GitHub
+  if (config.githubToken) {
+    try {
+      const res = await fetch('https://api.github.com/user', {
+        headers: { 'Authorization': `token ${config.githubToken}`, 'Accept': 'application/vnd.github.v3+json' }
+      });
+      connectionStatus.github = res.ok;
+      ghDot.className = 'status-dot ' + (res.ok ? 'ok' : 'warn');
+      if (!res.ok) console.error('GitHub test failed:', res.status);
+    } catch (e) {
+      connectionStatus.github = false;
+      ghDot.className = 'status-dot warn';
+      console.error('GitHub test error:', e);
+    }
+  } else {
+    ghDot.className = 'status-dot off';
+  }
 }
-updateStatus();
+
+// Run tests on load and every 30 seconds
+testConnections();
+setInterval(testConnections, 30000);
 
 // ===== VOICE =====
 function startVoice() {
@@ -541,13 +605,44 @@ async function sendMessage() {
   if (text.toLowerCase().includes('jeopardy')) { showJeopardy(); return; }
   if (text.toLowerCase().includes('wheel')) { showWheel(); return; }
 
-  // AI Response
+  // Check if we have ANY working AI
+  if (!connectionStatus.deepseek && !connectionStatus.kimi) {
+    addMsg('assistant', '❌ No AI connected. Add a working API key in ⚙️ Settings.\n\nGet DeepSeek: platform.deepseek.com\nGet Kimi: platform.moonshot.cn');
+    return;
+  }
+
+  // AI Response with fallback
   try {
-    const model = (isPeak && config.kimiKey) ? 'kimi' : 'deepseek';
-    const reply = await getAIResponse(text, model);
+    let reply, usedModel;
+    
+    // Try primary model first
+    if (!isPeak && connectionStatus.deepseek) {
+      try {
+        reply = await getAIResponse(text, 'deepseek');
+        usedModel = 'DeepSeek';
+      } catch (e) {
+        // DeepSeek failed, try Kimi if available
+        if (connectionStatus.kimi) {
+          addMsg('assistant', '🔄 DeepSeek failed, trying Kimi...');
+          reply = await getAIResponse(text, 'kimi');
+          usedModel = 'Kimi (fallback)';
+        } else {
+          throw e;
+        }
+      }
+    } else if (connectionStatus.kimi) {
+      reply = await getAIResponse(text, 'kimi');
+      usedModel = 'Kimi';
+    } else if (connectionStatus.deepseek) {
+      reply = await getAIResponse(text, 'deepseek');
+      usedModel = 'DeepSeek';
+    } else {
+      throw new Error('No AI models available');
+    }
+    
     addMsg('assistant', reply);
   } catch (e) {
-    addMsg('assistant', '❌ ' + e.message);
+    addMsg('assistant', '❌ Error: ' + e.message + '\n\nTry:\n1. Check your API key in ⚙️ Settings\n2. Test your key at the provider website\n3. Try a different model');
   }
 }
 
@@ -571,8 +666,18 @@ async function getAIResponse(text, model) {
     })
   });
 
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    const errMsg = errData.error?.message || errData.message || `HTTP ${res.status}`;
+    throw new Error(`${model} API error: ${errMsg}`);
+  }
+
   const data = await res.json();
-  const reply = data.choices?.[0]?.message?.content || 'No response';
+  const reply = data.choices?.[0]?.message?.content;
+  
+  if (!reply) {
+    throw new Error('Empty response from AI');
+  }
   
   messageHistory.push({ role: 'user', content: text });
   messageHistory.push({ role: 'assistant', content: reply });
