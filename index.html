@@ -174,28 +174,16 @@ async function send() {
   btn.textContent = '...';
 
   try {
-    // Check if GitHub repo command
+    // Only intercept STRUCTURED commands
     const repoMatch = text.match(/^\s*(?:show|list)\s+(?:my\s+)?repos?\s*$/i);
     const fileMatch = text.match(/^\s*(?:show|read)\s+file\s+(.+)\s+in\s+(.+)\s*$/i);
-    const connectedMatch = text.match(/^\s*(?:are you connected|github status|check github|am i connected)\s*$/i);
-    const connectMatch = text.match(/\b(?:connect to github|link github|github login|authorize github)\b/i);
-    const repoQuestion = text.match(/\b(?:my repo|my github|my repositories)\b/i) && text.match(/\b(?:what|which|show|list|have|explain)\b/i);
-    const accessQuestion = text.match(/\b(?:repo|repository|github)\b/i) && text.match(/\b(?:access|see|read|look|connected|your|you have)\b/i);
-    const explainRepo = text.match(/\b(?:explain|describe|tell me about)\b/i) && text.match(/\b(?:my repo|my code|my project)\b/i);
     
-    if(connectMatch) {
-      addMsg('ai','🔒 Click **Connect GitHub** in the top-right header to authorize.');
-    } else if(connectedMatch || accessQuestion || explainRepo) {
-      await handleGitHubStatus();
-    } else if(repoMatch || repoQuestion) {
+    if(repoMatch) {
       await handleListRepos();
     } else if(fileMatch) {
       await handleReadFile(fileMatch[1].trim(), fileMatch[2].trim());
-    } else if(/\b(bounty|finding|vuln|hack|scope|pentest|exploit|bug|ctf)\b/i.test(text)) {
-      const reply = handleBounty(text);
-      addMsg('ai',reply);
     } else {
-      // AI chat
+      // AI handles everything else with full context
       const reply = await getAI(text);
       addMsg('ai',reply.text+`\n\n— _${reply.model}_`);
     }
@@ -294,10 +282,31 @@ function handleBounty(text) {
 }
 
 async function getAI(text) {
+  const systemPrompt = `You are Athelgard, a friendly AI coding mentor and ethical bounty hunting trainer.
+
+YOUR CAPABILITIES:
+- Help with coding questions, debugging, architecture
+- Review code and suggest improvements  
+- Teach security concepts and responsible disclosure
+- Play Code Jeopardy training games
+
+GITHUB ACCESS:
+- You CAN access the user's GitHub repos when they click "🔒 Connect GitHub" in the header
+- If they ask about repos/code/files and GitHub is NOT connected, tell them:
+  "I can access your repos through GitHub OAuth. Click 🔒 Connect GitHub in the top right to authorize."
+- If connected, you can read files and review code
+
+ETHICAL BOUNTY HUNTING:
+- You ONLY review SIMULATED bounty hunts for training
+- Real/unsanctioned targets are blocked for safety
+- A complete finding needs: observation, impact, reproduction, remediation
+
+Be concise, helpful, and use a friendly tone.`;
+
   // Try DeepSeek first
   if(CFG.ds) {
     try {
-      const res = await fetch('https://api.deepseek.com/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${CFG.ds}`},body:JSON.stringify({model:'deepseek-chat',messages:[{role:'system',content:'You are Athelgard, a concise AI coding mentor.'},{role:'user',content:text}],max_tokens:2000,temperature:0.7})});
+      const res = await fetch('https://api.deepseek.com/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${CFG.ds}`},body:JSON.stringify({model:'deepseek-chat',messages:[{role:'system',content:systemPrompt},{role:'user',content:text}],max_tokens:2000,temperature:0.7})});
       if(!res.ok)throw new Error('DeepSeek '+res.status);
       const data = await res.json();
       return {text:data.choices[0].message.content,model:'DeepSeek'};
@@ -306,7 +315,7 @@ async function getAI(text) {
   // Fallback to Kimi
   if(CFG.kimi) {
     try {
-      const res = await fetch('https://api.moonshot.cn/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${CFG.kimi}`},body:JSON.stringify({model:'kimi-k2p6',messages:[{role:'system',content:'You are Athelgard, a concise AI coding mentor.'},{role:'user',content:text}],max_tokens:2000,temperature:0.7})});
+      const res = await fetch('https://api.moonshot.cn/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${CFG.kimi}`},body:JSON.stringify({model:'kimi-k2p6',messages:[{role:'system',content:systemPrompt},{role:'user',content:text}],max_tokens:2000,temperature:0.7})});
       if(!res.ok)throw new Error('Kimi '+res.status);
       const data = await res.json();
       return {text:data.choices[0].message.content,model:'Kimi'};
