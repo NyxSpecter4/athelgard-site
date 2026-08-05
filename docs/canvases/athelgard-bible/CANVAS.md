@@ -15,8 +15,8 @@ type: "text/markdown"
 
 ---
 
-## 📜 PREAMBLE: The Covenant
+## 📜 **PREAMBLE: The Covenant**
 
-Athelgard is one persistent ethical intelligence that exists across four surfaces, guiding users from simulation to authorized real-world disclosure through a unified, coherent experience.
+> **Athelgard is one persistent ethical intelligence that exists across four surfaces, guiding users from simulation to authorized real-world disclosure through a unified, coherent experience.**
 
-This is the non-negotiable foundation of everything that follows.
+This is the **non-negotiable foundation** of everything that follows.
