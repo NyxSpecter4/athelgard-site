@@ -130,6 +130,7 @@
   <div class="main">
     <nav class="sidebar">
       <button class="nav-btn active" data-panel="chat-panel">💬 Chat</button>
+      <button class="nav-btn" data-panel="editor-panel">📝 Editor</button>
       <button class="nav-btn" data-panel="bounty-panel">🛡️ Bounty</button>
       <button class="nav-btn" data-panel="games-panel">🎮 Games</button>
       <button class="nav-btn" data-panel="github-panel">📁 GitHub</button>
@@ -144,6 +145,26 @@
         <input type="text" class="chat-input" id="chat-input" placeholder="Ask Athelgard anything..." autocomplete="off">
         <button class="send-btn" id="send-btn">➤</button>
       </div>
+    </div>
+
+    <!-- EDITOR PANEL -->
+    <div class="panel" id="editor-panel">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <h2 style="color:var(--gold);">📝 Code Editor</h2>
+        <div style="display:flex; gap:8px;">
+          <select id="editor-lang" style="background:var(--bg3); border:1px solid var(--border); color:var(--text); padding:6px 12px; border-radius:8px;">
+            <option value="javascript">JavaScript</option>
+            <option value="typescript">TypeScript</option>
+            <option value="html">HTML</option>
+            <option value="css">CSS</option>
+            <option value="python">Python</option>
+            <option value="json">JSON</option>
+          </select>
+          <button class="send-btn" id="btn-ask-editor" style="width:auto; padding:8px 16px; font-size:12px;">🦉 Ask Athelgard</button>
+        </div>
+      </div>
+      <div id="monaco-container" style="flex:1; border:1px solid var(--border); border-radius:12px; overflow:hidden;"></div>
+      <div id="editor-status" style="margin-top:8px; font-size:12px; color:#888;">Select language and start coding...</div>
     </div>
 
     <!-- BOUNTY PANEL -->
@@ -437,7 +458,53 @@ setInterval(updateStatusBar, 30000);
 // Welcome message
 addChatMessage('assistant', `🦉 Welcome Captain! I'm Athelgard v${CONFIG.version}.\n\nI can help you code, review bounty findings, and play training games.\n\n**Quick start:**\n• Type any coding question\n• Submit a simulated bounty finding\n• Try Code Jeopardy in Games\n\nAdd your API keys in Settings for AI chat.`);
 
-console.log('[Athelgard] v6.1 initialized — Brain by MELI, OAuth by MELI, Body by MakoThoth-KClaw');
+// ═══════════════════════════════════════════
+// MONACO EDITOR
+// ═══════════════════════════════════════════
+let monacoEditor = null;
+
+function initMonaco() {
+  if (monacoEditor) return;
+  const container = document.getElementById('monaco-container');
+  if (!container || !window.monaco) return;
+
+  monacoEditor = monaco.editor.create(container, {
+    value: '// Welcome to Athelgard Editor\n// Select a language and start coding\n\nfunction hello() {\n  return "Hello, Captain!";\n}\n',
+    language: 'javascript',
+    theme: 'vs-dark',
+    fontSize: 14,
+    minimap: { enabled: false },
+    scrollBeyondLastLine: false,
+    automaticLayout: true,
+    padding: { top: 16 },
+  });
+
+  document.getElementById('editor-lang').addEventListener('change', (e) => {
+    monaco.editor.setModelLanguage(monacoEditor.getModel(), e.target.value);
+  });
+
+  document.getElementById('btn-ask-editor').addEventListener('click', async () => {
+    const code = monacoEditor.getValue();
+    if (!code.trim()) { toast('Write some code first!'); return; }
+    document.getElementById('editor-panel').classList.remove('active');
+    document.getElementById('chat-panel').classList.add('active');
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('[data-panel="chat-panel"]').classList.add('active');
+    document.getElementById('chat-input').value = `Review this code:\n\n\`\`\`${document.getElementById('editor-lang').value}\n${code}\n\`\`\``;
+    handleSend();
+  });
+}
+
+// Load Monaco from CDN
+const monacoScript = document.createElement('script');
+monacoScript.src = 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js';
+monacoScript.onload = () => {
+  require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' }});
+  require(['vs/editor/editor.main'], initMonaco);
+};
+document.head.appendChild(monacoScript);
+
+console.log('[Athelgard] v6.2 initialized — Brain by MELI, OAuth by MELI, Body by MakoThoth-KClaw');
 </script>
 </body>
 </html>
