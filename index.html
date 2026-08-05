@@ -609,44 +609,45 @@ async function sendMessage() {
   if (text.toLowerCase().includes('jeopardy')) { showJeopardy(); return; }
   if (text.toLowerCase().includes('wheel')) { showWheel(); return; }
 
-  // Check if we have ANY working AI
-  if (!connectionStatus.deepseek && !connectionStatus.kimi) {
-    addMsg('assistant', '❌ No AI connected. Add a working API key in ⚙️ Settings.\n\nGet DeepSeek: platform.deepseek.com\nGet Kimi: platform.moonshot.cn');
+  // Check if it's a bounty/security query (MELI's brain)
+  if (isBountyQuery(text)) {
+    const bountyReply = await handleBountyQuery(text);
+    addMsg('assistant', bountyReply);
     return;
   }
 
-  // AI Response with fallback
+  // Try sending immediately - don't wait for connection tests
   try {
     let reply, usedModel;
     
-    // Try primary model first
-    if (!isPeak && connectionStatus.deepseek) {
+    // Try DeepSeek first (cheaper)
+    if (config.apiKey) {
       try {
         reply = await getAIResponse(text, 'deepseek');
         usedModel = 'DeepSeek';
       } catch (e) {
-        // DeepSeek failed, try Kimi if available
-        if (connectionStatus.kimi) {
-          addMsg('assistant', '🔄 DeepSeek failed, trying Kimi...');
+        console.log('DeepSeek failed:', e.message);
+        // Try Kimi fallback
+        if (config.kimiKey) {
+          addMsg('assistant', '🔄 Trying Kimi fallback...');
           reply = await getAIResponse(text, 'kimi');
-          usedModel = 'Kimi (fallback)';
+          usedModel = 'Kimi';
         } else {
           throw e;
         }
       }
-    } else if (connectionStatus.kimi) {
+    } else if (config.kimiKey) {
       reply = await getAIResponse(text, 'kimi');
       usedModel = 'Kimi';
-    } else if (connectionStatus.deepseek) {
-      reply = await getAIResponse(text, 'deepseek');
-      usedModel = 'DeepSeek';
     } else {
-      throw new Error('No AI models available');
+      addMsg('assistant', '❌ No API key configured. Click ⚙️ Settings to add your DeepSeek or Kimi key.');
+      return;
     }
     
     addMsg('assistant', reply);
   } catch (e) {
-    addMsg('assistant', '❌ Error: ' + e.message + '\n\nTry:\n1. Check your API key in ⚙️ Settings\n2. Test your key at the provider website\n3. Try a different model');
+    console.error('Chat error:', e);
+    addMsg('assistant', '❌ Error: ' + e.message + '\n\nYour API key might be invalid or expired.\n\nCheck:\n1. Key is correct in ⚙️ Settings\n2. You have credits at the provider\n3. Try regenerating the key');
   }
 }
 
@@ -886,6 +887,98 @@ function showSettings() {
     updateStatus();
     showToast('✅ Settings saved!');
   }
+}
+
+// ===== MELI'S BRAIN INTEGRATION =====
+// Ethical Hunt Loop - Security gate for bounty submissions
+const HUNT_DECISIONS = Object.freeze({
+  BLOCKED: 'blocked',
+  NEEDS_SCOPE: 'needs_scope',
+  INVESTIGATE: 'investigate',
+  REPORT_READY: 'report_ready',
+});
+
+function evaluateBountyAttempt(attempt = {}) {
+  const scope = attempt.scope || {};
+  const evidence = attempt.evidence || {};
+  
+  if (attempt.simulated !== true) {
+    return { status: HUNT_DECISIONS.BLOCKED, reason: 'Only simulated targets allowed.' };
+  }
+  if (!scope.program || !scope.authorized) {
+    return { status: HUNT_DECISIONS.NEEDS_SCOPE, reason: 'Scope authorization required.' };
+  }
+  
+  const required = ['observation', 'impact', 'reproduction', 'remediation'];
+  const missing = required.filter(k => !evidence[k] || evidence[k].trim().length < 10);
+  if (missing.length) {
+    return { status: HUNT_DECISIONS.INVESTIGATE, missing, reason: 'Incomplete evidence.' };
+  }
+  
+  return { status: HUNT_DECISIONS.REPORT_READY, reason: 'Complete report.', score: 100 };
+}
+
+// Builder Brain - Review findings
+function reviewFinding(attempt) {
+  const gate = evaluateBountyAttempt(attempt);
+  
+  if (gate.status === HUNT_DECISIONS.BLOCKED) {
+    return `🚫 BLOCKED: ${gate.reason}\n\nAthelgard only reviews SIMULATED bounty hunts for training. Real targets are blocked.`;
+  }
+  if (gate.status === HUNT_DECISIONS.NEEDS_SCOPE) {
+    return `📋 NEEDS SCOPE: ${gate.reason}\n\nBefore investigating, define:\n- What program?\n- Is it authorized?\n- What's in scope?`;
+  }
+  if (gate.status === HUNT_DECISIONS.INVESTIGATE) {
+    return `🔍 INCOMPLETE: Missing ${gate.missing.join(', ')}\n\nA strong finding needs:\n1. Observation - what you saw\n2. Impact - why it matters\n3. Reproduction - how to verify\n4. Remediation - how to fix`;
+  }
+  
+  return `✅ REPORT READY! Score: ${gate.score}/100\n\nYour finding has:\n✓ Proper scope\n✓ Complete evidence\n✓ Clear impact\n✓ Reproduction steps\n✓ Remediation advice\n\nThis is a defensible responsible disclosure packet!`;
+}
+
+// Detect bounty-related messages
+function isBountyQuery(text) {
+  const lower = text.toLowerCase();
+  return lower.includes('bounty') || lower.includes('finding') || lower.includes('vulnerability') || 
+         lower.includes('security') || lower.includes('hack') || lower.includes('pentest') ||
+         lower.includes('scope') || lower.includes('report');
+}
+
+// Handle bounty submissions via chat
+async function handleBountyQuery(text) {
+  // Extract attempt from message
+  const attempt = {
+    simulated: text.toLowerCase().includes('simulated') || text.toLowerCase().includes('practice'),
+    scope: {
+      program: text.match(/program[:\s]+([^\n]+)/i)?.[1],
+      authorized: text.toLowerCase().includes('authorized') || text.toLowerCase().includes('approved'),
+    },
+    evidence: {
+      observation: text.match(/observation[:\s]+([^\n]+)/i)?.[1],
+      impact: text.match(/impact[:\s]+([^\n]+)/i)?.[1],
+      reproduction: text.match(/reproduction[:\s]+([^\n]+)/i)?.[1],
+      remediation: text.match(/remediation[:\s]+([^\n]+)/i)?.[1],
+    }
+  };
+  
+  return reviewFinding(attempt);
+}
+
+// ===== MELI'S COST ROUTER =====
+// Smart model selection based on cost
+function selectModel(preferred) {
+  const now = new Date();
+  const pst = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+  const isPeakHour = pst.getHours() >= 9 && pst.getHours() < 21;
+  
+  if (preferred === 'deepseek' && isPeakHour && config.kimiKey) {
+    console.log('[Athelgard] Peak hours - using Kimi fallback');
+    return 'kimi';
+  }
+  if (preferred === 'kimi' && !isPeakHour && config.apiKey) {
+    console.log('[Athelgard] Off-peak - using DeepSeek (cheaper)');
+    return 'deepseek';
+  }
+  return preferred;
 }
 
 // Check for stored keys
