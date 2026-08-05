@@ -553,6 +553,10 @@ async function testConnections() {
 testConnections();
 setInterval(testConnections, 30000);
 
+// Log status for debugging
+console.log('Athelgard v5.1 loaded');
+console.log('Config:', { hasDeepSeek: !!config.apiKey, hasKimi: !!config.kimiKey, hasGitHub: !!config.githubToken });
+
 // ===== VOICE =====
 function startVoice() {
   if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
@@ -647,43 +651,54 @@ async function sendMessage() {
 }
 
 async function getAIResponse(text, model) {
+  console.log(`[Athelgard] Sending request to ${model}...`);
   const url = model === 'kimi' ? 'https://api.moonshot.cn/v1/chat/completions' : 'https://api.deepseek.com/chat/completions';
   const key = model === 'kimi' ? config.kimiKey : config.apiKey;
   const modelName = model === 'kimi' ? 'kimi-k2p6' : 'deepseek-chat';
 
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-    body: JSON.stringify({
-      model: modelName,
-      messages: [
-        { role: 'system', content: 'You are Athelgard, a friendly AI coding partner. Help with code, explain concepts, and be encouraging. Keep responses concise and actionable.' },
-        ...messageHistory.slice(-4),
-        { role: 'user', content: text }
-      ],
-      temperature: 0.7,
-      max_tokens: 2000
-    })
-  });
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+      body: JSON.stringify({
+        model: modelName,
+        messages: [
+          { role: 'system', content: 'You are Athelgard, a friendly AI coding partner. Help with code, explain concepts, and be encouraging. Keep responses concise and actionable.' },
+          ...messageHistory.slice(-4),
+          { role: 'user', content: text }
+        ],
+        temperature: 0.7,
+        max_tokens: 2000
+      })
+    });
 
-  if (!res.ok) {
-    const errData = await res.json().catch(() => ({}));
-    const errMsg = errData.error?.message || errData.message || `HTTP ${res.status}`;
-    throw new Error(`${model} API error: ${errMsg}`);
-  }
+    console.log(`[Athelgard] ${model} response status:`, res.status);
 
-  const data = await res.json();
-  const reply = data.choices?.[0]?.message?.content;
-  
-  if (!reply) {
-    throw new Error('Empty response from AI');
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error(`[Athelgard] ${model} error:`, errText);
+      throw new Error(`${model} API error: HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    const reply = data.choices?.[0]?.message?.content;
+    
+    if (!reply) {
+      console.error('[Athelgard] Empty response:', data);
+      throw new Error('Empty response from AI');
+    }
+    
+    console.log(`[Athelgard] ${model} success, reply length:`, reply.length);
+    
+    messageHistory.push({ role: 'user', content: text });
+    messageHistory.push({ role: 'assistant', content: reply });
+    if (messageHistory.length > 10) messageHistory = messageHistory.slice(-10);
+    
+    return reply;
+  } catch (e) {
+    console.error(`[Athelgard] ${model} request failed:`, e);
+    throw e;
   }
-  
-  messageHistory.push({ role: 'user', content: text });
-  messageHistory.push({ role: 'assistant', content: reply });
-  if (messageHistory.length > 10) messageHistory = messageHistory.slice(-10);
-  
-  return reply;
 }
 
 function addMsg(role, text) {
