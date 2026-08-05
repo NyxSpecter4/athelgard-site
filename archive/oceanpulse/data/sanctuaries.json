@@ -1,0 +1,110 @@
+[
+  {
+    "id": "monterey-bay",
+    "name": "Monterey Bay National Marine Sanctuary",
+    "region": "California, USA",
+    "coordinates": {
+      "lat": 36.8007,
+      "lon": -121.9473
+    },
+    "boundingBox": {
+      "north": 37.8283,
+      "south": 35.7730,
+      "east": -120.8084,
+      "west": -123.0862
+    },
+    "areaKm2": 15722,
+    "maxDepthM": 3200,
+    "biomes": ["kelp_forest", "deep_canyon", "sandy_bottom", "rocky_reef"],
+    "featuredSpecies": [
+      { "species": "whale", "subtype": "humpback", "abundance": "high" },
+      { "species": "whale", "subtype": "blue", "abundance": "medium" },
+      { "species": "dolphin", "subtype": "bottlenose", "abundance": "high" },
+      { "species": "shark", "subtype": "great_white", "abundance": "medium" },
+      { "species": "shark", "subtype": "hammerhead", "abundance": "low" }
+    ],
+    "notableSites": [
+      { "name": "Monterey Canyon", "depth": 3200, "type": "submarine_canyon" },
+      { "name": "Point Pinos", "depth": 30, "type": "kelp_forest" },
+      { "name": "Elkhorn Slough", "depth": 5, "type": "estuary" }
+    ],
+    "description": "One of the deepest underwater canyons off the coast of North America. Known for year-round whale watching, massive kelp forests, and the Great White sharks of the Red Triangle.",
+    "difficulty": "beginner",
+    "bestSeasons": ["spring", "summer", "fall"],
+    "temperatureC": { "surface": 12, "deep": 4 },
+    "visibilityM": 15,
+    "established": 1992
+  },
+  {
+    "id": "great-barrier-reef",
+    "name": "Great Barrier Reef Marine Park",
+    "region": "Queensland, Australia",
+    "coordinates": {
+      "lat": -18.2871,
+      "lon": 147.6992
+    },
+    "boundingBox": {
+      "north": -10.6815,
+      "south": -24.5000,
+      "east": 154.0000,
+      "west": 142.0000
+    },
+    "areaKm2": 344400,
+    "maxDepthM": 2000,
+    "biomes": ["coral_reef", "lagoon", "deep_reef", "seagrass"],
+    "featuredSpecies": [
+      { "species": "whale", "subtype": "humpback", "abundance": "high" },
+      { "species": "whale", "subtype": "orca", "abundance": "low" },
+      { "species": "shark", "subtype": "tiger", "abundance": "medium" },
+      { "species": "shark", "subtype": "whale_shark", "abundance": "medium" },
+      { "species": "dolphin", "subtype": "bottlenose", "abundance": "high" }
+    ],
+    "notableSites": [
+      { "name": "Ribbon Reefs", "depth": 30, "type": "coral_wall" },
+      { "name": "Cod Hole", "depth": 25, "type": "coral_garden" },
+      { "name": "Osprey Reef", "depth": 1000, "type": "seamount" }
+    ],
+    "description": "The world's largest coral reef system, visible from space. Home to 1,500 fish species, 400 types of coral, and seasonal visits from dwarf minke whales and whale sharks.",
+    "difficulty": "intermediate",
+    "bestSeasons": ["june", "july", "august", "september"],
+    "temperatureC": { "surface": 27, "deep": 18 },
+    "visibilityM": 25,
+    "established": 1975
+  },
+  {
+    "id": "galapagos",
+    "name": "Galápagos Marine Reserve",
+    "region": "Ecuador",
+    "coordinates": {
+      "lat": -0.9538,
+      "lon": -90.9656
+    },
+    "boundingBox": {
+      "north": 1.6839,
+      "south": -3.0025,
+      "east": -89.1500,
+      "west": -92.7832
+    },
+    "areaKm2": 138000,
+    "maxDepthM": 3000,
+    "biomes": ["volcanic_reef", "deep_water", "upwelling_zone", "kelp_forest"],
+    "featuredSpecies": [
+      { "species": "whale", "subtype": "humpback", "abundance": "medium" },
+      { "species": "whale", "subtype": "orca", "abundance": "medium" },
+      { "species": "whale", "subtype": "sperm", "abundance": "medium" },
+      { "species": "shark", "subtype": "hammerhead", "abundance": "high" },
+      { "species": "shark", "subtype": "whale_shark", "abundance": "high" }
+    ],
+    "notableSites": [
+      { "name": "Darwin's Arch", "depth": 30, "type": "arch" },
+      { "name": "Wolf Island", "depth": 40, "type": "wall_dive" },
+      { "name": "Cape Douglas", "depth": 25, "type": "penguin_colony" }
+    ],
+    "description": "Where three major ocean currents converge, creating one of the most biodiverse marine ecosystems on Earth. Hammerhead sharks gather here by the hundreds, and whale sharks patrol the northern islands.",
+    "difficulty": "advanced",
+    "bestSeasons": [ "june", "july", "august", "november", "december" ],
+    "temperatureC": { "surface": 24, "deep": 12 },
+    "visibilityM": 20,
+    "established": 1998
+  }
+]

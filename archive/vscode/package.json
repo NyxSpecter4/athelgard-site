@@ -1,0 +1,67 @@
+{
+  "name": "athelgard",
+  "displayName": "Athelgard — AI Coding Agent",
+  "description": "AI coding agent with voice, GitHub, Vercel, Supabase, DeepSeek peak pricing, and ethical bounty hunting",
+  "version": "1.0.0",
+  "publisher": "athelgard",
+  "engines": { "vscode": "^1.90.0" },
+  "categories": ["Machine Learning", "Debuggers", "Other"],
+  "keywords": ["ai", "coding", "assistant", "deepseek", "voice", "agent"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      { "command": "athelgard.openChat", "title": "Open Athelgard Chat", "icon": "$(comment-discussion)" },
+      { "command": "athelgard.voiceMode", "title": "Voice Mode", "icon": "$(mic)" },
+      { "command": "athelgard.explainCode", "title": "Explain Selected Code", "icon": "$(lightbulb)" },
+      { "command": "athelgard.fixCode", "title": "Fix Selected Code", "icon": "$(tools)" },
+      { "command": "athelgard.generateTests", "title": "Generate Tests", "icon": "$(beaker)" },
+      { "command": "athelgard.bountyMode", "title": "Bounty Hunt Mode", "icon": "$(bug)" },
+      { "command": "athelgard.peakStatus", "title": "Check DeepSeek Pricing", "icon": "$(dashboard)" },
+      { "command": "athelgard.pushToGitHub", "title": "Push to GitHub", "icon": "$(github)" },
+      { "command": "athelgard.deployToVercel", "title": "Deploy to Vercel", "icon": "$(rocket)" }
+    ],
+    "views": {
+      "explorer": [
+        { "id": "athelgard.chat", "name": "Athelgard", "when": "athelgard.enabled" }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        { "id": "athelgard-sidebar", "title": "Athelgard", "icon": "$(comment-discussion)" }
+      ]
+    },
+    "configuration": {
+      "title": "Athelgard",
+      "properties": {
+        "athelgard.apiKey": { "type": "string", "default": "", "description": "DeepSeek API Key" },
+        "athelgard.githubToken": { "type": "string", "default": "", "description": "GitHub Personal Access Token" },
+        "athelgard.vercelToken": { "type": "string", "default": "", "description": "Vercel Token" },
+        "athelgard.supabaseUrl": { "type": "string", "default": "", "description": "Supabase Project URL" },
+        "athelgard.supabaseKey": { "type": "string", "default": "", "description": "Supabase Service Role Key" },
+        "athelgard.model": { "type": "string", "default": "deepseek-chat", "enum": ["deepseek-chat", "deepseek-reasoner", "deepseek-coder"], "description": "DeepSeek Model" },
+        "athelgard.peakModel": { "type": "string", "default": "deepseek-coder", "enum": ["deepseek-chat", "deepseek-coder"], "description": "Model to use during peak hours" },
+        "athelgard.temperature": { "type": "number", "default": 0.7, "description": "Temperature" },
+        "athelgard.voiceEnabled": { "type": "boolean", "default": true, "description": "Enable voice mode" },
+        "athelgard.bountyMode": { "type": "boolean", "default": false, "description": "Enable bounty hunting mode" }
+      }
+    },
+    "keybindings": [
+      { "command": "athelgard.openChat", "key": "ctrl+shift+a", "mac": "cmd+shift+a" },
+      { "command": "athelgard.voiceMode", "key": "ctrl+shift+v", "mac": "cmd+shift+v" }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.90.0",
+    "@types/node": "20.x",
+    "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "axios": "^1.7.0"
+  }
+}
