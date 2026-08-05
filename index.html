@@ -174,85 +174,21 @@ async function send() {
   btn.textContent = '...';
 
   try {
-    // Only intercept STRUCTURED commands
-    const repoMatch = text.match(/^\s*(?:show|list)\s+(?:my\s+)?repos?\s*$/i);
-    const fileMatch = text.match(/^\s*(?:show|read)\s+file\s+(.+)\s+in\s+(.+)\s*$/i);
-    
-    if(repoMatch) {
-      await handleListRepos();
-    } else if(fileMatch) {
-      await handleReadFile(fileMatch[1].trim(), fileMatch[2].trim());
-    } else {
-      // AI handles everything else with full context
-      const reply = await getAI(text);
-      addMsg('ai',reply.text+`\n\n— _${reply.model}_`);
-    }
+    const res = await fetch('/api/agent', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({message: text})
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'Agent error');
+    const toolTag = data.tool_used ? ` (used ${data.tool_used})` : '';
+    addMsg('ai', data.reply + `\n\n— _${data.model}${toolTag}_`);
   } catch(e) {
     addMsg('ai','❌ '+e.message);
   }
   btn.disabled = false;
   btn.textContent = 'Send';
-}
-
-// ===== GITHUB COMMANDS =====
-async function handleListRepos() {
-  try {
-    const res = await fetch('/api/github?action=repos', {credentials:'same-origin'});
-    if(!res.ok) throw new Error('Not connected');
-    const data = await res.json();
-    if(!data.repos || !data.repos.length) {
-      addMsg('ai','📁 No repos found. Make sure you\'ve connected GitHub (🔒 Connect GitHub button).');
-      return;
-    }
-    let html = '📁 **Your Repos**\n\n';
-    data.repos.slice(0,10).forEach(r => {
-      html += `• **${r.full_name}** ${r.private?'🔒':'🌐'} \`${r.default_branch}\`\n`;
-    });
-    if(data.repos.length > 10) html += `\n_...and ${data.repos.length-10} more_`;
-    html += '\n_To read a file, type: "show file README.md in NyxSpecter4/bountywarz"_';
-    addMsg('ai',html);
-  } catch(e) {
-    addMsg('ai','❌ GitHub not connected. Click 🔒 **Connect GitHub** in the header first.');
-  }
-}
-
-async function handleReadFile(path, repoFull) {
-  try {
-    const [owner, repo] = repoFull.split('/');
-    if(!owner || !repo) throw new Error('Format: owner/repo');
-    const res = await fetch(`/api/github?action=contents&owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}&path=${encodeURIComponent(path)}`, {credentials:'same-origin'});
-    if(!res.ok) throw new Error('File not found or not connected');
-    const data = await res.json();
-    
-    if(data.content) {
-      const content = atob(data.content.replace(/\n/g,''));
-      addMsg('ai',`📄 **${path}** in **${repoFull}**\n\n\`\`\`\n${content.substring(0,1500)}${content.length>1500?'\n... (truncated)':''}\n\`\`\`\n\n_Want me to review this code? Just ask!_`);
-      window.lastFileContent = content;
-      window.lastFileName = path;
-    } else if(Array.isArray(data)) {
-      let html = `📂 **${path || '/'}** in **${repoFull}**\n\n`;
-      data.forEach(item => {
-        html += `${item.type==='dir'?'📁':'📄'} ${item.name}\n`;
-      });
-      addMsg('ai',html);
-    }
-  } catch(e) {
-    addMsg('ai','❌ Could not read file. Make sure GitHub is connected and the path is correct.');
-  }
-}
-
-async function handleGitHubStatus() {
-  try {
-    const res = await fetch('/api/github?action=status', {credentials:'same-origin'});
-    const data = await res.json();
-    if(data.connected) {
-      addMsg('ai',`✅ **GitHub Connected!**\n\nLogged in as: **${data.user.name || data.user.login}**\n\nYou can now:\n• Type "show my repos" to list repositories\n• Type "show file README.md in owner/repo" to read files`);
-    } else {
-      addMsg('ai','❌ **GitHub Not Connected**\n\nClick 🔒 **Connect GitHub** in the header to authorize.');
-    }
-  } catch(e) {
-    addMsg('ai','❌ Could not check GitHub status. The OAuth server may be misconfigured.');
-  }
 }
 
 // MELI's brain
