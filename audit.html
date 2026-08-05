@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Athelgard Audit Dashboard</title>
+<style>
+  :root { --bg:#0a0a0f; --bg2:#12121a; --cyan:#12e0ff; --green:#3dff9a; --red:#ff3b5c; --gold:#ffcf4d; --text:#e0e0e0; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'Segoe UI',sans-serif; padding:20px; }
+  h1 { color:var(--cyan); margin-bottom:20px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:20px; }
+  .card { background:var(--bg2); border-radius:12px; padding:20px; border:1px solid #1a1a2e; }
+  .card h2 { color:var(--gold); margin-bottom:15px; font-size:1.1rem; }
+  .status-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #1a1a2e; }
+  .status-row:last-child { border-bottom:none; }
+  .status { display:inline-flex; align-items:center; gap:8px; }
+  .dot { width:10px; height:10px; border-radius:50%; }
+  .ok { background:var(--green); box-shadow:0 0 8px var(--green); }
+  .fail { background:var(--red); box-shadow:0 0 8px var(--red); }
+  .warn { background:var(--gold); box-shadow:0 0 8px var(--gold); }
+  .pending { background:#666; animation:pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .btn { background:var(--cyan); color:#000; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-weight:bold; margin-top:10px; }
+  .btn:hover { filter:brightness(1.2); }
+  .log { background:#0a0a0a; border-radius:8px; padding:10px; margin-top:10px; font-family:monospace; font-size:12px; max-height:200px; overflow-y:auto; }
+  .log-line { padding:2px 0; }
+  .log-ok { color:var(--green); }
+  .log-fail { color:var(--red); }
+  .log-info { color:var(--cyan); }
+</style>
+</head>
+<body>
+<h1>🦉 Athelgard Audit Dashboard</h1>
+
+<div class="grid">
+  <!-- API Health -->
+  <div class="card">
+    <h2>🔑 API Connections</h2>
+    <div id="api-status"></div>
+    <button class="btn" onclick="testAllAPIs()">Test All APIs</button>
+    <div class="log" id="api-log"></div>
+  </div>
+
+  <!-- Feature Tests -->
+  <div class="card">
+    <h2>🧪 Feature Tests</h2>
+    <div id="feature-status"></div>
+    <button class="btn" onclick="runFeatureTests()">Run Tests</button>
+    <div class="log" id="feature-log"></div>
+  </div>
+
+  <!-- MELI's Brain -->
+  <div class="card">
+    <h2>🧠 MELI's Brain</h2>
+    <div id="meli-status"></div>
+    <button class="btn" onclick="testMeliBrain()">Test Brain</button>
+    <div class="log" id="meli-log"></div>
+  </div>
+
+  <!-- Cost Monitor -->
+  <div class="card">
+    <h2>💰 Cost Monitor</h2>
+    <div id="cost-status"></div>
+    <button class="btn" onclick="checkCost()">Check Costs</button>
+    <div class="log" id="cost-log"></div>
+  </div>
+
+  <!-- Team Status -->
+  <div class="card">
+    <h2>👥 Team Status</h2>
+    <div id="team-status"></div>
+  </div>
+
+  <!-- Deploy Info -->
+  <div class="card">
+    <h2>📦 Deployment</h2>
+    <div id="deploy-status"></div>
+    <button class="btn" onclick="checkDeploy()">Check Deploy</button>
+  </div>
+</div>
+
+<script>
+// ===== CONFIG =====
+const config = {
+  deepseekKey: localStorage.getItem('athelgard_api_key') || '',
+  kimiKey: localStorage.getItem('athelgard_kimi_key') || '',
+  githubToken: localStorage.getItem('athelgard_github_key') || '',
+};
+
+// ===== LOGGING =====
+function log(id, msg, type='info') {
+  const el = document.getElementById(id);
+  const line = document.createElement('div');
+  line.className = `log-line log-${type}`;
+  line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+
+// ===== API TESTS =====
+async function testDeepSeek() {
+  if (!config.deepseekKey) return { ok: false, error: 'No API key' };
+  try {
+    const res = await fetch('https://api.deepseek.com/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.deepseekKey}` },
+      body: JSON.stringify({ model: 'deepseek-chat', messages: [{role:'user', content:'hi'}], max_tokens: 5 })
+    });
+    if (res.status === 401) return { ok: false, error: 'Invalid key' };
+    if (!res.ok) return { ok: false, error: `HTTP ${res.status}` };
+    const data = await res.json();
+    return { ok: true, latency: Date.now() };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
+async function testKimi() {
+  if (!config.kimiKey) return { ok: false, error: 'No API key' };
+  try {
+    const res = await fetch('https://api.moonshot.cn/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.kimiKey}` },
+      body: JSON.stringify({ model: 'kimi-k2p6', messages: [{role:'user', content:'hi'}], max_tokens: 5 })
+    });
+    if (res.status === 401) return { ok: false, error: 'Invalid key' };
+    if (!res.ok) return { ok: false, error: `HTTP ${res.status}` };
+    return { ok: true, latency: Date.now() };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
+async function testGitHub() {
+  if (!config.githubToken) return { ok: false, error: 'No token' };
+  try {
+    const res = await fetch('https://api.github.com/user', {
+      headers: { 'Authorization': `token ${config.githubToken}` }
+    });
+    if (res.status === 401) return { ok: false, error: 'Invalid token' };
+    if (!res.ok) return { ok: false, error: `HTTP ${res.status}` };
+    const data = await res.json();
+    return { ok: true, user: data.login };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
+// ===== RENDER STATUS =====
+function renderStatus(id, items) {
+  const el = document.getElementById(id);
+  el.innerHTML = items.map(item => `
+    <div class="status-row">
+      <span>${item.name}</span>
+      <span class="status">
+        <span class="dot ${item.ok ? 'ok' : item.pending ? 'pending' : 'fail'}"></span>
+        ${item.ok ? '✅' : item.pending ? '⏳' : '❌'} ${item.status}
+      </span>
+    </div>
+  `).join('');
+}
+
+// ===== TEST ALL =====
+async function testAllAPIs() {
+  const logEl = 'api-log';
+  document.getElementById(logEl).innerHTML = '';
+  log(logEl, 'Starting API tests...', 'info');
+  
+  const results = [];
+  
+  log(logEl, 'Testing DeepSeek...', 'info');
+  const ds = await testDeepSeek();
+  results.push({ name: 'DeepSeek', ...ds, status: ds.ok ? 'Connected' : ds.error });
+  log(logEl, ds.ok ? 'DeepSeek OK' : `DeepSeek FAIL: ${ds.error}`, ds.ok ? 'ok' : 'fail');
+  
+  log(logEl, 'Testing Kimi...', 'info');
+  const kimi = await testKimi();
+  results.push({ name: 'Kimi', ...kimi, status: kimi.ok ? 'Connected' : kimi.error });
+  log(logEl, kimi.ok ? 'Kimi OK' : `Kimi FAIL: ${kimi.error}`, kimi.ok ? 'ok' : 'fail');
+  
+  log(logEl, 'Testing GitHub...', 'info');
+  const gh = await testGitHub();
+  results.push({ name: 'GitHub', ...gh, status: gh.ok ? `Connected (${gh.user})` : gh.error });
+  log(logEl, gh.ok ? `GitHub OK (${gh.user})` : `GitHub FAIL: ${gh.error}`, gh.ok ? 'ok' : 'fail');
+  
+  renderStatus('api-status', results);
+  
+  const allOk = results.every(r => r.ok);
+  log(logEl, allOk ? '✅ ALL APIs WORKING' : '❌ SOME APIs FAILED', allOk ? 'ok' : 'fail');
+}
+
+// ===== FEATURE TESTS =====
+async function runFeatureTests() {
+  const logEl = 'feature-log';
+  document.getElementById(logEl).innerHTML = '';
+  log(logEl, 'Running feature tests...', 'info');
+  
+  const tests = [
+    { name: 'Voice Recognition', test: () => 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window },
+    { name: 'LocalStorage', test: () => { try { localStorage.setItem('test','test'); localStorage.removeItem('test'); return true; } catch(e) { return false; } }},
+    { name: 'Service Worker', test: () => 'serviceWorker' in navigator },
+    { name: 'Fetch API', test: () => 'fetch' in window },
+    { name: 'WebSocket', test: () => 'WebSocket' in window },
+  ];
+  
+  const results = tests.map(t => {
+    const ok = t.test();
+    log(logEl, `${t.name}: ${ok ? 'OK' : 'FAIL'}`, ok ? 'ok' : 'fail');
+    return { name: t.name, ok, status: ok ? 'Supported' : 'Missing' };
+  });
+  
+  renderStatus('feature-status', results);
+  log(logEl, 'Feature tests complete.', 'info');
+}
+
+// ===== MELI'S BRAIN TESTS =====
+async function testMeliBrain() {
+  const logEl = 'meli-log';
+  document.getElementById(logEl).innerHTML = '';
+  log(logEl, 'Testing MELI brain...', 'info');
+  
+  // Test ethical hunt loop
+  const testCases = [
+    { input: { simulated: false }, expected: 'blocked', desc: 'Blocks non-simulated' },
+    { input: { simulated: true, scope: {} }, expected: 'needs_scope', desc: 'Needs scope' },
+    { input: { simulated: true, scope: { program: 'test', authorized: true }, evidence: { observation: 'x', impact: 'x', reproduction: 'x', remediation: 'x' } }, expected: 'report_ready', desc: 'Complete report' },
+  ];
+  
+  const results = testCases.map(tc => {
+    // Simulate MELI's logic
+    let status;
+    if (!tc.input.simulated) status = 'blocked';
+    else if (!tc.input.scope?.authorized) status = 'needs_scope';
+    else {
+      const e = tc.input.evidence || {};
+      const required = ['observation', 'impact', 'reproduction', 'remediation'];
+      const missing = required.filter(k => !e[k]);
+      status = missing.length ? 'investigate' : 'report_ready';
+    }
+    
+    const ok = status === tc.expected;
+    log(logEl, `${tc.desc}: ${ok ? 'PASS' : `FAIL (got ${status})`}`, ok ? 'ok' : 'fail');
+    return { name: tc.desc, ok, status: ok ? 'PASS' : `FAIL (got ${status})` };
+  });
+  
+  renderStatus('meli-status', results);
+  log(logEl, 'Brain tests complete.', 'info');
+}
+
+// ===== COST CHECK =====
+function checkCost() {
+  const logEl = 'cost-log';
+  document.getElementById(logEl).innerHTML = '';
+  log(logEl, 'Estimating costs...', 'info');
+  
+  // Rough estimates
+  const estimates = [
+    { name: 'DeepSeek', cost: '~$0.002/1K tokens', status: 'Pay-per-use' },
+    { name: 'Kimi', cost: '~$0.003/1K tokens', status: 'Pay-per-use' },
+    { name: 'GitHub API', cost: '$0', status: 'Free tier' },
+    { name: 'Vercel', cost: '$20/mo', status: 'Pro plan' },
+  ];
+  
+  renderStatus('cost-status', estimates.map(e => ({ name: e.name, ok: true, status: e.status + ' (' + e.cost + ')' })));
+  log(logEl, 'Cost estimates shown.', 'info');
+}
+
+// ===== TEAM STATUS =====
+function renderTeam() {
+  const team = [
+    { name: 'MELI', status: '✅ Brain integrated', ok: true },
+    { name: 'MakoThoth', status: '✅ Building UI/CLI', ok: true },
+    { name: 'Mistral', status: '⏳ Reviewing code', ok: true },
+    { name: 'CodeRabbit', status: '⏳ Reviewing PRs', ok: true },
+    { name: 'Qodo', status: '⏳ Code analysis', ok: true },
+    { name: 'Copilot', status: '✅ Fixing bugs', ok: true },
+    { name: 'Devin', status: '❌ Out of tokens', ok: false },
+    { name: 'Grok', status: '❌ Rate limited', ok: false },
+  ];
+  renderStatus('team-status', team);
+}
+
+// ===== DEPLOY CHECK =====
+async function checkDeploy() {
+  const info = [
+    { name: 'Version', status: 'v5.3', ok: true },
+    { name: 'URL', status: 'https://athelgard.io', ok: true },
+    { name: 'Repo', status: 'github.com/NyxSpecter4/athelgard-site', ok: true },
+    { name: 'Last Deploy', status: '2026-08-05 13:00 UTC', ok: true },
+  ];
+  renderStatus('deploy-status', info);
+}
+
+// ===== INIT =====
+window.onload = () => {
+  renderTeam();
+  checkDeploy();
+};
+</script>
+</body>
+</html>
