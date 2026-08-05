@@ -1,0 +1,39 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/athelgard/index.ts",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/athelgard/modes/**/*.ts",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/athelgard/safety/**/*.ts",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/athelgard/knowledge/**/*.ts",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/athelgard/lib/**/*.ts",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/athelgard/integrations/**/*.ts",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/athelgard",
+      "dest": "api/athelgard/index.ts"
+    },
+    {
+      "src": "/api/athelgard/(.*)",
+      "dest": "api/athelgard/index.ts"
+    }
+  ]
+}
