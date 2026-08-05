@@ -7,7 +7,7 @@ export const CONFIG = {
   set kimiKey(v)     { localStorage.setItem('athelgard_kimi_key', v); },
   set githubToken(v) { localStorage.setItem('athelgard_github_key', v); },
 
-  version: '6.0',
+  version: '6.1',
   name: 'Athelgard',
   isPeakHour() {
     const pst = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });

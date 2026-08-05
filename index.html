@@ -182,8 +182,20 @@
     <!-- GITHUB PANEL -->
     <div class="panel" id="github-panel">
       <h2 style="color:var(--gold); margin-bottom:16px;">📁 GitHub Repos</h2>
-      <div id="github-content">
-        <p style="color:#888;">Configure your GitHub token in Settings to browse repos.</p>
+      <div id="github-auth-area">
+        <p style="color:#888; margin-bottom:20px;">Connect your GitHub account to browse repos, read files, and search.</p>
+        <button class="send-btn" id="btn-connect-github" style="width:auto; padding:12px 24px;">🔒 Connect GitHub</button>
+      </div>
+      <div id="github-connected-area" style="display:none;">
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:20px;">
+          <img id="gh-avatar" src="" style="width:40px; height:40px; border-radius:50%;" alt="avatar">
+          <div>
+            <div id="gh-login" style="font-weight:bold;"></div>
+            <div style="font-size:12px; color:#888;">Connected via OAuth</div>
+          </div>
+          <button class="icon-btn" id="btn-disconnect-github" title="Disconnect">🚪</button>
+        </div>
+        <div id="github-repo-list"></div>
       </div>
     </div>
 
@@ -198,10 +210,6 @@
         <div class="setting-row">
           <label>Kimi API Key</label>
           <input type="password" id="cfg-kimi" placeholder="sk-...">
-        </div>
-        <div class="setting-row">
-          <label>GitHub Token</label>
-          <input type="password" id="cfg-github" placeholder="ghp_...">
         </div>
         <button class="send-btn" id="save-settings" style="width:auto; padding:12px 24px;">💾 Save Settings</button>
         <p id="settings-msg" style="color:var(--green); margin-top:8px;"></p>
@@ -315,16 +323,64 @@ voiceBtn.addEventListener('mouseup', () => { stopVoice(); voiceBtn.classList.rem
 function loadSettings() {
   document.getElementById('cfg-deepseek').value = CONFIG.deepseekKey;
   document.getElementById('cfg-kimi').value = CONFIG.kimiKey;
-  document.getElementById('cfg-github').value = CONFIG.githubToken;
 }
 
 document.getElementById('save-settings').addEventListener('click', () => {
   CONFIG.deepseekKey = document.getElementById('cfg-deepseek').value.trim();
   CONFIG.kimiKey = document.getElementById('cfg-kimi').value.trim();
-  CONFIG.githubToken = document.getElementById('cfg-github').value.trim();
   document.getElementById('settings-msg').textContent = '✅ Settings saved!';
   updateStatusBar();
   setTimeout(() => document.getElementById('settings-msg').textContent = '', 3000);
+});
+
+// ═══════════════════════════════════════════
+// GITHUB OAUTH (MELI's bridge)
+// ═══════════════════════════════════════════
+import { beginGitHubConnect, getGitHubConnection, disconnectGitHub, getUserRepos } from './modules/github.js';
+
+async function updateGitHubUI() {
+  try {
+    const status = await getGitHubConnection();
+    if (status.connected) {
+      document.getElementById('github-auth-area').style.display = 'none';
+      document.getElementById('github-connected-area').style.display = 'block';
+      document.getElementById('gh-login').textContent = status.user.name || status.user.login;
+      document.getElementById('gh-avatar').src = status.user.avatar_url;
+      loadRepos();
+    } else {
+      document.getElementById('github-auth-area').style.display = 'block';
+      document.getElementById('github-connected-area').style.display = 'none';
+    }
+  } catch (e) {
+    document.getElementById('github-auth-area').style.display = 'block';
+    document.getElementById('github-connected-area').style.display = 'none';
+  }
+}
+
+async function loadRepos() {
+  const list = document.getElementById('github-repo-list');
+  list.innerHTML = '<p style="color:#888;">Loading repos...</p>';
+  try {
+    const repos = await getUserRepos();
+    list.innerHTML = repos.map(r => `
+      <div class="bounty-card" style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div style="font-weight:bold;">${escapeHtml(r.full_name)}</div>
+          <div style="font-size:12px; color:#888;">${r.private ? '🔒 Private' : '🌐 Public'} • ${r.default_branch}</div>
+        </div>
+        <a href="${r.html_url}" target="_blank" style="color:var(--cyan);">Open →</a>
+      </div>
+    `).join('');
+  } catch (e) {
+    list.innerHTML = `<p style="color:var(--red);">Error: ${e.message}</p>`;
+  }
+}
+
+document.getElementById('btn-connect-github').addEventListener('click', beginGitHubConnect);
+document.getElementById('btn-disconnect-github').addEventListener('click', async () => {
+  await disconnectGitHub();
+  updateGitHubUI();
+  toast('GitHub disconnected');
 });
 
 // ═══════════════════════════════════════════
@@ -375,12 +431,13 @@ document.getElementById('btn-wheel').addEventListener('click', () => {
 // ═══════════════════════════════════════════
 loadSettings();
 updateStatusBar();
+updateGitHubUI(); // Check GitHub OAuth session
 setInterval(updateStatusBar, 30000);
 
 // Welcome message
 addChatMessage('assistant', `🦉 Welcome Captain! I'm Athelgard v${CONFIG.version}.\n\nI can help you code, review bounty findings, and play training games.\n\n**Quick start:**\n• Type any coding question\n• Submit a simulated bounty finding\n• Try Code Jeopardy in Games\n\nAdd your API keys in Settings for AI chat.`);
 
-console.log('[Athelgard] v6.0 initialized — Brain by MELI, Body by MakoThoth-KClaw');
+console.log('[Athelgard] v6.1 initialized — Brain by MELI, OAuth by MELI, Body by MakoThoth-KClaw');
 </script>
 </body>
 </html>
