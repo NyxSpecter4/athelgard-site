@@ -1,34 +1,46 @@
-// modules/github.js — GitHub integration
-import { CONFIG } from './config.js';
+// Browser-side GitHub client. OAuth tokens stay in an HttpOnly server session.
+const API = '/api/github';
 
-const API_BASE = 'https://api.github.com';
-const HEADERS = () => ({
-  'Authorization': `token ${CONFIG.githubToken}`,
-  'Accept': 'application/vnd.github.v3+json',
-  'User-Agent': 'Athelgard/6.0',
-});
+async function request(action, params = {}) {
+  const query = new URLSearchParams({ action, ...params });
+  const response = await fetch(`${API}?${query}`, { credentials: 'same-origin' });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || `GitHub ${response.status}`);
+  return data;
+}
+
+export function beginGitHubConnect() {
+  window.location.assign(`${API}?action=start`);
+}
+
+export function getGitHubConnection() {
+  return request('status');
+}
+
+export function disconnectGitHub() {
+  return request('logout');
+}
 
 export async function getUserRepos() {
-  const res = await fetch(`${API_BASE}/user/repos?sort=updated&per_page=10`, { headers: HEADERS() });
-  if (!res.ok) throw new Error(`GitHub ${res.status}`);
-  return res.json();
+  const { repos } = await request('repos');
+  return repos;
 }
 
-export async function getRepoContents(owner, repo, path = '') {
-  const res = await fetch(`${API_BASE}/repos/${owner}/${repo}/contents/${path}`, { headers: HEADERS() });
-  if (!res.ok) throw new Error(`GitHub ${res.status}`);
-  return res.json();
+export function getRepoContents(owner, repo, path = '', ref = '') {
+  return request('contents', { owner, repo, path, ...(ref ? { ref } : {}) });
 }
 
-export async function getFileContent(owner, repo, path) {
-  const res = await fetch(`${API_BASE}/repos/${owner}/${repo}/contents/${path}`, { headers: HEADERS() });
-  if (!res.ok) throw new Error(`GitHub ${res.status}`);
-  const data = await res.json();
-  return data.content ? atob(data.content) : '';
+function decodeBase64Utf8(value) {
+  const bytes = Uint8Array.from(atob(value.replace(/
+/g, '')), char => char.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
 }
 
-export async function searchRepos(query) {
-  const res = await fetch(`${API_BASE}/search/repositories?q=${encodeURIComponent(query)}&per_page=5`, { headers: HEADERS() });
-  if (!res.ok) throw new Error(`GitHub ${res.status}`);
-  return res.json();
+export async function getFileContent(owner, repo, path, ref = '') {
+  const data = await getRepoContents(owner, repo, path, ref);
+  return data.content ? decodeBase64Utf8(data.content) : '';
+}
+
+export function searchRepos(query) {
+  return request('search', { q: query });
 }
