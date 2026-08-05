@@ -1,65 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#0a0e1a">
 <title>Athelgard</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<style>
-:root { --bg: #0a0e1a; --bg2: #111827; --bg3: #1a2236; --border: #1e3a5f; --text: #e2e8f0; --text2: #94a3b8; --cyan: #38bdf8; --purple: #c084fc; --gold: #fbbf24; --green: #34d399; --red: #f87171; }
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
-.app { display: flex; flex-direction: column; height: 100vh; }
-.topbar { height: 48px; background: var(--bg2); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 16px; gap: 12px; z-index: 10; }
-.logo { font-weight: 700; font-size: 16px; background: linear-gradient(135deg, var(--cyan), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: flex; align-items: center; gap: 8px; }
-</style>
+<script src="lib/github.js"></script>
 </head>
 <body>
-<div class="app">
-<div class="topbar">
-<div class="logo"><span>🦉</span> Athelgard</div>
-</div>
-<div class="status-bar">
-<div class="status-item"><span class="status-dot" id="status-deepseek"></span> DeepSeek</div>
-<div class="status-item"><span class="status-dot" id="status-kimi"></span> Kimi</div>
-<div class="status-item"><span class="status-dot" id="status-github"></span> GitHub</div>
-</div>
-</div>
-<script src="lib/github.js"></script>
 <script>
-const config = {
-  apiKey: localStorage.getItem('athelgard_api_key') || '',
-  kimiKey: localStorage.getItem('athelgard_kimi_key') || '',
-  githubToken: localStorage.getItem('athelgard_github_key') || '',
-};
+const config = { apiKey: localStorage.getItem('athelgard_api_key') || '', kimiKey: localStorage.getItem('athelgard_kimi_key') || '', githubToken: localStorage.getItem('athelgard_github_key') || '' };
 const githubClient = new GitHubClient(config.githubToken);
-
-async function testConnections() {
-  try {
-    if (config.kimiKey) {
-      const res = await fetch('https://api.moonshot.cn/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + config.kimiKey, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'kimi-k2p6', messages: [], max_tokens: 1 })
-      });
-      if (!res.ok) throw new Error('Kimi test failed');
-    }
-  } catch (e) {
-    console.log('[Silent] Kimi unavailable');
-  }
-}
-testConnections();
-
-async function listGitHubRepos() {
-  if (!config.githubToken) { return 'GitHub token not configured'; }
-  try {
-    const repos = await githubClient.listRepos();
-    return 'Your Repos:
-' + repos.slice(0, 5).map(r => '• ' + r.full_name).join('
-');
-  } catch (e) { return 'GitHub Error: ' + e.message; }
-}
+async function listRepos() { if (!config.githubToken) return 'No token'; try { const repos = await githubClient.listRepos(); return 'Repos: ' + repos.map(r => r.full_name).join(', '); } catch (e) { return 'Error: ' + e.message; } }
 </script>
 </body>
 </html>
