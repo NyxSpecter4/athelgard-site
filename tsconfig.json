@@ -9,6 +9,6 @@
     "outDir": ".vercel/output",
     "rootDir": "."
   },
-  "include": ["api/**/*", "modes/**/*", "safety/**/*", "integrations/**/*"],
+  "include": ["api/**/*"],
   "exclude": ["node_modules", ".vercel"]
 }
