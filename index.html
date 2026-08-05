@@ -381,6 +381,73 @@
     .status-dot.warn { background: var(--gold); }
     .status-dot.off { background: var(--text3); }
 
+    /* ===== CONNECT MODAL ===== */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      width: 360px;
+      max-width: 95vw;
+    }
+    .modal h3 { font-size: 16px; margin-bottom: 16px; }
+    .modal label { font-size: 12px; color: var(--text2); display: block; margin-bottom: 4px; }
+    .modal input {
+      width: 100%;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: var(--text);
+      font-size: 13px;
+      outline: none;
+      margin-bottom: 12px;
+    }
+    .modal input:focus { border-color: var(--cyan); }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
+    .modal-btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg3);
+      color: var(--text);
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .modal-btn.primary {
+      background: linear-gradient(135deg, var(--cyan), var(--purple));
+      border: none;
+      color: #fff;
+    }
+    .connect-btn {
+      padding: 5px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg3);
+      color: var(--text2);
+      font-size: 11px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .connect-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+    .connect-btn .cdot { width: 6px; height: 6px; border-radius: 50%; background: var(--text2); flex-shrink: 0; }
+    .connect-btn .cdot.ok { background: var(--green); }
+
     /* ===== TOAST ===== */
     .toast {
       position: fixed;
@@ -413,7 +480,28 @@
     <button class="topbar-btn" id="btn-code" onclick="togglePanel('code')">💻 Code</button>
     <button class="topbar-btn" id="btn-jeopardy" onclick="togglePanel('jeopardy')">🎯 Jeopardy</button>
     <button class="topbar-btn" id="btn-wheel" onclick="togglePanel('wheel')">🎡 Wheel</button>
+    <button class="connect-btn" id="btn-gh-connect" onclick="openConnectModal('github')">
+      <span class="cdot" id="cdot-github"></span> GitHub
+    </button>
+    <button class="connect-btn" id="btn-vc-connect" onclick="openConnectModal('vercel')">
+      <span class="cdot" id="cdot-vercel"></span> Vercel
+    </button>
+    <button class="connect-btn" id="btn-sb-connect" onclick="openConnectModal('supabase')">
+      <span class="cdot" id="cdot-supabase"></span> Supabase
+    </button>
     <button class="topbar-btn" onclick="showSettings()">⚙️</button>
+  </div>
+
+  <!-- Connect Modal -->
+  <div class="modal-overlay" id="connect-modal-overlay" onclick="closeConnectModal(event)">
+    <div class="modal" id="connect-modal">
+      <h3 id="connect-modal-title">Connect</h3>
+      <div id="connect-modal-body"></div>
+      <div class="modal-actions">
+        <button class="modal-btn" onclick="closeConnectModal()">Cancel</button>
+        <button class="modal-btn primary" id="connect-modal-submit" onclick="submitConnect()">Connect</button>
+      </div>
+    </div>
   </div>
 
   <!-- Main Content -->
@@ -463,13 +551,20 @@
 const config = {
   apiKey: localStorage.getItem('athelgard_api_key') || '',
   kimiKey: localStorage.getItem('athelgard_kimi_key') || '',
-  githubToken: localStorage.getItem('athelgard_github_key') || '',
 };
+// GitHub token is NO LONGER stored in localStorage — it lives in an httpOnly cookie.
+// Remove any old leaked value if it exists.
+localStorage.removeItem('athelgard_github_key');
+
 let isPeak = false;
 let isRecording = false;
 let recognition = null;
 let messageHistory = [];
 let currentPanel = null;
+
+// Integration connection state — populated by checkIntegrationStatus()
+let integrationStatus = { github: false, vercel: false, supabase: false };
+let integrationUser = { github: null, vercel: null, supabase: null };
 
 // ===== PEAK HOURS =====
 function checkPeak() {
@@ -488,14 +583,13 @@ let connectionStatus = { deepseek: false, kimi: false, github: false };
 async function testConnections() {
   const dsDot = document.getElementById('status-deepseek');
   const kimiDot = document.getElementById('status-kimi');
-  const ghDot = document.getElementById('status-github');
   
   // Test DeepSeek
   if (config.apiKey) {
     try {
       const res = await fetch('https://api.deepseek.com/chat/completions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.apiKey}` },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `****** },
         body: JSON.stringify({ model: 'deepseek-chat', messages: [{role:'user',content:'hi'}], max_tokens: 5 })
       });
       connectionStatus.deepseek = res.ok;
@@ -515,7 +609,7 @@ async function testConnections() {
     try {
       const res = await fetch('https://api.moonshot.cn/v1/chat/completions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.kimiKey}` },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `****** },
         body: JSON.stringify({ model: 'kimi-k2p6', messages: [{role:'user',content:'hi'}], max_tokens: 5 })
       });
       connectionStatus.kimi = res.ok;
@@ -529,34 +623,178 @@ async function testConnections() {
   } else {
     kimiDot.className = 'status-dot off';
   }
-  
-  // Test GitHub
-  if (config.githubToken) {
+
+  // GitHub / Vercel / Supabase status is managed by checkIntegrationStatus()
+  const ghDot = document.getElementById('status-github');
+  if (ghDot) ghDot.className = 'status-dot ' + (integrationStatus.github ? 'ok' : 'off');
+}
+
+// ===== INTEGRATION STATUS (server-side httpOnly cookies) =====
+async function checkIntegrationStatus() {
+  try {
+    const res = await fetch('/api/auth/status');
+    if (!res.ok) return;
+    const data = await res.json();
+    integrationStatus.github = !!data.github?.connected;
+    integrationStatus.vercel = !!data.vercel?.connected;
+    integrationStatus.supabase = !!data.supabase?.connected;
+    integrationUser.github = data.github?.user || null;
+    integrationUser.vercel = data.vercel?.user || null;
+    integrationUser.supabase = data.supabase?.url || null;
+  } catch (e) {
+    console.warn('[Athelgard] Could not reach /api/auth/status (running locally?)', e.message);
+  }
+  updateConnectDots();
+}
+
+function updateConnectDots() {
+  const services = ['github', 'vercel', 'supabase'];
+  for (const svc of services) {
+    const dot = document.getElementById(`cdot-${svc}`);
+    if (dot) dot.className = 'cdot' + (integrationStatus[svc] ? ' ok' : '');
+  }
+  const ghDot = document.getElementById('status-github');
+  if (ghDot) ghDot.className = 'status-dot ' + (integrationStatus.github ? 'ok' : 'off');
+}
+
+// ===== CONNECT MODAL =====
+let connectingService = null;
+
+// Cache of public client IDs fetched from /api/meta/config
+let _publicConfig = null;
+async function getPublicConfig() {
+  if (_publicConfig) return _publicConfig;
+  try {
+    const res = await fetch('/api/meta/config');
+    _publicConfig = res.ok ? await res.json() : {};
+  } catch (_) { _publicConfig = {}; }
+  return _publicConfig;
+}
+
+const CONNECT_CONFIG = {
+  github: {
+    title: '🐙 Connect GitHub',
+    async oauthUrl() {
+      const cfg = await getPublicConfig();
+      const clientId = cfg.githubClientId || '';
+      if (!clientId) {
+        showToast('⚠️ GITHUB_CLIENT_ID not configured. Set it in Vercel env vars.');
+        return null;
+      }
+      return `https://github.com/login/oauth/authorize?client_id=${encodeURIComponent(clientId)}&scope=repo,user&redirect_uri=${encodeURIComponent(location.origin + '/api/github/callback')}`;
+    },
+    bodyHtml: `<p style="font-size:13px;color:var(--text2);margin-bottom:16px;">Click <strong>Authorize</strong> to sign in with GitHub. You will be redirected to GitHub and back automatically. No token is stored in your browser.</p>`,
+    submitLabel: 'Authorize with GitHub',
+    submitAction: 'oauth',
+  },
+  vercel: {
+    title: '▲ Connect Vercel',
+    async oauthUrl() {
+      const cfg = await getPublicConfig();
+      const clientId = cfg.vercelClientId || '';
+      if (!clientId) {
+        showToast('⚠️ VERCEL_CLIENT_ID not configured. Set it in Vercel env vars.');
+        return null;
+      }
+      return `https://vercel.com/integrations/${encodeURIComponent(clientId)}/new?redirect_uri=${encodeURIComponent(location.origin + '/api/vercel/callback')}`;
+    },
+    bodyHtml: `<p style="font-size:13px;color:var(--text2);margin-bottom:16px;">Click <strong>Authorize</strong> to connect your Vercel account. You will be redirected to Vercel and back. No token is stored in your browser.</p>`,
+    submitLabel: 'Authorize with Vercel',
+    submitAction: 'oauth',
+  },
+  supabase: {
+    title: '⚡ Connect Supabase',
+    bodyHtml: `
+      <p style="font-size:12px;color:var(--text2);margin-bottom:12px;">Enter your Supabase project URL and service-role (or anon) key. These are stored securely server-side — never in your browser.</p>
+      <label>Project URL</label>
+      <input type="url" id="sb-url" placeholder="https://xxxx.supabase.co" autocomplete="off">
+      <label>Service-role Key</label>
+      <input type="password" id="sb-key" placeholder="eyJ..." autocomplete="off">`,
+    submitLabel: 'Connect',
+    submitAction: 'post',
+  },
+};
+
+function openConnectModal(service) {
+  connectingService = service;
+  const cfg = CONNECT_CONFIG[service];
+  if (!cfg) return;
+  document.getElementById('connect-modal-title').textContent = cfg.title;
+  document.getElementById('connect-modal-body').innerHTML = cfg.bodyHtml;
+  document.getElementById('connect-modal-submit').textContent = cfg.submitLabel;
+  document.getElementById('connect-modal-overlay').classList.add('open');
+}
+
+function closeConnectModal(e) {
+  if (e && e.target !== document.getElementById('connect-modal-overlay')) return;
+  document.getElementById('connect-modal-overlay').classList.remove('open');
+  connectingService = null;
+}
+
+async function submitConnect() {
+  const service = connectingService;
+  const cfg = CONNECT_CONFIG[service];
+  if (!cfg) return;
+
+  if (cfg.submitAction === 'oauth') {
+    const url = await cfg.oauthUrl();
+    if (url) location.href = url;
+    return;
+  }
+
+  if (service === 'supabase') {
+    const url = document.getElementById('sb-url')?.value?.trim();
+    const key = document.getElementById('sb-key')?.value?.trim();
+    if (!url || !key) { showToast('⚠️ Both URL and key are required.'); return; }
+
+    const btn = document.getElementById('connect-modal-submit');
+    btn.textContent = 'Connecting...';
+    btn.disabled = true;
+
     try {
-      const res = await fetch('https://api.github.com/user', {
-        headers: { 'Authorization': `token ${config.githubToken}`, 'Accept': 'application/vnd.github.v3+json' }
+      const res = await fetch('/api/supabase/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url, key }),
       });
-      connectionStatus.github = res.ok;
-      ghDot.className = 'status-dot ' + (res.ok ? 'ok' : 'warn');
-      if (!res.ok) console.error('GitHub test failed:', res.status);
-    } catch (e) {
-      connectionStatus.github = false;
-      ghDot.className = 'status-dot warn';
-      console.error('GitHub test error:', e);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Connection failed');
+
+      integrationStatus.supabase = true;
+      integrationUser.supabase = data.url;
+      updateConnectDots();
+      document.getElementById('connect-modal-overlay').classList.remove('open');
+      connectingService = null;
+      showToast('✅ Supabase connected!');
+    } catch (err) {
+      showToast('❌ ' + err.message);
+    } finally {
+      btn.textContent = cfg.submitLabel;
+      btn.disabled = false;
     }
-  } else {
-    ghDot.className = 'status-dot off';
   }
 }
 
+// Handle OAuth redirect returns (?connected=github&user=xxx)
+(function handleOAuthReturn() {
+  const params = new URLSearchParams(location.search);
+  const connected = params.get('connected');
+  const user = params.get('user');
+  if (connected) {
+    history.replaceState({}, '', location.pathname);
+    showToast(`✅ ${connected.charAt(0).toUpperCase() + connected.slice(1)} connected${user ? ' as ' + user : ''}!`);
+  }
+})();
+
 // Run tests on load and every 30 seconds
+checkIntegrationStatus();
 testConnections();
 setInterval(testConnections, 30000);
+setInterval(checkIntegrationStatus, 60000);
 
 // Log status for debugging
-console.log('Athelgard v5.1 loaded');
-console.log('Config:', { hasDeepSeek: !!config.apiKey, hasKimi: !!config.kimiKey, hasGitHub: !!config.githubToken });
-
+console.log('Athelgard v5.2 loaded');
+console.log('Config:', { hasDeepSeek: !!config.apiKey, hasKimi: !!config.kimiKey });
 // ===== VOICE =====
 function startVoice() {
   if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
@@ -664,7 +902,12 @@ async function getAIResponse(text, model) {
       body: JSON.stringify({
         model: modelName,
         messages: [
-          { role: 'system', content: 'You are Athelgard, a friendly AI coding partner. Help with code, explain concepts, and be encouraging. Keep responses concise and actionable.' },
+          { role: 'system', content: (() => {
+            const ghStatus = integrationStatus.github ? `GitHub connected as ${integrationUser.github || 'user'}` : 'GitHub not connected';
+            const vcStatus = integrationStatus.vercel ? `Vercel connected as ${integrationUser.vercel || 'user'}` : 'Vercel not connected';
+            const sbStatus = integrationStatus.supabase ? `Supabase connected (${integrationUser.supabase || 'project'})` : 'Supabase not connected';
+            return `You are Athelgard, a friendly AI coding partner. Help with code, explain concepts, and be encouraging. Keep responses concise and actionable. Current integration status: ${ghStatus}. ${vcStatus}. ${sbStatus}. Only refer to a service as connected if its status above says connected.`;
+          })() },
           ...messageHistory.slice(-4),
           { role: 'user', content: text }
         ],
@@ -878,13 +1121,11 @@ function showToast(msg) {
 }
 
 function showSettings() {
-  const keys = prompt('Enter API keys (comma-separated): DeepSeek, Kimi, GitHub');
+  const keys = prompt('Enter AI API keys (comma-separated): DeepSeek, Kimi\n(GitHub/Vercel/Supabase are connected via the Connect buttons)');
   if (keys) {
-    const [ds, kimi, gh] = keys.split(',').map(s => s.trim());
+    const [ds, kimi] = keys.split(',').map(s => s.trim());
     if (ds) { config.apiKey = ds; localStorage.setItem('athelgard_api_key', ds); }
     if (kimi) { config.kimiKey = kimi; localStorage.setItem('athelgard_kimi_key', kimi); }
-    if (gh) { config.githubToken = gh; localStorage.setItem('athelgard_github_key', gh); }
-    updateStatus();
     showToast('✅ Settings saved!');
   }
 }
