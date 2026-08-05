@@ -2,19 +2,9 @@
   "name": "athelgard-eve",
   "version": "1.0.0",
   "description": "EVE - Ethical Vercel Agent - Athelgards complete intelligence",
-  "main": "api/athelgard/index.ts",
-  "scripts": {
-    "dev": "vercel dev",
-    "build": "vercel build",
-    "deploy": "vercel --prod"
-  },
-  "dependencies": {
-    "@vercel/node": "^3.0.0",
-    "typescript": "^5.0.0",
-    "@octokit/rest": "^20.0.0"
-  },
+  "private": true,
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "@vercel/node-types": "^3.0.0"
+    "typescript": "^5.0.0"
   }
 }
