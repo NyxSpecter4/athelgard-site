@@ -4,9 +4,6 @@ title: "BountyWarz First-Run Flow - Clean Funnel Diagram"
 type: "mermaid"
 ---
 
-# BountyWarz First-Run Flow
-## Clean Funnel Diagram
-
 flowchart TD
     %% ===== CLEAN FUNNEL - SYNTHESIS =====
     
