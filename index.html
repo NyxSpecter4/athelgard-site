@@ -60,6 +60,7 @@ button:disabled{opacity:0.5;cursor:not-allowed}
     <span id="st-kimi">Kimi</span>
     <span id="st-github">GitHub</span>
   </div>
+  <a id="gh-connect" href="/api/github?action=start" style="display:none;font-size:12px;color:var(--cyan);text-decoration:none;padding:8px 14px;border:1px solid var(--cyan);border-radius:8px;margin-right:8px">🔒 Connect GitHub</a>
   <button class="settings-btn" onclick="showSettings()">⚙️ Keys</button>
 </div>
 
@@ -140,8 +141,17 @@ async function checkAPIs() {
   try {
     const gh = await fetch('/api/github?action=status',{credentials:'same-origin'});
     const ghd = await gh.json();
-    setSt('st-github',ghd.connected?'ok':'key','GitHub');
-  } catch(e){setSt('st-github','off','GitHub')}
+    if(ghd.connected){
+      setSt('st-github','ok','GitHub');
+      document.getElementById('gh-connect').style.display='none';
+    }else{
+      setSt('st-github','key','GitHub');
+      document.getElementById('gh-connect').style.display='inline-block';
+    }
+  } catch(e){
+    setSt('st-github','off','GitHub');
+    document.getElementById('gh-connect').style.display='inline-block';
+  }
 }
 
 function setSt(id, status, label) {
