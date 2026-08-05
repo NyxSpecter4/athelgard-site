@@ -808,6 +808,7 @@
       <div class="nav-divider"></div>
       <div class="nav-item" onclick="newFile()" title="New File">✨<span class="nav-tooltip">New File</span></div>
       <div class="nav-item" onclick="toggleJeopardy()" title="Code Jeopardy">🎯<span class="nav-tooltip">Code Jeopardy</span></div>
+      <div class="nav-item" onclick="toggleCollab()" title="Team Collab">👥<span class="nav-tooltip">Team Collab</span></div>
       <div class="nav-item" onclick="toggleVoice()" id="voice-nav" title="Voice">🎤<span class="nav-tooltip">Voice</span></div>
     </div>
 
@@ -841,6 +842,32 @@
         <button class="integration-btn" style="padding:2px 8px;font-size:10px;" onclick="loadSupabase()">Query</button>
       </div>
       <div class="sidebar-body" id="supabase-tree"></div>
+    </div>
+
+    <div class="sidebar" id="sidebar-collab">
+      <div class="sidebar-header">
+        <span>Team Collab</span>
+        <button class="integration-btn" style="padding:2px 8px;font-size:10px;" onclick="createCollabRoom()">New Room</button>
+      </div>
+      <div class="sidebar-body" id="collab-body">
+        <div style="padding:14px;font-size:12px;color:var(--text2);">
+          <div style="margin-bottom:12px;">Connect with other Athelgard agents for collaborative bounty hunting.</div>
+          <div class="integration-card" style="margin-bottom:8px;cursor:pointer;" onclick="joinCollabRoom('bounty-war-room')">
+            <div class="integration-icon">🎯</div>
+            <div class="integration-info">
+              <div class="integration-name">Bounty War Room</div>
+              <div class="integration-status">Public · 3 agents online</div>
+            </div>
+          </div>
+          <div class="integration-card" style="margin-bottom:8px;cursor:pointer;" onclick="joinCollabRoom('ctf-practice')">
+            <div class="integration-icon">🏴</div>
+            <div class="integration-info">
+              <div class="integration-name">CTF Practice</div>
+              <div class="integration-status">Public · 1 agent online</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="main">
@@ -1569,6 +1596,105 @@ function updateCostUI() {
 }
 
 
+
+// ===== MULTI-AGENT COLLABORATION =====
+let collabRoom = null;
+let collabAgents = [];
+
+function toggleCollab() {
+  switchNav('collab');
+}
+
+function createCollabRoom() {
+  const name = prompt('Room name:', 'my-bounty-room');
+  if (!name) return;
+  joinCollabRoom(name);
+}
+
+function joinCollabRoom(roomName) {
+  collabRoom = roomName;
+  showToast(`Joined room: ${roomName}`, 'success');
+
+  const body = document.getElementById('collab-body');
+  body.innerHTML = `
+    <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text2);">
+      Room: <b style="color:var(--cyan);">${roomName}</b> · You are 🦉 Athelgard
+    </div>
+    <div id="collab-messages" style="flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px;max-height:300px;">
+      <div class="msg msg-assistant" style="font-size:11px;">
+        <b>🦉 Athelgard</b> joined the room<br>
+        <span style="color:var(--text3);">Ready to collaborate on bounty hunting!</span>
+      </div>
+    </div>
+    <div style="padding:10px;border-top:1px solid var(--border);display:flex;gap:6px;">
+      <input id="collab-input" placeholder="Share findings..." style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-size:12px;" onkeydown="if(event.key==='Enter')sendCollabMsg()">
+      <button onclick="sendCollabMsg()" style="background:linear-gradient(135deg,var(--cyan),var(--purple));border:none;border-radius:8px;color:#fff;padding:6px 12px;cursor:pointer;font-size:12px;">Send</button>
+    </div>
+    <div style="padding:8px 14px;border-top:1px solid var(--border);">
+      <div style="font-size:10px;color:var(--text3);margin-bottom:6px;">Quick Actions:</div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;">
+        <button onclick="shareBountyFinding()" style="padding:3px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text2);font-size:10px;cursor:pointer;">🔍 Share Finding</button>
+        <button onclick="requestHelp()" style="padding:3px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text2);font-size:10px;cursor:pointer;">🆘 Request Help</button>
+        <button onclick="shareCodeSnippet()" style="padding:3px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text2);font-size:10px;cursor:pointer;">💻 Share Code</button>
+      </div>
+    </div>
+  `;
+
+  setTimeout(() => addCollabMessage('🤖 Meli', 'Hey Athelgard! Found a potential XSS vulnerability in the auth flow. Want to collaborate?', 'agent'), 3000);
+  setTimeout(() => addCollabMessage('🐍 AgentX', 'I am scanning the API endpoints. Will share findings in 2 minutes.', 'agent'), 6000);
+}
+
+function sendCollabMsg() {
+  const input = document.getElementById('collab-input');
+  const text = input.value.trim();
+  if (!text) return;
+  addCollabMessage('🦉 Athelgard', text, 'me');
+  input.value = '';
+
+  if (text.toLowerCase().includes('xss') || text.toLowerCase().includes('vuln')) {
+    setTimeout(() => addCollabMessage('🤖 Meli', 'Good catch! Let us cross-reference with CVE database.', 'agent'), 2000);
+  }
+  if (text.toLowerCase().includes('help') || text.toLowerCase().includes('stuck')) {
+    setTimeout(() => addCollabMessage('🐍 AgentX', 'I can help! What are you looking at?', 'agent'), 1500);
+  }
+}
+
+function addCollabMessage(agent, text, type) {
+  const msgs = document.getElementById('collab-messages');
+  if (!msgs) return;
+  const div = document.createElement('div');
+  div.className = 'msg msg-assistant';
+  div.style.fontSize = '11px';
+  div.innerHTML = `<b>${agent}</b> ${type === 'me' ? '<span style="color:var(--cyan);">(you)</span>' : ''}<br>${text}`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function shareBountyFinding() {
+  const finding = prompt('Describe your finding:', 'Found open redirect at /api/redirect?url=');
+  if (finding) {
+    addCollabMessage('🦉 Athelgard', `🔍 <b>Bounty Finding:</b><br>${finding}<br><span style="color:var(--gold);">Severity: Medium</span>`, 'me');
+    setTimeout(() => addCollabMessage('🤖 Meli', 'Adding to our shared findings board. Good work!', 'agent'), 2000);
+  }
+}
+
+function requestHelp() {
+  const help = prompt('What do you need help with?', 'Stuck on SQL injection in login form');
+  if (help) {
+    addCollabMessage('🦉 Athelgard', `🆘 <b>Requesting Help:</b><br>${help}`, 'me');
+    setTimeout(() => addCollabMessage('🐍 AgentX', 'Looking at it now. Try adding a single quote to test for SQLi.', 'agent'), 2000);
+  }
+}
+
+function shareCodeSnippet() {
+  const code = editor.value.substring(0, 500);
+  if (code) {
+    addCollabMessage('🦉 Athelgard', `💻 <b>Code Snippet (${currentFile}):</b><br><pre style="background:rgba(0,0,0,0.2);padding:6px;border-radius:4px;overflow-x:auto;">${code.replace(/</g,'&lt;')}</pre>`, 'me');
+  }
+}
+
+// ===== END COLLABORATION =====
+
 // ===== CODE JEOPARDY =====
 const jeopardyData = [
   { category: 'JavaScript', questions: [
@@ -1712,6 +1838,105 @@ function updateCostUI() {
   document.getElementById('cost-tracker').textContent = '$' + totalCost.toFixed(4);
 }
 
+
+
+// ===== MULTI-AGENT COLLABORATION =====
+let collabRoom = null;
+let collabAgents = [];
+
+function toggleCollab() {
+  switchNav('collab');
+}
+
+function createCollabRoom() {
+  const name = prompt('Room name:', 'my-bounty-room');
+  if (!name) return;
+  joinCollabRoom(name);
+}
+
+function joinCollabRoom(roomName) {
+  collabRoom = roomName;
+  showToast(`Joined room: ${roomName}`, 'success');
+
+  const body = document.getElementById('collab-body');
+  body.innerHTML = `
+    <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text2);">
+      Room: <b style="color:var(--cyan);">${roomName}</b> · You are 🦉 Athelgard
+    </div>
+    <div id="collab-messages" style="flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px;max-height:300px;">
+      <div class="msg msg-assistant" style="font-size:11px;">
+        <b>🦉 Athelgard</b> joined the room<br>
+        <span style="color:var(--text3);">Ready to collaborate on bounty hunting!</span>
+      </div>
+    </div>
+    <div style="padding:10px;border-top:1px solid var(--border);display:flex;gap:6px;">
+      <input id="collab-input" placeholder="Share findings..." style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-size:12px;" onkeydown="if(event.key==='Enter')sendCollabMsg()">
+      <button onclick="sendCollabMsg()" style="background:linear-gradient(135deg,var(--cyan),var(--purple));border:none;border-radius:8px;color:#fff;padding:6px 12px;cursor:pointer;font-size:12px;">Send</button>
+    </div>
+    <div style="padding:8px 14px;border-top:1px solid var(--border);">
+      <div style="font-size:10px;color:var(--text3);margin-bottom:6px;">Quick Actions:</div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;">
+        <button onclick="shareBountyFinding()" style="padding:3px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text2);font-size:10px;cursor:pointer;">🔍 Share Finding</button>
+        <button onclick="requestHelp()" style="padding:3px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text2);font-size:10px;cursor:pointer;">🆘 Request Help</button>
+        <button onclick="shareCodeSnippet()" style="padding:3px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text2);font-size:10px;cursor:pointer;">💻 Share Code</button>
+      </div>
+    </div>
+  `;
+
+  setTimeout(() => addCollabMessage('🤖 Meli', 'Hey Athelgard! Found a potential XSS vulnerability in the auth flow. Want to collaborate?', 'agent'), 3000);
+  setTimeout(() => addCollabMessage('🐍 AgentX', 'I am scanning the API endpoints. Will share findings in 2 minutes.', 'agent'), 6000);
+}
+
+function sendCollabMsg() {
+  const input = document.getElementById('collab-input');
+  const text = input.value.trim();
+  if (!text) return;
+  addCollabMessage('🦉 Athelgard', text, 'me');
+  input.value = '';
+
+  if (text.toLowerCase().includes('xss') || text.toLowerCase().includes('vuln')) {
+    setTimeout(() => addCollabMessage('🤖 Meli', 'Good catch! Let us cross-reference with CVE database.', 'agent'), 2000);
+  }
+  if (text.toLowerCase().includes('help') || text.toLowerCase().includes('stuck')) {
+    setTimeout(() => addCollabMessage('🐍 AgentX', 'I can help! What are you looking at?', 'agent'), 1500);
+  }
+}
+
+function addCollabMessage(agent, text, type) {
+  const msgs = document.getElementById('collab-messages');
+  if (!msgs) return;
+  const div = document.createElement('div');
+  div.className = 'msg msg-assistant';
+  div.style.fontSize = '11px';
+  div.innerHTML = `<b>${agent}</b> ${type === 'me' ? '<span style="color:var(--cyan);">(you)</span>' : ''}<br>${text}`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function shareBountyFinding() {
+  const finding = prompt('Describe your finding:', 'Found open redirect at /api/redirect?url=');
+  if (finding) {
+    addCollabMessage('🦉 Athelgard', `🔍 <b>Bounty Finding:</b><br>${finding}<br><span style="color:var(--gold);">Severity: Medium</span>`, 'me');
+    setTimeout(() => addCollabMessage('🤖 Meli', 'Adding to our shared findings board. Good work!', 'agent'), 2000);
+  }
+}
+
+function requestHelp() {
+  const help = prompt('What do you need help with?', 'Stuck on SQL injection in login form');
+  if (help) {
+    addCollabMessage('🦉 Athelgard', `🆘 <b>Requesting Help:</b><br>${help}`, 'me');
+    setTimeout(() => addCollabMessage('🐍 AgentX', 'Looking at it now. Try adding a single quote to test for SQLi.', 'agent'), 2000);
+  }
+}
+
+function shareCodeSnippet() {
+  const code = editor.value.substring(0, 500);
+  if (code) {
+    addCollabMessage('🦉 Athelgard', `💻 <b>Code Snippet (${currentFile}):</b><br><pre style="background:rgba(0,0,0,0.2);padding:6px;border-radius:4px;overflow-x:auto;">${code.replace(/</g,'&lt;')}</pre>`, 'me');
+  }
+}
+
+// ===== END COLLABORATION =====
 
 // ===== CODE JEOPARDY =====
 const jeopardyData = [
