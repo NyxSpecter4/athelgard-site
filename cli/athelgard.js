@@ -341,82 +341,24 @@ const commands = {
   async github(args) {
     const sub = args[0];
     
-    if (sub === 'login') {
-      console.log('🔐 GitHub Device Flow Authentication\n');
-      const CLIENT_ID = 'Ov23liVfeEpVstSC4KZ4';
+    if (sub === 'login' || sub === 'token') {
+      const token = await prompt('Paste your GitHub Personal Access Token: ');
+      if (!token) { console.log('❌ No token provided'); return; }
       
-      const deviceCodeRes = await new Promise((resolve, reject) => {
-        const payload = JSON.stringify({ client_id: CLIENT_ID, scope: 'repo read:user' });
-        const req = https.request({
-          hostname: 'github.com', path: '/login/device/code', method: 'POST',
-          headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'User-Agent': 'Athelgard-Agent' }
-        }, res => {
-          let data = '';
-          res.on('data', chunk => data += chunk);
-          res.on('end', () => { try { resolve(JSON.parse(data)); } catch { reject(new Error('Invalid response')); } });
-        });
-        req.on('error', reject);
-        req.write(payload);
-        req.end();
-      });
-      
-      if (deviceCodeRes.error) {
-        console.log('❌ GitHub Error:', deviceCodeRes.error_description);
-        return;
+      // Test the token
+      try {
+        const user = await githubRequest('/user', 'GET', null, token);
+        saveGitHubToken(token);
+        console.log(`✅ Authenticated as ${user.login} (${user.name || 'no name'})`);
+      } catch (e) {
+        console.log(`❌ Invalid token: ${e.message}`);
       }
-      
-      console.log('============================================');
-      console.log('  Go to:', deviceCodeRes.verification_uri);
-      console.log('  Enter code:', deviceCodeRes.user_code);
-      console.log('============================================\n');
-      console.log('Waiting for authorization...\n');
-      
-      const interval = (deviceCodeRes.interval || 5) * 1000;
-      const expiresAt = Date.now() + (deviceCodeRes.expires_in || 900) * 1000;
-      
-      const token = await new Promise((resolve, reject) => {
-        const poll = async () => {
-          if (Date.now() > expiresAt) { reject(new Error('Authentication timed out')); return; }
-          
-          try {
-            const res = await new Promise((resolve, reject) => {
-              const payload = JSON.stringify({
-                client_id: CLIENT_ID,
-                device_code: deviceCodeRes.device_code,
-                grant_type: 'urn:ietf:params:oauth:grant-type:device_code'
-              });
-              const req = https.request({
-                hostname: 'github.com', path: '/login/oauth/access_token', method: 'POST',
-                headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'User-Agent': 'Athelgard-Agent' }
-              }, r => {
-                let data = '';
-                r.on('data', chunk => data += chunk);
-                r.on('end', () => { try { resolve(JSON.parse(data)); } catch { resolve({}); } });
-              });
-              req.on('error', reject);
-              req.write(payload);
-              req.end();
-            });
-            
-            if (res.access_token) resolve(res.access_token);
-            else if (res.error === 'authorization_pending') { process.stdout.write('.'); setTimeout(poll, interval); }
-            else if (res.error === 'slow_down') setTimeout(poll, (res.interval || 5) * 1000);
-            else reject(new Error(res.error_description || res.error || 'Unknown error'));
-          } catch (e) { reject(e); }
-        };
-        poll();
-      });
-      
-      console.log('\n✅ Authorized!');
-      const user = await githubRequest('/user', 'GET', null, token);
-      saveGitHubToken(token);
-      console.log(`✅ Authenticated as ${user.login}`);
       return;
     }
     
     if (sub === 'status') {
       const token = loadGitHubToken();
-      if (!token) { console.log('❌ Not authenticated'); return; }
+      if (!token) { console.log('❌ Not authenticated. Run: athelgard github login'); return; }
       try {
         const user = await githubRequest('/user');
         console.log(`✅ Authenticated as ${user.login} (${user.name || 'no name'})`);
@@ -581,37 +523,37 @@ const commands = {
   
   help() {
     console.log(`
-🦉 Athelgard CLI v11.0 — Vercel Eve Agent
+🦉 Athelgard CLI — Professional Coding Agent
 
 USAGE:
   athelgard <command> [args]
 
-COMMANDS:
-  github login              Authenticate with GitHub (Device Flow)
-  github status             Check GitHub auth status
-  github logout             Remove GitHub token
-  github repos              List your repositories
+QUICK START:
+  athelgard config              # Set your API keys (DeepSeek/Kimi/Mistral)
+  athelgard github login        # Paste your GitHub PAT
+  athelgard chat                # Start coding with AI + GitHub
 
-  repo <owner/repo>         List repo contents
-  repo <owner/repo> cat <file>   Read file contents
-  repo <owner/repo> tree    Show full file tree
+GITHUB:
+  github login                  # Paste GitHub Personal Access Token
+  github status                 # Check auth status
+  github logout                 # Remove token
+  github repos                  # List your repositories
 
-  chat [provider]           Start AI agent chat (deepseek/kimi/mistral)
-  agent "<query>"           One-shot agent query
+REPO:
+  repo <owner/repo>             # List repo contents
+  repo <owner/repo> cat <file>  # Read file
+  repo <owner/repo> tree        # Full file tree
 
-  config                    Set API keys and default provider
+AGENT:
+  chat [provider]               # Interactive AI chat (deepseek/kimi/mistral)
+  agent "<query>"               # One-shot query
 
-AGENT TOOLS:
-  • list_repos              List your GitHub repos
-  • read_file               Read any file from any repo
-  • get_repo_tree           Show repo structure
-  • search_code             Search across all repos
+CONFIG:
+  config                        # Set API keys
 
 EXAMPLES:
-  athelgard github login
   athelgard chat
-  athelgard chat mistral
-  athelgard agent "Explain my bountywarz repo"
+  athelgard agent "Review my bountywarz repo"
   athelgard repo NyxSpecter4/bountywarz cat README.md
 `);
   }
