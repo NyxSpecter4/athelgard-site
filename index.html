@@ -1,992 +1,386 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#0a0e1a">
-  <title>Athelgard</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg: #0a0e1a;
-      --bg2: #111827;
-      --bg3: #1a2236;
-      --border: #1e3a5f;
-      --text: #e2e8f0;
-      --text2: #94a3b8;
-      --cyan: #38bdf8;
-      --purple: #c084fc;
-      --gold: #fbbf24;
-      --green: #34d399;
-      --red: #f87171;
-    }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Inter', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      height: 100vh;
-      overflow: hidden;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Athelgard v6.0 — Synthesized</title>
+<meta name="description" content="Athelgard: AI coding mentor with ethical bounty hunting training">
+<link rel="manifest" href="manifest.json">
+<style>
+  :root {
+    --bg: #0a0a0f; --bg2: #12121a; --bg3: #1a1a2e;
+    --cyan: #12e0ff; --green: #3dff9a; --red: #ff3b5c;
+    --gold: #ffcf4d; --purple: #a855f7; --text: #e0e0e0;
+    --border: #1a1a2e;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    height: 100vh; display: flex; flex-direction: column;
+  }
 
-    /* ===== LAYOUT ===== */
-    .app {
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-    }
+  /* Header */
+  .header {
+    background: var(--bg2); border-bottom: 1px solid var(--border);
+    padding: 12px 20px; display: flex; align-items: center; gap: 16px;
+  }
+  .logo { font-size: 22px; font-weight: 800; color: var(--cyan); }
+  .status-bar { display: flex; gap: 12px; flex: 1; }
+  .status-pill {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 20px; padding: 4px 12px; font-size: 11px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .status-pill .dot { width: 8px; height: 8px; border-radius: 50%; background: #333; }
+  .status-pill.ok .dot { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .status-pill.warn .dot { background: var(--gold); box-shadow: 0 0 6px var(--gold); }
+  .status-pill.fail .dot { background: var(--red); box-shadow: 0 0 6px var(--red); }
 
-    /* ===== TOP BAR ===== */
-    .topbar {
-      height: 48px;
-      background: var(--bg2);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      padding: 0 16px;
-      gap: 12px;
-      z-index: 10;
-    }
-    .logo {
-      font-weight: 700;
-      font-size: 16px;
-      background: linear-gradient(135deg, var(--cyan), var(--purple));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .logo-icon { font-size: 22px; -webkit-text-fill-color: initial; }
-    .topbar-spacer { flex: 1; }
-    .topbar-btn {
-      padding: 6px 12px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      background: var(--bg3);
-      color: var(--text2);
-      font-size: 12px;
-      cursor: pointer;
-    }
-    .topbar-btn:hover { border-color: var(--cyan); color: var(--cyan); }
-    .topbar-btn.active { background: linear-gradient(135deg, var(--cyan), var(--purple)); color: #fff; border: none; }
+  /* Main */
+  .main { flex: 1; display: flex; overflow: hidden; }
+  .sidebar {
+    width: 220px; background: var(--bg2); border-right: 1px solid var(--border);
+    padding: 16px; display: flex; flex-direction: column; gap: 8px;
+  }
+  .nav-btn {
+    background: transparent; border: none; color: var(--text);
+    padding: 10px 14px; border-radius: 8px; text-align: left;
+    cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 10px;
+    transition: all 0.2s;
+  }
+  .nav-btn:hover, .nav-btn.active { background: var(--bg3); color: var(--cyan); }
 
-    /* ===== MAIN CONTENT ===== */
-    .content {
-      flex: 1;
-      display: flex;
-      overflow: hidden;
-      position: relative;
-    }
+  .panel { display: none; flex: 1; flex-direction: column; padding: 20px; overflow-y: auto; }
+  .panel.active { display: flex; }
 
-    /* ===== CHAT PANEL (PRIMARY) ===== */
-    .chat-panel {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      max-width: 800px;
-      margin: 0 auto;
-      width: 100%;
-      padding: 0 16px;
-    }
-    .messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 20px 0;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-    .msg {
-      padding: 14px 18px;
-      border-radius: 16px;
-      font-size: 14px;
-      line-height: 1.6;
-      max-width: 85%;
-      animation: msgIn 0.3s ease;
-    }
-    @keyframes msgIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .msg-user {
-      background: linear-gradient(135deg, var(--cyan), var(--purple));
-      color: #fff;
-      align-self: flex-end;
-      border-bottom-right-radius: 4px;
-    }
-    .msg-assistant {
-      background: var(--bg3);
-      align-self: flex-start;
-      border-bottom-left-radius: 4px;
-      border: 1px solid var(--border);
-    }
-    .msg-game {
-      background: linear-gradient(135deg, rgba(251,191,36,0.1), rgba(192,132,252,0.1));
-      border: 1px solid var(--gold);
-      align-self: center;
-      max-width: 95%;
-      width: 100%;
-    }
+  /* Chat Panel */
+  .chat-history { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-bottom: 20px; }
+  .msg { max-width: 85%; padding: 12px 16px; border-radius: 16px; font-size: 14px; line-height: 1.5; }
+  .msg.user { align-self: flex-end; background: var(--cyan); color: #000; }
+  .msg.assistant { align-self: flex-start; background: var(--bg3); border: 1px solid var(--border); }
+  .msg-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 12px; font-weight: 600; opacity: 0.7; }
+  .msg-body { white-space: pre-wrap; }
 
-    /* ===== VOICE INPUT AREA ===== */
-    .voice-area {
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-    }
-    .voice-hint {
-      font-size: 12px;
-      color: var(--text2);
-    }
-    .voice-btn {
-      width: 64px;
-      height: 64px;
-      border-radius: 50%;
-      border: 2px solid var(--border);
-      background: var(--bg3);
-      color: var(--text2);
-      font-size: 28px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.3s ease;
-    }
-    .voice-btn:hover {
-      border-color: var(--cyan);
-      color: var(--cyan);
-      transform: scale(1.05);
-    }
-    .voice-btn.recording {
-      background: linear-gradient(135deg, var(--red), var(--purple));
-      color: #fff;
-      border-color: var(--red);
-      animation: pulse 1.5s infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(248,113,113,0.4); }
-      50% { box-shadow: 0 0 0 20px rgba(248,113,113,0); }
-    }
-    .text-input-wrap {
-      display: flex;
-      gap: 10px;
-      width: 100%;
-      max-width: 600px;
-    }
-    .text-input {
-      flex: 1;
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 12px 16px;
-      color: var(--text);
-      font-size: 14px;
-      outline: none;
-    }
-    .text-input:focus { border-color: var(--cyan); }
-    .send-btn {
-      background: linear-gradient(135deg, var(--cyan), var(--purple));
-      border: none;
-      border-radius: 12px;
-      width: 44px;
-      color: #fff;
-      cursor: pointer;
-      font-size: 18px;
-    }
+  .chat-input-bar {
+    display: flex; gap: 10px; padding: 12px 0; border-top: 1px solid var(--border);
+  }
+  .chat-input {
+    flex: 1; background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 12px; padding: 12px 16px; color: var(--text); font-size: 14px; outline: none;
+  }
+  .chat-input:focus { border-color: var(--cyan); }
+  .icon-btn {
+    background: var(--bg3); border: 1px solid var(--border); border-radius: 12px;
+    width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: var(--text); font-size: 18px; transition: all 0.2s;
+  }
+  .icon-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+  .icon-btn.recording { background: var(--red); border-color: var(--red); animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+  .send-btn {
+    background: linear-gradient(135deg, var(--cyan), var(--purple));
+    border: none; color: #000; font-weight: bold; width: 44px; height: 44px;
+    border-radius: 12px; cursor: pointer; font-size: 16px;
+  }
 
-    /* ===== SIDE PANEL (CODE/GAMES) ===== */
-    .side-panel {
-      width: 0;
-      background: var(--bg2);
-      border-left: 1px solid var(--border);
-      overflow: hidden;
-      transition: width 0.3s ease;
-      display: flex;
-      flex-direction: column;
-    }
-    .side-panel.open { width: 500px; }
-    .side-header {
-      padding: 12px 16px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .side-close {
-      background: none;
-      border: none;
-      color: var(--text2);
-      font-size: 20px;
-      cursor: pointer;
-    }
-    .side-body {
-      flex: 1;
-      overflow-y: auto;
-      padding: 16px;
-    }
+  /* Settings Panel */
+  .settings-grid { display: grid; gap: 16px; max-width: 500px; }
+  .setting-row { display: flex; flex-direction: column; gap: 6px; }
+  .setting-row label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #888; }
+  .setting-row input {
+    background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 14px; color: var(--text); font-size: 14px; outline: none;
+  }
+  .setting-row input:focus { border-color: var(--cyan); }
 
-    /* ===== CODE EDITOR (HIDDEN BY DEFAULT) ===== */
-    .editor {
-      width: 100%;
-      height: 100%;
-      background: var(--bg);
-      color: var(--text);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 12px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 13px;
-      resize: none;
-      outline: none;
-    }
+  /* Games */
+  .game-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+  .game-card {
+    background: var(--bg3); border: 1px solid var(--border); border-radius: 12px;
+    padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s;
+  }
+  .game-card:hover { border-color: var(--cyan); transform: translateY(-2px); }
+  .game-card .emoji { font-size: 32px; margin-bottom: 8px; }
 
-    /* ===== GAME STYLES ===== */
-    .game-title {
-      font-size: 20px;
-      font-weight: 700;
-      text-align: center;
-      margin-bottom: 16px;
-      color: var(--gold);
-    }
-
-    /* Jeopardy */
-    .jeopardy-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-    }
-    .jeopardy-cat {
-      text-align: center;
-      padding: 8px;
-      background: linear-gradient(135deg, var(--purple), var(--cyan));
-      border-radius: 8px;
-      font-size: 11px;
-      font-weight: 700;
-    }
-    .jeopardy-cell {
-      padding: 16px;
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      text-align: center;
-      color: var(--gold);
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .jeopardy-cell:hover { background: var(--border); transform: scale(1.02); }
-    .jeopardy-cell.used { opacity: 0.3; pointer-events: none; }
-
-    /* Wheel of Fortune */
-    .wheel-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 16px;
-    }
-    .wheel {
-      width: 280px;
-      height: 280px;
-      border-radius: 50%;
-      background: conic-gradient(
-        var(--red) 0deg 60deg,
-        var(--gold) 60deg 120deg,
-        var(--green) 120deg 180deg,
-        var(--cyan) 180deg 240deg,
-        var(--purple) 240deg 300deg,
-        var(--red) 300deg 360deg
-      );
-      position: relative;
-      transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99);
-      border: 4px solid var(--gold);
-    }
-    .wheel-center {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 60px;
-      height: 60px;
-      background: var(--bg);
-      border-radius: 50%;
-      border: 3px solid var(--gold);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-    }
-    .wheel-pointer {
-      position: absolute;
-      top: -10px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 0;
-      height: 0;
-      border-left: 15px solid transparent;
-      border-right: 15px solid transparent;
-      border-top: 25px solid var(--gold);
-    }
-    .wheel-labels {
-      position: absolute;
-      inset: 0;
-    }
-    .wheel-label {
-      position: absolute;
-      font-size: 11px;
-      font-weight: 700;
-      color: #fff;
-      text-shadow: 0 1px 3px rgba(0,0,0,0.8);
-    }
-    .spin-btn {
-      padding: 14px 40px;
-      background: linear-gradient(135deg, var(--gold), var(--orange));
-      border: none;
-      border-radius: 12px;
-      color: #000;
-      font-weight: 700;
-      font-size: 16px;
-      cursor: pointer;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-    .spin-btn:hover { transform: scale(1.05); }
-    .spin-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .puzzle-display {
-      font-size: 32px;
-      letter-spacing: 8px;
-      font-weight: 700;
-      text-align: center;
-      padding: 16px;
-      background: var(--bg3);
-      border-radius: 8px;
-      border: 1px solid var(--border);
-    }
-
-    /* ===== CONNECTIONS STATUS ===== */
-    .status-bar {
-      padding: 6px 16px;
-      background: var(--bg2);
-      border-top: 1px solid var(--border);
-      display: flex;
-      gap: 16px;
-      font-size: 11px;
-      color: var(--text2);
-    }
-    .status-item { display: flex; align-items: center; gap: 4px; }
-    .status-dot { width: 6px; height: 6px; border-radius: 50%; }
-    .status-dot.ok { background: var(--green); }
-    .status-dot.warn { background: var(--gold); }
-    .status-dot.off { background: var(--text3); }
-
-    /* ===== TOAST ===== */
-    .toast {
-      position: fixed;
-      bottom: 60px;
-      left: 50%;
-      transform: translateX(-50%) translateY(100px);
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 12px 20px;
-      font-size: 13px;
-      z-index: 500;
-      opacity: 0;
-      transition: all 0.3s ease;
-    }
-    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-    /* ===== RESPONSIVE ===== */
-    @media (max-width: 768px) {
-      .side-panel.open { width: 100%; position: fixed; inset: 48px 0 0 0; z-index: 100; }
-    }
-  </style>
+  /* Misc */
+  .bounty-card {
+    background: var(--bg3); border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px; margin-bottom: 12px;
+  }
+  .bounty-card h3 { color: var(--gold); margin-bottom: 8px; }
+  .score-badge {
+    display: inline-block; background: var(--green); color: #000;
+    padding: 4px 12px; border-radius: 20px; font-weight: bold; font-size: 12px;
+  }
+  .mentor-line { color: var(--cyan); font-style: italic; margin-top: 8px; }
+</style>
 </head>
 <body>
-<div class="app">
-  <!-- Top Bar -->
-  <div class="topbar">
-    <div class="logo"><span class="logo-icon">🦉</span> Athelgard</div>
-    <div class="topbar-spacer"></div>
-    <button class="topbar-btn" id="btn-code" onclick="togglePanel('code')">💻 Code</button>
-    <button class="topbar-btn" id="btn-jeopardy" onclick="togglePanel('jeopardy')">🎯 Jeopardy</button>
-    <button class="topbar-btn" id="btn-wheel" onclick="togglePanel('wheel')">🎡 Wheel</button>
-    <button class="topbar-btn" onclick="showSettings()">⚙️</button>
-  </div>
+  <header class="header">
+    <div class="logo">🦉 Athelgard v6.0</div>
+    <div class="status-bar">
+      <div class="status-pill" id="st-deepseek"><span class="dot"></span>DeepSeek</div>
+      <div class="status-pill" id="st-kimi"><span class="dot"></span>Kimi</div>
+      <div class="status-pill" id="st-github"><span class="dot"></span>GitHub</div>
+      <div class="status-pill" id="st-peak"><span class="dot"></span>Peak Hours</div>
+    </div>
+  </header>
 
-  <!-- Main Content -->
-  <div class="content">
-    <!-- Chat Panel (Primary) -->
-    <div class="chat-panel">
-      <div class="messages" id="messages">
-        <div class="msg msg-assistant">
-          🦉 Hey Captain! I'm Athelgard — your AI coding partner. Press and hold the mic button to talk, or type below!
-        </div>
-      </div>
-      <div class="voice-area">
-        <div class="voice-hint" id="voice-hint">Hold to speak, release to send</div>
-        <button class="voice-btn" id="voice-btn" onmousedown="startVoice()" onmouseup="stopVoice()" ontouchstart="startVoice()" ontouchend="stopVoice()">🎤</button>
-        <div class="text-input-wrap">
-          <input class="text-input" id="chat-input" placeholder="Or type here..." onkeydown="if(event.key==='Enter')sendMessage()">
-          <button class="send-btn" onclick="sendMessage()">➤</button>
-        </div>
+  <div class="main">
+    <nav class="sidebar">
+      <button class="nav-btn active" data-panel="chat-panel">💬 Chat</button>
+      <button class="nav-btn" data-panel="bounty-panel">🛡️ Bounty</button>
+      <button class="nav-btn" data-panel="games-panel">🎮 Games</button>
+      <button class="nav-btn" data-panel="github-panel">📁 GitHub</button>
+      <button class="nav-btn" data-panel="settings-panel">⚙️ Settings</button>
+    </nav>
+
+    <!-- CHAT PANEL -->
+    <div class="panel active" id="chat-panel">
+      <div class="chat-history" id="chat-history"></div>
+      <div class="chat-input-bar">
+        <button class="icon-btn" id="voice-btn" title="Hold to speak">🎤</button>
+        <input type="text" class="chat-input" id="chat-input" placeholder="Ask Athelgard anything..." autocomplete="off">
+        <button class="send-btn" id="send-btn">➤</button>
       </div>
     </div>
 
-    <!-- Side Panel (Code/Games) -->
-    <div class="side-panel" id="side-panel">
-      <div class="side-header">
-        <span id="side-title">Code</span>
-        <button class="side-close" onclick="closePanel()">✕</button>
+    <!-- BOUNTY PANEL -->
+    <div class="panel" id="bounty-panel">
+      <h2 style="color:var(--gold); margin-bottom:16px;">🛡️ Ethical Bounty Training</h2>
+      <div id="bounty-content">
+        <p style="color:#888; margin-bottom:20px;">Submit a simulated finding for review. Athelgard will score your evidence and teach responsible disclosure.</p>
+        <div class="bounty-card">
+          <h3>How it works</h3>
+          <ol style="padding-left:20px; line-height:2;">
+            <li>Describe a <strong>simulated</strong> security finding</li>
+            <li>Include: observation, impact, reproduction, remediation</li>
+            <li>Athelgard scores it 0-100 and gives feedback</li>
+          </ol>
+        </div>
+        <p style="color:#888;">💡 <strong>Tip:</strong> Switch to Chat and type your finding. Athelgard will detect it's bounty-related and use the ethical hunt loop.</p>
       </div>
-      <div class="side-body" id="side-body">
-        <!-- Dynamic content -->
+    </div>
+
+    <!-- GAMES PANEL -->
+    <div class="panel" id="games-panel">
+      <h2 style="color:var(--gold); margin-bottom:16px;">🎮 Training Games</h2>
+      <div class="game-grid">
+        <div class="game-card" id="btn-jeopardy">
+          <div class="emoji">🎯</div>
+          <div>Code Jeopardy</div>
+        </div>
+        <div class="game-card" id="btn-wheel">
+          <div class="emoji">🎡</div>
+          <div>Wheel of Fortune</div>
+        </div>
+      </div>
+      <div id="game-area" style="margin-top:20px;"></div>
+    </div>
+
+    <!-- GITHUB PANEL -->
+    <div class="panel" id="github-panel">
+      <h2 style="color:var(--gold); margin-bottom:16px;">📁 GitHub Repos</h2>
+      <div id="github-content">
+        <p style="color:#888;">Configure your GitHub token in Settings to browse repos.</p>
+      </div>
+    </div>
+
+    <!-- SETTINGS PANEL -->
+    <div class="panel" id="settings-panel">
+      <h2 style="color:var(--gold); margin-bottom:16px;">⚙️ Configuration</h2>
+      <div class="settings-grid">
+        <div class="setting-row">
+          <label>DeepSeek API Key</label>
+          <input type="password" id="cfg-deepseek" placeholder="sk-...">
+        </div>
+        <div class="setting-row">
+          <label>Kimi API Key</label>
+          <input type="password" id="cfg-kimi" placeholder="sk-...">
+        </div>
+        <div class="setting-row">
+          <label>GitHub Token</label>
+          <input type="password" id="cfg-github" placeholder="ghp_...">
+        </div>
+        <button class="send-btn" id="save-settings" style="width:auto; padding:12px 24px;">💾 Save Settings</button>
+        <p id="settings-msg" style="color:var(--green); margin-top:8px;"></p>
       </div>
     </div>
   </div>
 
-  <!-- Status Bar -->
-  <div class="status-bar">
-    <div class="status-item"><span class="status-dot" id="status-deepseek"></span> DeepSeek</div>
-    <div class="status-item"><span class="status-dot" id="status-kimi"></span> Kimi</div>
-    <div class="status-item"><span class="status-dot" id="status-github"></span> GitHub</div>
-    <div class="status-item" style="margin-left:auto;" id="peak-status">Checking...</div>
-  </div>
-</div>
+<script type="module">
+import { CONFIG } from './modules/config.js';
+import { EthicalHuntLoop, BuilderBrain, isBountyQuery, parseBountyAttempt } from './modules/brain.js';
+import { sendChatMessage, checkAPIHealth } from './modules/chat.js';
+import { isVoiceSupported, startVoice, stopVoice, isRecordingActive } from './modules/voice.js';
+import { toast, addChatMessage, setLoading, escapeHtml } from './modules/ui.js';
 
-<div class="toast" id="toast"></div>
-
-<script>
-// ===== CONFIG =====
-const config = {
-  apiKey: localStorage.getItem('athelgard_api_key') || '',
-  kimiKey: localStorage.getItem('athelgard_kimi_key') || '',
-  githubToken: localStorage.getItem('athelgard_github_key') || '',
-};
-let isPeak = false;
-let isRecording = false;
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+const huntLoop = new EthicalHuntLoop();
+const builderBrain = new BuilderBrain();
 let recognition = null;
-let messageHistory = [];
-let currentPanel = null;
 
-// ===== PEAK HOURS =====
-function checkPeak() {
-  const now = new Date();
-  const pst = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
-  isPeak = pst.getHours() >= 9 && pst.getHours() < 21;
-  document.getElementById('peak-status').textContent = isPeak ? '⚠️ Peak Hours (using Kimi)' : '✓ Off-Peak (DeepSeek)';
-}
-checkPeak();
-setInterval(checkPeak, 60000);
+// ═══════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.panel).classList.add('active');
+  });
+});
 
-// ===== STATUS INDICATORS =====
-// ===== ROBUST CONNECTION TESTING =====
-let connectionStatus = { deepseek: false, kimi: false, github: false };
-
-async function testConnections() {
-  const dsDot = document.getElementById('status-deepseek');
-  const kimiDot = document.getElementById('status-kimi');
-  const ghDot = document.getElementById('status-github');
-  
-  // Test DeepSeek
-  if (config.apiKey) {
-    try {
-      const res = await fetch('https://api.deepseek.com/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.apiKey}` },
-        body: JSON.stringify({ model: 'deepseek-chat', messages: [{role:'user',content:'hi'}], max_tokens: 5 })
-      });
-      connectionStatus.deepseek = res.ok;
-      dsDot.className = 'status-dot ' + (res.ok ? 'ok' : 'warn');
-      if (!res.ok) console.error('DeepSeek test failed:', res.status);
-    } catch (e) {
-      connectionStatus.deepseek = false;
-      dsDot.className = 'status-dot warn';
-      console.error('DeepSeek test error:', e);
-    }
-  } else {
-    dsDot.className = 'status-dot off';
-  }
-  
-  // Test Kimi
-  if (config.kimiKey) {
-    try {
-      const res = await fetch('https://api.moonshot.cn/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.kimiKey}` },
-        body: JSON.stringify({ model: 'kimi-k2p6', messages: [{role:'user',content:'hi'}], max_tokens: 5 })
-      });
-      connectionStatus.kimi = res.ok;
-      kimiDot.className = 'status-dot ' + (res.ok ? 'ok' : 'warn');
-      if (!res.ok) console.error('Kimi test failed:', res.status);
-    } catch (e) {
-      connectionStatus.kimi = false;
-      kimiDot.className = 'status-dot warn';
-      console.error('Kimi test error:', e);
-    }
-  } else {
-    kimiDot.className = 'status-dot off';
-  }
-  
-  // Test GitHub
-  if (config.githubToken) {
-    try {
-      const res = await fetch('https://api.github.com/user', {
-        headers: { 'Authorization': `token ${config.githubToken}`, 'Accept': 'application/vnd.github.v3+json' }
-      });
-      connectionStatus.github = res.ok;
-      ghDot.className = 'status-dot ' + (res.ok ? 'ok' : 'warn');
-      if (!res.ok) console.error('GitHub test failed:', res.status);
-    } catch (e) {
-      connectionStatus.github = false;
-      ghDot.className = 'status-dot warn';
-      console.error('GitHub test error:', e);
-    }
-  } else {
-    ghDot.className = 'status-dot off';
-  }
-}
-
-// Run tests on load and every 30 seconds
-testConnections();
-setInterval(testConnections, 30000);
-
-// Log status for debugging
-console.log('Athelgard v5.1 loaded');
-console.log('Config:', { hasDeepSeek: !!config.apiKey, hasKimi: !!config.kimiKey, hasGitHub: !!config.githubToken });
-
-// ===== VOICE =====
-function startVoice() {
-  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-    showToast('Voice not supported. Use Chrome.');
-    return;
-  }
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  recognition = new SpeechRecognition();
-  recognition.continuous = false;
-  recognition.interimResults = true;
-  recognition.lang = 'en-US';
-  
-  isRecording = true;
-  document.getElementById('voice-btn').classList.add('recording');
-  document.getElementById('voice-hint').textContent = 'Listening...';
-  
-  recognition.onresult = (e) => {
-    const text = Array.from(e.results).map(r => r[0].transcript).join('');
-    document.getElementById('chat-input').value = text;
-  };
-  
-  recognition.onend = () => {
-    if (isRecording) {
-      const text = document.getElementById('chat-input').value.trim();
-      if (text) sendMessage();
-    }
-    stopVoice();
-  };
-  
-  recognition.start();
-}
-
-function stopVoice() {
-  isRecording = false;
-  if (recognition) recognition.stop();
-  document.getElementById('voice-btn').classList.remove('recording');
-  document.getElementById('voice-hint').textContent = 'Hold to speak, release to send';
-}
-
-// ===== CHAT =====
-async function sendMessage() {
+// ═══════════════════════════════════════════
+// CHAT
+// ═══════════════════════════════════════════
+async function handleSend() {
   const input = document.getElementById('chat-input');
   const text = input.value.trim();
   if (!text) return;
 
-  addMsg('user', text);
+  addChatMessage('user', text);
   input.value = '';
+  setLoading(true);
 
-  // Check if it's a game command
-  if (text.toLowerCase().includes('jeopardy')) { showJeopardy(); return; }
-  if (text.toLowerCase().includes('wheel')) { showWheel(); return; }
-
-  // Check if it's a bounty/security query (MELI's brain)
-  if (isBountyQuery(text)) {
-    const bountyReply = await handleBountyQuery(text);
-    addMsg('assistant', bountyReply);
-    return;
-  }
-
-  // Try sending immediately - don't wait for connection tests
   try {
-    let reply, usedModel;
-    
-    // Try DeepSeek first (cheaper)
-    if (config.apiKey) {
-      try {
-        reply = await getAIResponse(text, 'deepseek');
-        usedModel = 'DeepSeek';
-      } catch (e) {
-        console.log('DeepSeek failed:', e.message);
-        // Try Kimi fallback
-        if (config.kimiKey) {
-          addMsg('assistant', '🔄 Trying Kimi fallback...');
-          reply = await getAIResponse(text, 'kimi');
-          usedModel = 'Kimi';
-        } else {
-          throw e;
-        }
+    // Check if bounty-related (MELI's brain)
+    if (isBountyQuery(text)) {
+      const attempt = parseBountyAttempt(text);
+      const gate = huntLoop.evaluate(attempt);
+
+      if (gate.status === 'blocked') {
+        addChatMessage('assistant', `🚫 **BLOCKED**\n\n${gate.mentorLine}\n\n${gate.reason}\n\n**Next:** ${gate.nextAction}`);
+      } else if (gate.status === 'needs_scope') {
+        addChatMessage('assistant', `📋 **NEEDS SCOPE**\n\n${gate.mentorLine}\n\n**Next:** ${gate.nextAction}`);
+      } else if (gate.status === 'investigate') {
+        const review = builderBrain.reviewFinding(attempt);
+        addChatMessage('assistant',
+          `🔍 **INCOMPLETE** (Score: ${review.rubric?.score || 0}/100)\n\n` +
+          `${gate.mentorLine}\n\n**Missing:** ${gate.missingEvidence?.join(', ')}\n\n` +
+          `**Next:** ${gate.nextAction}`
+        );
+      } else if (gate.status === 'report_ready') {
+        const review = builderBrain.reviewFinding(attempt);
+        addChatMessage('assistant',
+          `✅ **REPORT READY!** (Score: ${review.rubric?.score || 100}/100)\n\n` +
+          `${gate.mentorLine}\n\n` +
+          `**Rewards:** ${gate.rewards?.join(', ')}\n\n` +
+          `**Next:** ${gate.nextAction}`
+        );
       }
-    } else if (config.kimiKey) {
-      reply = await getAIResponse(text, 'kimi');
-      usedModel = 'Kimi';
-    } else {
-      addMsg('assistant', '❌ No API key configured. Click ⚙️ Settings to add your DeepSeek or Kimi key.');
+      setLoading(false);
       return;
     }
-    
-    addMsg('assistant', reply);
+
+    // Regular AI chat
+    const response = await sendChatMessage(text);
+    addChatMessage('assistant', response.text + `\n\n— *via ${response.model} (${response.cost})*`);
   } catch (e) {
-    console.error('Chat error:', e);
-    addMsg('assistant', '❌ Error: ' + e.message + '\n\nYour API key might be invalid or expired.\n\nCheck:\n1. Key is correct in ⚙️ Settings\n2. You have credits at the provider\n3. Try regenerating the key');
+    addChatMessage('assistant', `❌ Error: ${e.message}\n\nCheck your API keys in Settings.`);
+  } finally {
+    setLoading(false);
   }
 }
 
-async function getAIResponse(text, model) {
-  console.log(`[Athelgard] Sending request to ${model}...`);
-  const url = model === 'kimi' ? 'https://api.moonshot.cn/v1/chat/completions' : 'https://api.deepseek.com/chat/completions';
-  const key = model === 'kimi' ? config.kimiKey : config.apiKey;
-  const modelName = model === 'kimi' ? 'kimi-k2p6' : 'deepseek-chat';
-
-  try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-      body: JSON.stringify({
-        model: modelName,
-        messages: [
-          { role: 'system', content: 'You are Athelgard, a friendly AI coding partner. Help with code, explain concepts, and be encouraging. Keep responses concise and actionable.' },
-          ...messageHistory.slice(-4),
-          { role: 'user', content: text }
-        ],
-        temperature: 0.7,
-        max_tokens: 2000
-      })
-    });
-
-    console.log(`[Athelgard] ${model} response status:`, res.status);
-
-    if (!res.ok) {
-      const errText = await res.text();
-      console.error(`[Athelgard] ${model} error:`, errText);
-      throw new Error(`${model} API error: HTTP ${res.status}`);
-    }
-
-    const data = await res.json();
-    const reply = data.choices?.[0]?.message?.content;
-    
-    if (!reply) {
-      console.error('[Athelgard] Empty response:', data);
-      throw new Error('Empty response from AI');
-    }
-    
-    console.log(`[Athelgard] ${model} success, reply length:`, reply.length);
-    
-    messageHistory.push({ role: 'user', content: text });
-    messageHistory.push({ role: 'assistant', content: reply });
-    if (messageHistory.length > 10) messageHistory = messageHistory.slice(-10);
-    
-    return reply;
-  } catch (e) {
-    console.error(`[Athelgard] ${model} request failed:`, e);
-    throw e;
-  }
-}
-
-function addMsg(role, text) {
-  const div = document.createElement('div');
-  div.className = 'msg msg-' + role;
-  div.innerHTML = formatText(text);
-  document.getElementById('messages').appendChild(div);
-  document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
-}
-
-function formatText(text) {
-  return text
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/```(\w+)?\n([\s\S]*?)```/g, (_, lang, code) => `<pre style="background:rgba(0,0,0,0.3);padding:10px;border-radius:8px;overflow-x:auto;font-family:monospace;font-size:12px;margin-top:8px;">${code}</pre>`)
-    .replace(/`([^`]+)`/g, '<code style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;font-size:12px;">$1</code>')
-    .replace(/\n/g, '<br>');
-}
-
-// ===== SIDE PANEL =====
-function togglePanel(type) {
-  const panel = document.getElementById('side-panel');
-  const body = document.getElementById('side-body');
-  const title = document.getElementById('side-title');
-  
-  if (currentPanel === type) { closePanel(); return; }
-  
-  currentPanel = type;
-  panel.classList.add('open');
-  
-  // Update button states
-  document.querySelectorAll('.topbar-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('btn-' + type)?.classList.add('active');
-  
-  if (type === 'code') {
-    title.textContent = '💻 Code Editor';
-    body.innerHTML = '<textarea class="editor" id="editor" placeholder="// Type code here..."></textarea>';
-  } else if (type === 'jeopardy') {
-    showJeopardyUI(body, title);
-  } else if (type === 'wheel') {
-    showWheelUI(body, title);
-  }
-}
-
-function closePanel() {
-  document.getElementById('side-panel').classList.remove('open');
-  document.querySelectorAll('.topbar-btn').forEach(b => b.classList.remove('active'));
-  currentPanel = null;
-}
-
-// ===== JEOPARDY =====
-const jeopardyData = [
-  { cat: 'JavaScript', q: [
-    { q: 'What does Array.map() return?', a: 'new array', pts: 100 },
-    { q: 'typeof []?', a: 'object', pts: 200 },
-    { q: 'Promise.all does what?', a: 'waits for all', pts: 300 },
-    { q: 'What is a closure?', a: 'function with scope', pts: 400 },
-  ]},
-  { cat: 'React', q: [
-    { q: 'useState returns?', a: 'state setter', pts: 100 },
-    { q: 'Virtual DOM is?', a: 'in-memory copy', pts: 200 },
-    { q: 'useEffect runs when?', a: 'after render', pts: 300 },
-    { q: 'Keys in lists do?', a: 'identify items', pts: 400 },
-  ]},
-  { cat: 'Web', q: [
-    { q: 'HTTP status 200?', a: 'ok', pts: 100 },
-    { q: 'LocalStorage vs Session?', a: 'persistent vs temp', pts: 200 },
-    { q: 'CORS stands for?', a: 'cross origin resource', pts: 300 },
-    { q: 'JWT is?', a: 'json web token', pts: 400 },
-  ]},
-];
-let jeopardyScore = 0;
-
-function showJeopardyUI(body, title) {
-  title.textContent = '🎯 Code Jeopardy';
-  body.innerHTML = '<div class="game-title">Score: <span id="j-score">0</span></div><div class="jeopardy-grid" id="j-grid"></div>';
-  
-  const grid = document.getElementById('j-grid');
-  jeopardyData.forEach((cat, ci) => {
-    const catDiv = document.createElement('div');
-    catDiv.className = 'jeopardy-cat';
-    catDiv.textContent = cat.cat;
-    grid.appendChild(catDiv);
-    
-    cat.q.forEach((q, qi) => {
-      const cell = document.createElement('div');
-      cell.className = 'jeopardy-cell' + (q.answered ? ' used' : '');
-      cell.textContent = q.pts;
-      cell.onclick = () => showJeopardyQ(ci, qi);
-      grid.appendChild(cell);
-    });
-  });
-}
-
-function showJeopardyQ(ci, qi) {
-  const q = jeopardyData[ci].q[qi];
-  const body = document.getElementById('side-body');
-  body.innerHTML = `
-    <div class="game-title">${jeopardyData[ci].cat} — $${q.pts}</div>
-    <div style="font-size:18px;text-align:center;padding:20px;">${q.q}</div>
-    <input id="j-ans" placeholder="Your answer..." style="width:100%;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;margin-bottom:12px;">
-    <button onclick="checkJeopardy(${ci},${qi})" style="width:100%;padding:12px;background:linear-gradient(135deg,var(--cyan),var(--purple));border:none;border-radius:8px;color:#fff;font-weight:700;cursor:pointer;">Submit</button>
-  `;
-}
-
-function checkJeopardy(ci, qi) {
-  const ans = document.getElementById('j-ans').value.trim().toLowerCase();
-  const q = jeopardyData[ci].q[qi];
-  if (ans.includes(q.a.toLowerCase()) || q.a.toLowerCase().includes(ans)) {
-    jeopardyScore += q.pts;
-    showToast(`✅ Correct! +$${q.pts}`);
-  } else {
-    showToast(`❌ Wrong! Answer: ${q.a}`);
-  }
-  q.answered = true;
-  document.getElementById('j-score').textContent = jeopardyScore;
-  showJeopardyUI(document.getElementById('side-body'), document.getElementById('side-title'));
-}
-
-// ===== WHEEL OF FORTUNE =====
-const wheelPrizes = ['💻 Code Help', '🎯 Jeopardy', '🎤 Voice Mode', '💡 Tip', '🐛 Debug', '⚡ Shortcut'];
-let wheelSpinning = false;
-
-function showWheelUI(body, title) {
-  title.textContent = '🎡 Code Fortune';
-  body.innerHTML = `
-    <div class="wheel-container">
-      <div style="position:relative;">
-        <div class="wheel" id="wheel">
-          <div class="wheel-center">🎰</div>
-        </div>
-        <div class="wheel-pointer"></div>
-      </div>
-      <button class="spin-btn" id="spin-btn" onclick="spinWheel()">SPIN!</button>
-      <div id="wheel-result" style="font-size:16px;text-align:center;color:var(--gold);min-height:24px;"></div>
-    </div>
-  `;
-}
-
-function spinWheel() {
-  if (wheelSpinning) return;
-  wheelSpinning = true;
-  
-  const wheel = document.getElementById('wheel');
-  const btn = document.getElementById('spin-btn');
-  const result = document.getElementById('wheel-result');
-  
-  btn.disabled = true;
-  result.textContent = '';
-  
-  const spins = 5 + Math.random() * 3;
-  const degrees = spins * 360 + Math.random() * 360;
-  wheel.style.transform = `rotate(${degrees}deg)`;
-  
-  setTimeout(() => {
-    const prize = wheelPrizes[Math.floor(Math.random() * wheelPrizes.length)];
-    result.textContent = `You got: ${prize}!`;
-    btn.disabled = false;
-    wheelSpinning = false;
-    
-    // Execute the prize
-    if (prize.includes('Code Help')) addMsg('assistant', '🦉 Need help with code? Ask me anything!');
-    if (prize.includes('Jeopardy')) togglePanel('jeopardy');
-    if (prize.includes('Voice')) showToast('🎤 Try voice mode! Hold the mic button.');
-    if (prize.includes('Tip')) addMsg('assistant', '🦉 **Tip:** Use `console.table()` to display arrays beautifully!');
-    if (prize.includes('Debug')) addMsg('assistant', '🦉 **Debug tip:** Add `debugger;` in your code to set a breakpoint.');
-    if (prize.includes('Shortcut')) addMsg('assistant', '🦉 **Shortcut:** `Cmd/Ctrl + Shift + P` opens command palette in most editors!');
-  }, 4000);
-}
-
-// ===== UTILS =====
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 3000);
-}
-
-function showSettings() {
-  const keys = prompt('Enter API keys (comma-separated): DeepSeek, Kimi, GitHub');
-  if (keys) {
-    const [ds, kimi, gh] = keys.split(',').map(s => s.trim());
-    if (ds) { config.apiKey = ds; localStorage.setItem('athelgard_api_key', ds); }
-    if (kimi) { config.kimiKey = kimi; localStorage.setItem('athelgard_kimi_key', kimi); }
-    if (gh) { config.githubToken = gh; localStorage.setItem('athelgard_github_key', gh); }
-    updateStatus();
-    showToast('✅ Settings saved!');
-  }
-}
-
-// ===== MELI'S BRAIN INTEGRATION =====
-// Ethical Hunt Loop - Security gate for bounty submissions
-const HUNT_DECISIONS = Object.freeze({
-  BLOCKED: 'blocked',
-  NEEDS_SCOPE: 'needs_scope',
-  INVESTIGATE: 'investigate',
-  REPORT_READY: 'report_ready',
+document.getElementById('send-btn').addEventListener('click', handleSend);
+document.getElementById('chat-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
 });
 
-function evaluateBountyAttempt(attempt = {}) {
-  const scope = attempt.scope || {};
-  const evidence = attempt.evidence || {};
-  
-  if (attempt.simulated !== true) {
-    return { status: HUNT_DECISIONS.BLOCKED, reason: 'Only simulated targets allowed.' };
-  }
-  if (!scope.program || !scope.authorized) {
-    return { status: HUNT_DECISIONS.NEEDS_SCOPE, reason: 'Scope authorization required.' };
-  }
-  
-  const required = ['observation', 'impact', 'reproduction', 'remediation'];
-  const missing = required.filter(k => !evidence[k] || evidence[k].trim().length < 10);
-  if (missing.length) {
-    return { status: HUNT_DECISIONS.INVESTIGATE, missing, reason: 'Incomplete evidence.' };
-  }
-  
-  return { status: HUNT_DECISIONS.REPORT_READY, reason: 'Complete report.', score: 100 };
-}
-
-// Builder Brain - Review findings
-function reviewFinding(attempt) {
-  const gate = evaluateBountyAttempt(attempt);
-  
-  if (gate.status === HUNT_DECISIONS.BLOCKED) {
-    return `🚫 BLOCKED: ${gate.reason}\n\nAthelgard only reviews SIMULATED bounty hunts for training. Real targets are blocked.`;
-  }
-  if (gate.status === HUNT_DECISIONS.NEEDS_SCOPE) {
-    return `📋 NEEDS SCOPE: ${gate.reason}\n\nBefore investigating, define:\n- What program?\n- Is it authorized?\n- What's in scope?`;
-  }
-  if (gate.status === HUNT_DECISIONS.INVESTIGATE) {
-    return `🔍 INCOMPLETE: Missing ${gate.missing.join(', ')}\n\nA strong finding needs:\n1. Observation - what you saw\n2. Impact - why it matters\n3. Reproduction - how to verify\n4. Remediation - how to fix`;
-  }
-  
-  return `✅ REPORT READY! Score: ${gate.score}/100\n\nYour finding has:\n✓ Proper scope\n✓ Complete evidence\n✓ Clear impact\n✓ Reproduction steps\n✓ Remediation advice\n\nThis is a defensible responsible disclosure packet!`;
-}
-
-// Detect bounty-related messages
-function isBountyQuery(text) {
-  const lower = text.toLowerCase();
-  return lower.includes('bounty') || lower.includes('finding') || lower.includes('vulnerability') || 
-         lower.includes('security') || lower.includes('hack') || lower.includes('pentest') ||
-         lower.includes('scope') || lower.includes('report');
-}
-
-// Handle bounty submissions via chat
-async function handleBountyQuery(text) {
-  // Extract attempt from message
-  const attempt = {
-    simulated: text.toLowerCase().includes('simulated') || text.toLowerCase().includes('practice'),
-    scope: {
-      program: text.match(/program[:\s]+([^\n]+)/i)?.[1],
-      authorized: text.toLowerCase().includes('authorized') || text.toLowerCase().includes('approved'),
+// ═══════════════════════════════════════════
+// VOICE
+// ═══════════════════════════════════════════
+const voiceBtn = document.getElementById('voice-btn');
+voiceBtn.addEventListener('mousedown', () => {
+  if (!isVoiceSupported()) { toast('Voice not supported. Use Chrome.'); return; }
+  recognition = startVoice(
+    (text, isInterim, isFinal) => {
+      document.getElementById('chat-input').value = text;
+      if (isFinal) { stopVoice(); voiceBtn.classList.remove('recording'); handleSend(); }
     },
-    evidence: {
-      observation: text.match(/observation[:\s]+([^\n]+)/i)?.[1],
-      impact: text.match(/impact[:\s]+([^\n]+)/i)?.[1],
-      reproduction: text.match(/reproduction[:\s]+([^\n]+)/i)?.[1],
-      remediation: text.match(/remediation[:\s]+([^\n]+)/i)?.[1],
-    }
+    (err) => { toast('Voice error: ' + err); stopVoice(); voiceBtn.classList.remove('recording'); }
+  );
+  voiceBtn.classList.add('recording');
+});
+voiceBtn.addEventListener('mouseup', () => { stopVoice(); voiceBtn.classList.remove('recording'); });
+
+// ═══════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════
+function loadSettings() {
+  document.getElementById('cfg-deepseek').value = CONFIG.deepseekKey;
+  document.getElementById('cfg-kimi').value = CONFIG.kimiKey;
+  document.getElementById('cfg-github').value = CONFIG.githubToken;
+}
+
+document.getElementById('save-settings').addEventListener('click', () => {
+  CONFIG.deepseekKey = document.getElementById('cfg-deepseek').value.trim();
+  CONFIG.kimiKey = document.getElementById('cfg-kimi').value.trim();
+  CONFIG.githubToken = document.getElementById('cfg-github').value.trim();
+  document.getElementById('settings-msg').textContent = '✅ Settings saved!';
+  updateStatusBar();
+  setTimeout(() => document.getElementById('settings-msg').textContent = '', 3000);
+});
+
+// ═══════════════════════════════════════════
+// STATUS BAR
+// ═══════════════════════════════════════════
+async function updateStatusBar() {
+  const health = await checkAPIHealth();
+
+  const setStatus = (id, status) => {
+    const el = document.getElementById(id);
+    el.className = 'status-pill ' + (status === 'ok' ? 'ok' : status === 'key_needed' || status === 'token_needed' ? 'warn' : 'fail');
   };
-  
-  return reviewFinding(attempt);
+
+  setStatus('st-deepseek', health.deepseek);
+  setStatus('st-kimi', health.kimi);
+  setStatus('st-github', health.github);
+  setStatus('st-peak', CONFIG.isPeakHour() ? 'warn' : 'ok');
 }
 
-// ===== MELI'S COST ROUTER =====
-// Smart model selection based on cost
-function selectModel(preferred) {
-  const now = new Date();
-  const pst = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
-  const isPeakHour = pst.getHours() >= 9 && pst.getHours() < 21;
-  
-  if (preferred === 'deepseek' && isPeakHour && config.kimiKey) {
-    console.log('[Athelgard] Peak hours - using Kimi fallback');
-    return 'kimi';
-  }
-  if (preferred === 'kimi' && !isPeakHour && config.apiKey) {
-    console.log('[Athelgard] Off-peak - using DeepSeek (cheaper)');
-    return 'deepseek';
-  }
-  return preferred;
-}
+// ═══════════════════════════════════════════
+// GAMES (simplified — full games in modules/games.js)
+// ═══════════════════════════════════════════
+import { JEOPARDY_DATA, WHEEL_PRIZES } from './modules/games.js';
 
-// Check for stored keys
-if (config.apiKey || config.kimiKey) {
-  addMsg('assistant', '🦉 Welcome back Captain! Your AI keys are loaded. Ready to code!');
-} else {
-  addMsg('assistant', '🦉 Welcome! Click ⚙️ to add your DeepSeek or Kimi API key to get started.');
-}
+document.getElementById('btn-jeopardy').addEventListener('click', () => {
+  const area = document.getElementById('game-area');
+  let html = '<div style="color:var(--gold); font-size:18px; margin-bottom:12px;">🎯 Code Jeopardy — Score: <span id="j-score">0</span></div>';
+  html += '<div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px;">';
+  JEOPARDY_DATA.forEach((cat, ci) => {
+    html += `<div style="background:var(--bg3); border-radius:8px; padding:10px;"><div style="color:var(--cyan); font-weight:bold; margin-bottom:8px;">${cat.cat}</div>`;
+    cat.q.forEach((q, qi) => {
+      html += `<button class="game-card" style="padding:8px; margin-bottom:6px; font-size:12px;" data-ci="${ci}" data-qi="${qi}">$${q.pts}</button>`;
+    });
+    html += '</div>';
+  });
+  html += '</div>';
+  area.innerHTML = html;
+});
+
+document.getElementById('btn-wheel').addEventListener('click', () => {
+  const area = document.getElementById('game-area');
+  const prize = WHEEL_PRIZES[Math.floor(Math.random() * WHEEL_PRIZES.length)];
+  area.innerHTML = `<div style="text-align:center; padding:40px;"><div style="font-size:64px; margin-bottom:16px;">🎡</div><div style="font-size:24px; color:var(--gold);">${prize}</div></div>`;
+});
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+loadSettings();
+updateStatusBar();
+setInterval(updateStatusBar, 30000);
+
+// Welcome message
+addChatMessage('assistant', `🦉 Welcome Captain! I'm Athelgard v${CONFIG.version}.\n\nI can help you code, review bounty findings, and play training games.\n\n**Quick start:**\n• Type any coding question\n• Submit a simulated bounty finding\n• Try Code Jeopardy in Games\n\nAdd your API keys in Settings for AI chat.`);
+
+console.log('[Athelgard] v6.0 initialized — Brain by MELI, Body by MakoThoth-KClaw');
 </script>
 </body>
 </html>
