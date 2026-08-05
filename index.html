@@ -282,31 +282,29 @@ function handleBounty(text) {
 }
 
 async function getAI(text) {
-  const systemPrompt = `You are Athelgard, a friendly AI coding mentor and ethical bounty hunting trainer.
+  // Check if asking about repos without GitHub connected
+  const isRepoQuery = /\b(repo|repository|github|code|file|my project)\b/i.test(text);
+  if(isRepoQuery){
+    try{
+      const gh = await fetch('/api/github?action=status',{credentials:'same-origin'});
+      const ghd = await gh.json();
+      if(!ghd.connected){
+        return {text:'🔒 **GitHub Not Connected**\n\nI can access your repos, but you need to connect GitHub first.\n\nClick **🔒 Connect GitHub** in the top right header, then try again.',model:'Athelgard'};
+      }
+    }catch(e){}
+  }
 
-YOUR CAPABILITIES:
-- Help with coding questions, debugging, architecture
-- Review code and suggest improvements  
-- Teach security concepts and responsible disclosure
-- Play Code Jeopardy training games
+  const systemPrompt = `You are Athelgard. Rules you MUST follow:\n\n1. You CAN access user GitHub repos - they just need to click "Connect GitHub" first\n2. If asked about repos/code/files and GitHub not connected: tell them to click Connect GitHub\n3. You ONLY review SIMULATED bounty hunts, not real ones\n4. Be concise and helpful`;
 
-GITHUB ACCESS:
-- You CAN access the user's GitHub repos when they click "🔒 Connect GitHub" in the header
-- If they ask about repos/code/files and GitHub is NOT connected, tell them:
-  "I can access your repos through GitHub OAuth. Click 🔒 Connect GitHub in the top right to authorize."
-- If connected, you can read files and review code
-
-ETHICAL BOUNTY HUNTING:
-- You ONLY review SIMULATED bounty hunts for training
-- Real/unsanctioned targets are blocked for safety
-- A complete finding needs: observation, impact, reproduction, remediation
-
-Be concise, helpful, and use a friendly tone.`;
+  const fullMessages = [
+    {role:'system',content:systemPrompt},
+    {role:'user',content:text}
+  ];
 
   // Try DeepSeek first
   if(CFG.ds) {
     try {
-      const res = await fetch('https://api.deepseek.com/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${CFG.ds}`},body:JSON.stringify({model:'deepseek-chat',messages:[{role:'system',content:systemPrompt},{role:'user',content:text}],max_tokens:2000,temperature:0.7})});
+      const res = await fetch('https://api.deepseek.com/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${CFG.ds}`},body:JSON.stringify({model:'deepseek-chat',messages:fullMessages,max_tokens:2000,temperature:0.7})});
       if(!res.ok)throw new Error('DeepSeek '+res.status);
       const data = await res.json();
       return {text:data.choices[0].message.content,model:'DeepSeek'};
@@ -315,7 +313,7 @@ Be concise, helpful, and use a friendly tone.`;
   // Fallback to Kimi
   if(CFG.kimi) {
     try {
-      const res = await fetch('https://api.moonshot.cn/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${CFG.kimi}`},body:JSON.stringify({model:'kimi-k2p6',messages:[{role:'system',content:systemPrompt},{role:'user',content:text}],max_tokens:2000,temperature:0.7})});
+      const res = await fetch('https://api.moonshot.cn/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${CFG.kimi}`},body:JSON.stringify({model:'kimi-k2p6',messages:fullMessages,max_tokens:2000,temperature:0.7})});
       if(!res.ok)throw new Error('Kimi '+res.status);
       const data = await res.json();
       return {text:data.choices[0].message.content,model:'Kimi'};
@@ -390,9 +388,36 @@ function jCheck(ci,qi) {
 }
 
 // ===== INIT =====
-checkAPIs();
+async function init() {
+  // Check OAuth callback params
+  const params = new URLSearchParams(location.search);
+  if(params.get('github')==='connected'){
+    showToast('✅ GitHub connected!');
+    history.replaceState({},'',location.pathname);
+  }else if(params.get('github_error')){
+    showToast('❌ GitHub: '+params.get('github_error'));
+    history.replaceState({},'',location.pathname);
+  }
+  
+  await checkAPIs();
+  
+  // Welcome based on state
+  const hasKeys = CFG.ds || CFG.kimi;
+  const ghConnected = document.getElementById('st-github').classList.contains('ok');
+  
+  if(!hasKeys && !ghConnected){
+    addMsg('ai','🦉 **Welcome Captain!**\n\nI need a few things to help you:\n\n1️⃣ **Add API keys** → Click ⚙️ Keys (DeepSeek or Kimi)\n2️⃣ **Connect GitHub** → Click 🔒 Connect GitHub (top right)\n\nThen I can review your code, explain your repos, and help debug!');
+  }else if(!hasKeys){
+    addMsg('ai','🦉 **GitHub connected!** ✅\n\nAdd an API key in ⚙️ Keys for AI chat.\n\nThen try: "show my repos" or "explain my code"');
+  }else if(!ghConnected){
+    addMsg('ai','🦉 **API ready!** ✅\n\nConnect GitHub to access your repos:\n🔒 Click Connect GitHub (top right)\n\nThen try: "show my repos"');
+  }else{
+    addMsg('ai','🦉 **All systems ready!** ✅\n\nTry:\n• "show my repos"\n• "explain my code"\n• "review file main.js in owner/repo"\n• Ask me anything!');
+  }
+}
+
+init();
 setInterval(checkAPIs, 30000);
-addMsg('ai','🦉 Welcome Captain! I\'m Athelgard.\n\nI can help you code, review bounty findings, or play Jeopardy.\n\nAdd your API keys in ⚙️ Keys for AI chat.');
 </script>
 </body>
 </html>
