@@ -42,9 +42,9 @@ function saveGitHubToken(token) {
 }
 
 // ===== GITHUB API =====
-function githubRequest(path, method = 'GET', body) {
-  const token = loadGitHubToken();
-  if (!token) throw new Error('GitHub not authenticated. Run: athelgard github login');
+function githubRequest(path, method = 'GET', body, token = null) {
+  const authToken = token || loadGitHubToken();
+  if (!authToken) throw new Error('GitHub not authenticated. Run: athelgard github login');
   
   return new Promise((resolve, reject) => {
     const payload = body ? JSON.stringify(body) : null;
@@ -53,7 +53,7 @@ function githubRequest(path, method = 'GET', body) {
       path,
       method,
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Authorization': `Bearer ${authToken}`,
         'Accept': 'application/vnd.github+json',
         'User-Agent': 'Athelgard-CLI',
         ...(payload ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } : {})
@@ -131,29 +131,118 @@ const commands = {
     const sub = args[0];
     
     if (sub === 'login') {
-      console.log('🔐 GitHub Authentication');
-      console.log('');
-      console.log('Option 1: Personal Access Token (recommended)');
-      console.log('  1. Go to: https://github.com/settings/tokens');
-      console.log('  2. Click "Generate new token (classic)"');
-      console.log('  3. Select scopes: repo, read:user');
-      console.log('  4. Copy the token');
-      console.log('');
+      console.log('🔐 GitHub Device Flow Authentication\n');
       
-      const token = await prompt('Paste your GitHub token: ');
-      if (!token) {
-        console.log('❌ Cancelled');
+      // Use the existing Athelgard OAuth App
+      const CLIENT_ID = 'Ov23liVfeEpVstSC4KZ4';
+      
+      // Step 1: Request device code
+      const deviceCodeRes = await new Promise((resolve, reject) => {
+        const payload = JSON.stringify({
+          client_id: CLIENT_ID,
+          scope: 'repo read:user'
+        });
+        
+        const req = https.request({
+          hostname: 'github.com',
+          path: '/login/device/code',
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'User-Agent': 'Athelgard-CLI'
+          }
+        }, res => {
+          let data = '';
+          res.on('data', chunk => data += chunk);
+          res.on('end', () => {
+            try {
+              resolve(JSON.parse(data));
+            } catch { reject(new Error('Invalid response from GitHub')); }
+          });
+        });
+        req.on('error', reject);
+        req.write(payload);
+        req.end();
+      });
+      
+      if (deviceCodeRes.error) {
+        console.log('❌ GitHub Error:', deviceCodeRes.error_description);
+        console.log('Device flow may need to be enabled for this OAuth app.');
         return;
       }
       
-      // Verify token
-      try {
-        const user = await githubRequest('/user');
-        saveGitHubToken(token);
-        console.log(`✅ Authenticated as ${user.login}`);
-      } catch (e) {
-        console.log(`❌ Invalid token: ${e.message}`);
-      }
+      console.log('============================================');
+      console.log('  Go to:', deviceCodeRes.verification_uri);
+      console.log('  Enter code:', deviceCodeRes.user_code);
+      console.log('============================================\n');
+      console.log('Waiting for you to authorize...\n');
+      
+      // Step 2: Poll for access token
+      const interval = (deviceCodeRes.interval || 5) * 1000;
+      const expiresAt = Date.now() + (deviceCodeRes.expires_in || 900) * 1000;
+      
+      const token = await new Promise((resolve, reject) => {
+        const poll = async () => {
+          if (Date.now() > expiresAt) {
+            reject(new Error('Authentication timed out'));
+            return;
+          }
+          
+          try {
+            const res = await new Promise((resolve, reject) => {
+              const payload = JSON.stringify({
+                client_id: CLIENT_ID,
+                device_code: deviceCodeRes.device_code,
+                grant_type: 'urn:ietf:params:oauth:grant-type:device_code'
+              });
+              
+              const req = https.request({
+                hostname: 'github.com',
+                path: '/login/oauth/access_token',
+                method: 'POST',
+                headers: {
+                  'Accept': 'application/json',
+                  'Content-Type': 'application/json',
+                  'User-Agent': 'Athelgard-CLI'
+                }
+              }, r => {
+                let data = '';
+                r.on('data', chunk => data += chunk);
+                r.on('end', () => {
+                  try { resolve(JSON.parse(data)); } 
+                  catch { resolve({}); }
+                });
+              });
+              req.on('error', reject);
+              req.write(payload);
+              req.end();
+            });
+            
+            if (res.access_token) {
+              resolve(res.access_token);
+            } else if (res.error === 'authorization_pending') {
+              process.stdout.write('.');
+              setTimeout(poll, interval);
+            } else if (res.error === 'slow_down') {
+              setTimeout(poll, (res.interval || 5) * 1000);
+            } else {
+              reject(new Error(res.error_description || res.error || 'Unknown error'));
+            }
+          } catch (e) {
+            reject(e);
+          }
+        };
+        
+        poll();
+      });
+      
+      console.log('\n✅ Authorized!');
+      
+      // Verify and save
+      const user = await githubRequest('/user', token);
+      saveGitHubToken(token);
+      console.log(`✅ Authenticated as ${user.login}`);
       return;
     }
     
