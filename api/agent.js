@@ -76,7 +76,23 @@ function requestGitHub(path, token, method = 'GET', body) {
 }
 
 function json(res, status, body) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.status(status).json(body);
+}
+
+function parseBody(req) {
+  return new Promise((resolve, reject) => {
+    if (req.body && typeof req.body === 'object') return resolve(req.body);
+    let data = '';
+    req.on('data', chunk => data += chunk);
+    req.on('end', () => {
+      try { resolve(data ? JSON.parse(data) : {}); }
+      catch { resolve({}); }
+    });
+    req.on('error', reject);
+  });
 }
 
 // ===== AI TOOL SCHEMA =====
@@ -140,7 +156,7 @@ async function callAI(messages, model, apiKey, toolsEnabled = true) {
 
   const url = model.includes('kimi') || model.includes('moonshot')
     ? 'https://api.moonshot.cn/v1/chat/completions'
-    : 'https://api.deepseek.com/chat/completions';
+    : 'https://api.deepseek.com/v1/chat/completions';
 
   return new Promise((resolve, reject) => {
     const payload = JSON.stringify(body);
@@ -180,9 +196,17 @@ function saveSession(sessionId, session) {
 
 // ===== MAIN HANDLER =====
 module.exports = async (req, res) => {
+  // CORS preflight
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    return res.status(204).end();
+  }
   if (req.method !== 'POST') return json(res, 405, { error: 'POST only' });
 
-  const { message } = req.body || {};
+  const body = await parseBody(req);
+  const { message } = body || {};
   if (!message) return json(res, 400, { error: 'Message required' });
 
   // Get GitHub session

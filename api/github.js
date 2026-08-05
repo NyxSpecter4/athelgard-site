@@ -32,6 +32,9 @@ function redirect(res, location, cookies = []) {
 }
 
 function json(res, status, body, cookies = []) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (cookies.length) res.setHeader('Set-Cookie', cookies);
   res.status(status).json(body);
 }
@@ -136,6 +139,14 @@ function requireSession(req, res) {
 }
 
 module.exports = async (req, res) => {
+  // CORS preflight
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    return res.status(204).end();
+  }
+
   const action = req.query.action || 'status';
   const origin = appOrigin(req);
   const callbackUrl = `${origin}/api/github?action=callback`;
