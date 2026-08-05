@@ -1,4 +1,19 @@
 {
-  "name": "athelgard-live",
-  "version": "1.2.0"
+  "name": "athelgard-cli",
+  "version": "1.0.0",
+  "description": "Athelgard — Professional GitHub + AI Coding Agent CLI",
+  "main": "cli/athelgard.js",
+  "bin": {
+    "athelgard": "./cli/athelgard.js"
+  },
+  "scripts": {
+    "start": "node cli/athelgard.js",
+    "test": "echo \"No tests yet\" && exit 0"
+  },
+  "keywords": ["github", "ai", "cli", "coding", "assistant"],
+  "author": "MakoThoth-KClaw",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
 }
