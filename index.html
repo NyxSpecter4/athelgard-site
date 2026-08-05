@@ -180,10 +180,11 @@ async function send() {
     const connectedMatch = text.match(/^\s*(?:are you connected|github status|check github|am i connected)\s*$/i);
     const connectMatch = text.match(/\b(?:connect to github|link github|github login|authorize github)\b/i);
     const repoQuestion = text.match(/\b(?:my repo|my github|my repositories)\b/i) && text.match(/\b(?:what|which|show|list|have)\b/i);
+    const accessQuestion = text.match(/\b(?:repo|repository|github)\b/i) && text.match(/\b(?:access|see|read|look|connected|your|you have)\b/i);
     
     if(connectMatch) {
       addMsg('ai','🔒 Click **Connect GitHub** in the top-right header to authorize.');
-    } else if(connectedMatch) {
+    } else if(connectedMatch || accessQuestion) {
       await handleGitHubStatus();
     } else if(repoMatch || repoQuestion) {
       await handleListRepos();
