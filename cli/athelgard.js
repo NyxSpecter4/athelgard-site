@@ -1,25 +1,32 @@
 #!/usr/bin/env node
 /**
- * Athelgard CLI — Professional GitHub + AI Coding Agent
- * One tool. One connector. Zero web UI.
+ * Athelgard CLI v11.0 — Vercel Eve Agent
+ * Multi-provider AI agent with tool-calling (DeepSeek, Kimi, Mistral)
  */
 
-const { execSync } = require('child_process');
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const readline = require('readline');
 
-const CONFIG_DIR = path.join(require('os').homedir(), '.athelgard');
+const CONFIG_DIR = path.join(os.homedir(), '.athelgard');
 const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
 const GITHUB_TOKEN_FILE = path.join(CONFIG_DIR, 'github.token');
+const SESSION_FILE = path.join(CONFIG_DIR, 'session.json');
 
 // ===== CONFIG =====
 function loadConfig() {
   try {
     return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
   } catch {
-    return { deepseekKey: '', kimiKey: '', defaultModel: 'deepseek' };
+    return { 
+      deepseekKey: '', 
+      kimiKey: '', 
+      mistralKey: '',
+      defaultModel: 'deepseek',
+      provider: 'deepseek'
+    };
   }
 }
 
@@ -29,16 +36,52 @@ function saveConfig(cfg) {
 }
 
 function loadGitHubToken() {
-  try {
-    return fs.readFileSync(GITHUB_TOKEN_FILE, 'utf8').trim();
-  } catch {
-    return null;
-  }
+  try { return fs.readFileSync(GITHUB_TOKEN_FILE, 'utf8').trim(); }
+  catch { return null; }
 }
 
 function saveGitHubToken(token) {
   if (!fs.existsSync(CONFIG_DIR)) fs.mkdirSync(CONFIG_DIR, { mode: 0o700 });
   fs.writeFileSync(GITHUB_TOKEN_FILE, token, { mode: 0o600 });
+}
+
+// ===== SESSION MEMORY =====
+function loadSession() {
+  try {
+    return JSON.parse(fs.readFileSync(SESSION_FILE, 'utf8'));
+  } catch {
+    return { messages: [], repos: [], lastRepo: null };
+  }
+}
+
+function saveSession(session) {
+  fs.writeFileSync(SESSION_FILE, JSON.stringify(session, null, 2), { mode: 0o600 });
+}
+
+// ===== PROVIDER CONFIG =====
+const PROVIDERS = {
+  deepseek: {
+    hostname: 'api.deepseek.com',
+    path: '/v1/chat/completions',
+    model: 'deepseek-chat',
+    keyEnv: 'deepseekKey'
+  },
+  kimi: {
+    hostname: 'api.moonshot.cn',
+    path: '/v1/chat/completions',
+    model: 'kimi-k2p6',
+    keyEnv: 'kimiKey'
+  },
+  mistral: {
+    hostname: 'api.mistral.ai',
+    path: '/v1/chat/completions',
+    model: 'mistral-large-latest',
+    keyEnv: 'mistralKey'
+  }
+};
+
+function getProvider(name) {
+  return PROVIDERS[name] || PROVIDERS.deepseek;
 }
 
 // ===== GITHUB API =====
@@ -55,7 +98,7 @@ function githubRequest(path, method = 'GET', body, token = null) {
       headers: {
         'Authorization': `Bearer ${authToken}`,
         'Accept': 'application/vnd.github+json',
-        'User-Agent': 'Athelgard-CLI',
+        'User-Agent': 'Athelgard-Agent',
         ...(payload ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } : {})
       }
     }, res => {
@@ -79,34 +122,202 @@ function githubRequest(path, method = 'GET', body, token = null) {
   });
 }
 
-// ===== AI API =====
-async function askAI(messages, model) {
+// ===== TOOL DEFINITIONS (Zod-like schemas) =====
+const TOOLS = {
+  list_repos: {
+    description: 'List the user\'s GitHub repositories',
+    parameters: { type: 'object', properties: {}, required: [] },
+    execute: async () => {
+      const repos = await githubRequest('/user/repos?sort=updated&per_page=30');
+      return repos.map(r => ({ name: r.full_name, private: r.private, updated: r.updated_at }));
+    }
+  },
+  read_file: {
+    description: 'Read a file from a GitHub repository',
+    parameters: {
+      type: 'object',
+      properties: {
+        repo: { type: 'string', description: 'Full repo name like owner/repo' },
+        path: { type: 'string', description: 'File path like README.md or src/index.js' }
+      },
+      required: ['repo', 'path']
+    },
+    execute: async (args) => {
+      const [owner, repo] = args.repo.split('/');
+      const data = await githubRequest(`/repos/${owner}/${repo}/contents/${args.path}`);
+      if (data.content) {
+        return { 
+          content: Buffer.from(data.content.replace(/\n/g, ''), 'base64').toString('utf8'), 
+          size: data.size 
+        };
+      }
+      return { error: 'Not a file or not found' };
+    }
+  },
+  get_repo_tree: {
+    description: 'Get top-level structure of a repository',
+    parameters: {
+      type: 'object',
+      properties: { repo: { type: 'string', description: 'Full repo name like owner/repo' } },
+      required: ['repo']
+    },
+    execute: async (args) => {
+      const [owner, repo] = args.repo.split('/');
+      const data = await githubRequest(`/repos/${owner}/${repo}/contents/`);
+      return data.map(item => ({ name: item.name, type: item.type, path: item.path }));
+    }
+  },
+  search_code: {
+    description: 'Search for code in user\'s repositories',
+    parameters: {
+      type: 'object',
+      properties: { query: { type: 'string', description: 'Search query like "function auth" or "TODO"' } },
+      required: ['query']
+    },
+    execute: async (args) => {
+      const results = await githubRequest(`/search/code?q=${encodeURIComponent(args.query)}+user:${(await githubRequest('/user')).login}&per_page=10`);
+      return results.items.map(item => ({
+        repo: item.repository.full_name,
+        file: item.path,
+        url: item.html_url
+      }));
+    }
+  }
+};
+
+// ===== AI AGENT LOOP =====
+async function agentLoop(userMessage, provider, session) {
   const cfg = loadConfig();
-  const isKimi = model === 'kimi' || model.includes('kimi');
-  const key = isKimi ? cfg.kimiKey : cfg.deepseekKey;
+  const prov = getProvider(provider);
+  const apiKey = cfg[prov.keyEnv];
   
-  if (!key) {
-    throw new Error(`No ${isKimi ? 'Kimi' : 'DeepSeek'} API key. Run: athelgard config`);
+  if (!apiKey) {
+    throw new Error(`No ${provider} API key. Run: athelgard config`);
   }
   
-  const url = isKimi ? 'api.moonshot.cn' : 'api.deepseek.com';
-  const modelName = isKimi ? 'kimi-k2p6' : 'deepseek-chat';
+  // Build messages with session history
+  const systemPrompt = `You are Athelgard, a professional coding mentor and GitHub repository analyst.
+
+You have access to tools that let you interact with the user's GitHub repositories.
+When the user asks about their code, repos, or files, USE the appropriate tool.
+
+Available tools:
+- list_repos: List all GitHub repositories
+- read_file: Read any file from any repo (format: owner/repo/path)
+- get_repo_tree: Show repo structure
+- search_code: Search across all repos
+
+RULES:
+1. Use tools proactively when asked about code/repos
+2. Be concise but thorough
+3. If GitHub is not connected, tell user to run "athelgard github login"
+4. After reading a file, analyze it and provide insights`;
+
+  const messages = [
+    { role: 'system', content: systemPrompt },
+    ...session.messages.slice(-20), // Keep last 20 messages
+    { role: 'user', content: userMessage }
+  ];
+  
+  // Tool definitions for AI
+  const toolsSchema = Object.entries(TOOLS).map(([name, tool]) => ({
+    type: 'function',
+    function: {
+      name,
+      description: tool.description,
+      parameters: tool.parameters
+    }
+  }));
+  
+  // Step 1: Call AI with tools
+  let stepCount = 0;
+  const maxSteps = 5;
+  
+  while (stepCount < maxSteps) {
+    stepCount++;
+    
+    const response = await callAI(provider, apiKey, messages, toolsSchema);
+    const choice = response.choices[0];
+    
+    // Check if AI wants to use a tool
+    if (choice.message.tool_calls) {
+      const toolCall = choice.message.tool_calls[0];
+      const toolName = toolCall.function.name;
+      const toolArgs = JSON.parse(toolCall.function.arguments);
+      
+      console.log(`  🔧 Using tool: ${toolName}(${JSON.stringify(toolArgs)})`);
+      
+      // Execute tool
+      let result;
+      try {
+        if (TOOLS[toolName]) {
+          result = await TOOLS[toolName].execute(toolArgs);
+        } else {
+          result = { error: `Unknown tool: ${toolName}` };
+        }
+      } catch (e) {
+        result = { error: e.message };
+      }
+      
+      // Add tool call and result to messages
+      messages.push({
+        role: 'assistant',
+        content: choice.message.content || '',
+        tool_calls: choice.message.tool_calls
+      });
+      
+      messages.push({
+        role: 'tool',
+        tool_call_id: toolCall.id,
+        content: JSON.stringify(result)
+      });
+      
+      // Continue loop - AI will process tool result
+      continue;
+    }
+    
+    // No tool call - return final response
+    const finalResponse = choice.message.content;
+    
+    // Update session
+    session.messages.push(
+      { role: 'user', content: userMessage },
+      { role: 'assistant', content: finalResponse }
+    );
+    saveSession(session);
+    
+    return {
+      text: finalResponse,
+      model: provider,
+      steps: stepCount,
+      provider: prov.model
+    };
+  }
+  
+  throw new Error('Agent reached maximum steps without completing');
+}
+
+// ===== AI API CALL =====
+function callAI(provider, apiKey, messages, tools) {
+  const prov = getProvider(provider);
+  
+  const body = {
+    model: prov.model,
+    messages,
+    ...(tools.length ? { tools } : {}),
+    max_tokens: 2000,
+    temperature: 0.7
+  };
   
   return new Promise((resolve, reject) => {
-    const payload = JSON.stringify({
-      model: modelName,
-      messages,
-      max_tokens: 2000,
-      temperature: 0.7
-    });
-    
+    const payload = JSON.stringify(body);
     const req = https.request({
-      hostname: url,
-      path: '/v1/chat/completions',
+      hostname: prov.hostname,
+      path: prov.path,
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${key}`
+        'Authorization': `Bearer ${apiKey}`
       }
     }, res => {
       let data = '';
@@ -115,7 +326,7 @@ async function askAI(messages, model) {
         try {
           const parsed = JSON.parse(data);
           if (parsed.error) throw new Error(parsed.error.message);
-          resolve(parsed.choices[0].message.content);
+          resolve(parsed);
         } catch (e) { reject(e); }
       });
     });
@@ -132,34 +343,17 @@ const commands = {
     
     if (sub === 'login') {
       console.log('🔐 GitHub Device Flow Authentication\n');
-      
-      // Use the existing Athelgard OAuth App
       const CLIENT_ID = 'Ov23liVfeEpVstSC4KZ4';
       
-      // Step 1: Request device code
       const deviceCodeRes = await new Promise((resolve, reject) => {
-        const payload = JSON.stringify({
-          client_id: CLIENT_ID,
-          scope: 'repo read:user'
-        });
-        
+        const payload = JSON.stringify({ client_id: CLIENT_ID, scope: 'repo read:user' });
         const req = https.request({
-          hostname: 'github.com',
-          path: '/login/device/code',
-          method: 'POST',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'User-Agent': 'Athelgard-CLI'
-          }
+          hostname: 'github.com', path: '/login/device/code', method: 'POST',
+          headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'User-Agent': 'Athelgard-Agent' }
         }, res => {
           let data = '';
           res.on('data', chunk => data += chunk);
-          res.on('end', () => {
-            try {
-              resolve(JSON.parse(data));
-            } catch { reject(new Error('Invalid response from GitHub')); }
-          });
+          res.on('end', () => { try { resolve(JSON.parse(data)); } catch { reject(new Error('Invalid response')); } });
         });
         req.on('error', reject);
         req.write(payload);
@@ -168,7 +362,6 @@ const commands = {
       
       if (deviceCodeRes.error) {
         console.log('❌ GitHub Error:', deviceCodeRes.error_description);
-        console.log('Device flow may need to be enabled for this OAuth app.');
         return;
       }
       
@@ -176,18 +369,14 @@ const commands = {
       console.log('  Go to:', deviceCodeRes.verification_uri);
       console.log('  Enter code:', deviceCodeRes.user_code);
       console.log('============================================\n');
-      console.log('Waiting for you to authorize...\n');
+      console.log('Waiting for authorization...\n');
       
-      // Step 2: Poll for access token
       const interval = (deviceCodeRes.interval || 5) * 1000;
       const expiresAt = Date.now() + (deviceCodeRes.expires_in || 900) * 1000;
       
       const token = await new Promise((resolve, reject) => {
         const poll = async () => {
-          if (Date.now() > expiresAt) {
-            reject(new Error('Authentication timed out'));
-            return;
-          }
+          if (Date.now() > expiresAt) { reject(new Error('Authentication timed out')); return; }
           
           try {
             const res = await new Promise((resolve, reject) => {
@@ -196,51 +385,30 @@ const commands = {
                 device_code: deviceCodeRes.device_code,
                 grant_type: 'urn:ietf:params:oauth:grant-type:device_code'
               });
-              
               const req = https.request({
-                hostname: 'github.com',
-                path: '/login/oauth/access_token',
-                method: 'POST',
-                headers: {
-                  'Accept': 'application/json',
-                  'Content-Type': 'application/json',
-                  'User-Agent': 'Athelgard-CLI'
-                }
+                hostname: 'github.com', path: '/login/oauth/access_token', method: 'POST',
+                headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'User-Agent': 'Athelgard-Agent' }
               }, r => {
                 let data = '';
                 r.on('data', chunk => data += chunk);
-                r.on('end', () => {
-                  try { resolve(JSON.parse(data)); } 
-                  catch { resolve({}); }
-                });
+                r.on('end', () => { try { resolve(JSON.parse(data)); } catch { resolve({}); } });
               });
               req.on('error', reject);
               req.write(payload);
               req.end();
             });
             
-            if (res.access_token) {
-              resolve(res.access_token);
-            } else if (res.error === 'authorization_pending') {
-              process.stdout.write('.');
-              setTimeout(poll, interval);
-            } else if (res.error === 'slow_down') {
-              setTimeout(poll, (res.interval || 5) * 1000);
-            } else {
-              reject(new Error(res.error_description || res.error || 'Unknown error'));
-            }
-          } catch (e) {
-            reject(e);
-          }
+            if (res.access_token) resolve(res.access_token);
+            else if (res.error === 'authorization_pending') { process.stdout.write('.'); setTimeout(poll, interval); }
+            else if (res.error === 'slow_down') setTimeout(poll, (res.interval || 5) * 1000);
+            else reject(new Error(res.error_description || res.error || 'Unknown error'));
+          } catch (e) { reject(e); }
         };
-        
         poll();
       });
       
       console.log('\n✅ Authorized!');
-      
-      // Verify and save
-      const user = await githubRequest('/user', token);
+      const user = await githubRequest('/user', 'GET', null, token);
       saveGitHubToken(token);
       console.log(`✅ Authenticated as ${user.login}`);
       return;
@@ -248,21 +416,16 @@ const commands = {
     
     if (sub === 'status') {
       const token = loadGitHubToken();
-      if (!token) {
-        console.log('❌ Not authenticated');
-        return;
-      }
+      if (!token) { console.log('❌ Not authenticated'); return; }
       try {
         const user = await githubRequest('/user');
         console.log(`✅ Authenticated as ${user.login} (${user.name || 'no name'})`);
-      } catch (e) {
-        console.log(`❌ Token invalid: ${e.message}`);
-      }
+      } catch (e) { console.log(`❌ Token invalid: ${e.message}`); }
       return;
     }
     
     if (sub === 'logout') {
-      try { fs.unlinkSync(GITHUB_TOKEN_FILE); } catch {}
+      try { fs.unlinkSync(GITHUB_TOKEN_FILE); fs.unlinkSync(SESSION_FILE); } catch {}
       console.log('👋 Logged out');
       return;
     }
@@ -272,9 +435,8 @@ const commands = {
       console.log('\n📁 Your Repositories\n');
       repos.forEach(r => {
         const vis = r.private ? '🔒' : '🌐';
-        const updated = new Date(r.updated_at).toLocaleDateString();
         console.log(`  ${vis} ${r.full_name}`);
-        console.log(`     ${r.description || 'No description'} | Updated: ${updated}`);
+        console.log(`     ${r.description || 'No description'} | Updated: ${new Date(r.updated_at).toLocaleDateString()}`);
         console.log('');
       });
       return;
@@ -285,53 +447,36 @@ const commands = {
   
   async repo(args) {
     const [repo, action, ...rest] = args;
-    if (!repo) {
-      console.log('Usage: athelgard repo <owner/repo> [ls|cat <file>|tree]');
-      return;
-    }
+    if (!repo) { console.log('Usage: athelgard repo <owner/repo> [ls|cat <file>|tree]'); return; }
     
     const [owner, name] = repo.split('/');
-    if (!owner || !name) {
-      console.log('❌ Format: owner/repo');
-      return;
-    }
+    if (!owner || !name) { console.log('❌ Format: owner/repo'); return; }
     
     if (!action || action === 'ls' || action === 'list') {
       const contents = await githubRequest(`/repos/${owner}/${name}/contents/`);
       console.log(`\n📂 ${repo}/\n`);
-      contents.forEach(item => {
-        const icon = item.type === 'dir' ? '📁' : '📄';
-        console.log(`  ${icon} ${item.name}`);
-      });
+      contents.forEach(item => console.log(`  ${item.type === 'dir' ? '📁' : '📄'} ${item.name}`));
       console.log('');
       return;
     }
     
     if (action === 'cat' || action === 'read') {
       const filePath = rest[0] || '';
-      if (!filePath) {
-        console.log('Usage: athelgard repo owner/repo cat <file>');
-        return;
-      }
+      if (!filePath) { console.log('Usage: athelgard repo owner/repo cat <file>'); return; }
       const data = await githubRequest(`/repos/${owner}/${name}/contents/${filePath}`);
       if (data.content) {
         const content = Buffer.from(data.content.replace(/\n/g, ''), 'base64').toString('utf8');
         console.log(`\n📄 ${repo}/${filePath}\n`);
         console.log(content);
         console.log('');
-      } else {
-        console.log('❌ Not a file');
-      }
+      } else { console.log('❌ Not a file'); }
       return;
     }
     
     if (action === 'tree') {
       const tree = await githubRequest(`/repos/${owner}/${name}/git/trees/HEAD?recursive=1`);
       console.log(`\n🌳 ${repo}/\n`);
-      tree.tree.slice(0, 100).forEach(item => {
-        const icon = item.type === 'tree' ? '📁' : '📄';
-        console.log(`  ${icon} ${item.path}`);
-      });
+      tree.tree.slice(0, 100).forEach(item => console.log(`  ${item.type === 'tree' ? '📁' : '📄'} ${item.path}`));
       if (tree.tree.length > 100) console.log(`  ... and ${tree.tree.length - 100} more files`);
       console.log('');
       return;
@@ -342,60 +487,30 @@ const commands = {
   
   async chat(args) {
     const cfg = loadConfig();
-    const model = args[0] || cfg.defaultModel || 'deepseek';
+    const provider = args[0] || cfg.provider || 'deepseek';
     
-    console.log(`🦉 Athelgard CLI Chat (${model})`);
+    console.log(`🦉 Athelgard Agent (${provider})`);
+    console.log('Tools: list_repos, read_file, get_repo_tree, search_code');
     console.log('Type "exit" or press Ctrl+C to quit\n');
     
-    const history = [];
+    const session = loadSession();
     
     while (true) {
       const input = await prompt('You: ');
       if (!input || input.toLowerCase() === 'exit') break;
       
-      // Check for repo commands
-      const repoMatch = input.match(/^\s*(?:show|list)\s+repos?\s*$/i);
-      const fileMatch = input.match(/^\s*read\s+(.+)\s+from\s+(.+)\s*$/i);
-      
-      if (repoMatch) {
-        try {
-          const repos = await githubRequest('/user/repos?sort=updated&per_page=20');
-          console.log('\n📁 Your Repos:');
-          repos.forEach(r => console.log(`  ${r.full_name}`));
-          console.log('');
-          continue;
-        } catch (e) {
-          console.log(`❌ ${e.message}\n`);
-          continue;
-        }
-      }
-      
-      if (fileMatch) {
-        try {
-          const filePath = fileMatch[1].trim();
-          const repo = fileMatch[2].trim();
-          const [owner, name] = repo.split('/');
-          const data = await githubRequest(`/repos/${owner}/${name}/contents/${filePath}`);
-          if (data.content) {
-            const content = Buffer.from(data.content.replace(/\n/g, ''), 'base64').toString('utf8');
-            history.push({ role: 'user', content: `Review this code from ${repo}/${filePath}:\n\n${content}` });
-          }
-        } catch (e) {
-          console.log(`❌ ${e.message}\n`);
-          continue;
-        }
-      } else {
-        history.push({ role: 'user', content: input });
+      if (input.toLowerCase() === 'clear') {
+        session.messages = [];
+        saveSession(session);
+        console.log('🗑️  Session cleared\n');
+        continue;
       }
       
       try {
         process.stdout.write('Athelgard: ');
-        const reply = await askAI(history, model);
-        console.log(`${reply}\n`);
-        history.push({ role: 'assistant', content: reply });
-        
-        // Keep history manageable
-        if (history.length > 20) history.splice(0, 2);
+        const result = await agentLoop(input, provider, session);
+        console.log(`${result.text}\n`);
+        console.log(`  — _${result.model} (${result.steps} step${result.steps > 1 ? 's' : ''})_\n`);
       } catch (e) {
         console.log(`❌ ${e.message}\n`);
       }
@@ -409,8 +524,8 @@ const commands = {
     console.log('\n⚙️  Configuration\n');
     console.log(`DeepSeek Key: ${cfg.deepseekKey ? '✅ Set' : '❌ Not set'}`);
     console.log(`Kimi Key:     ${cfg.kimiKey ? '✅ Set' : '❌ Not set'}`);
-    console.log(`Default Model: ${cfg.defaultModel || 'deepseek'}`);
-    console.log('');
+    console.log(`Mistral Key:  ${cfg.mistralKey ? '✅ Set' : '❌ Not set'}`);
+    console.log(`Default:      ${cfg.provider || 'deepseek'}\n`);
     
     const ds = await prompt('DeepSeek API key (or Enter to keep): ');
     if (ds) cfg.deepseekKey = ds;
@@ -418,22 +533,61 @@ const commands = {
     const kimi = await prompt('Kimi API key (or Enter to keep): ');
     if (kimi) cfg.kimiKey = kimi;
     
-    const model = await prompt('Default model (deepseek/kimi) [deepseek]: ');
-    if (model) cfg.defaultModel = model;
+    const mistral = await prompt('Mistral API key (or Enter to keep): ');
+    if (mistral) cfg.mistralKey = mistral;
+    
+    const provider = await prompt('Default provider (deepseek/kimi/mistral) [deepseek]: ');
+    if (provider) cfg.provider = provider;
     
     saveConfig(cfg);
-    console.log('✅ Saved');
+    console.log('✅ Saved\n');
+    
+    // Test the chosen provider
+    if (cfg.provider && cfg[PROVIDERS[cfg.provider]?.keyEnv]) {
+      console.log(`Testing ${cfg.provider}...`);
+      try {
+        const response = await callAI(cfg.provider, cfg[PROVIDERS[cfg.provider].keyEnv], [
+          { role: 'system', content: 'Say "connected" only.' },
+          { role: 'user', content: 'Test' }
+        ], []);
+        console.log(`✅ ${cfg.provider} works!\n`);
+      } catch (e) {
+        console.log(`❌ ${cfg.provider} error: ${e.message}\n`);
+      }
+    }
+  },
+  
+  async agent(args) {
+    // One-shot agent command
+    const query = args.join(' ');
+    if (!query) {
+      console.log('Usage: athelgard agent "<query>"');
+      console.log('Example: athelgard agent "List my repos"');
+      return;
+    }
+    
+    const cfg = loadConfig();
+    const provider = cfg.provider || 'deepseek';
+    const session = loadSession();
+    
+    try {
+      const result = await agentLoop(query, provider, session);
+      console.log(result.text);
+      console.log(`\n— _${result.model} (${result.steps} step${result.steps > 1 ? 's' : ''})_`);
+    } catch (e) {
+      console.log(`❌ ${e.message}`);
+    }
   },
   
   help() {
     console.log(`
-🦉 Athelgard CLI — Professional GitHub + AI Coding Agent
+🦉 Athelgard CLI v11.0 — Vercel Eve Agent
 
 USAGE:
   athelgard <command> [args]
 
 COMMANDS:
-  github login              Authenticate with GitHub (PAT)
+  github login              Authenticate with GitHub (Device Flow)
   github status             Check GitHub auth status
   github logout             Remove GitHub token
   github repos              List your repositories
@@ -442,16 +596,23 @@ COMMANDS:
   repo <owner/repo> cat <file>   Read file contents
   repo <owner/repo> tree    Show full file tree
 
-  chat [model]              Start AI chat (deepseek/kimi)
+  chat [provider]           Start AI agent chat (deepseek/kimi/mistral)
+  agent "<query>"           One-shot agent query
 
-  config                    Set API keys
+  config                    Set API keys and default provider
+
+AGENT TOOLS:
+  • list_repos              List your GitHub repos
+  • read_file               Read any file from any repo
+  • get_repo_tree           Show repo structure
+  • search_code             Search across all repos
 
 EXAMPLES:
   athelgard github login
-  athelgard github repos
-  athelgard repo NyxSpecter4/bountywarz ls
-  athelgard repo NyxSpecter4/bountywarz cat README.md
   athelgard chat
+  athelgard chat mistral
+  athelgard agent "Explain my bountywarz repo"
+  athelgard repo NyxSpecter4/bountywarz cat README.md
 `);
   }
 };
@@ -460,10 +621,7 @@ EXAMPLES:
 function prompt(question) {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
   return new Promise(resolve => {
-    rl.question(question, answer => {
-      rl.close();
-      resolve(answer.trim());
-    });
+    rl.question(question, answer => { rl.close(); resolve(answer.trim()); });
   });
 }
 
