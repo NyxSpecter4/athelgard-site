@@ -1324,6 +1324,40 @@ editor.addEventListener('input', () => {
   }, 800);
 });
 
+// ===== GITHUB-AWARE CHAT =====
+async function getGitHubContext() {
+  if (!config.githubToken) return 'GitHub: Not connected. Add token in Settings.';
+  
+  try {
+    const res = await fetch('https://api.github.com/user/repos?per_page=5&sort=updated', {
+      headers: { 'Authorization': `token ${config.githubToken}`, 'Accept': 'application/vnd.github.v3+json' }
+    });
+    if (!res.ok) return 'GitHub: Token invalid or expired.';
+    
+    const repos = await res.json();
+    const repoList = repos.map(r => `- ${r.name} (${r.private ? 'private' : 'public'}, ${r.stargazers_count}⭐)`).join('\n');
+    return `GitHub: Connected as ${repos[0]?.owner?.login || 'user'}.\nRecent repos:\n${repoList}`;
+  } catch (e) {
+    return 'GitHub: Connection error.';
+  }
+}
+
+async function getVercelContext() {
+  if (!config.vercelToken) return 'Vercel: Not connected.';
+  return 'Vercel: Connected.';
+}
+
+async function getSupabaseContext() {
+  if (!config.supabaseUrl) return 'Supabase: Not connected.';
+  return `Supabase: Connected to ${config.supabaseUrl.replace('https://', '').split('.')[0]}.`;
+}
+
+function isGitHubQuery(text) {
+  const lower = text.toLowerCase();
+  return lower.includes('github') || lower.includes('repo') || lower.includes('repository') || 
+         lower.includes('connected') || lower.includes('connection') || lower.includes('my repo');
+}
+
 // ===== CHAT =====
 async function sendMessage() {
   const text = chatInput.value.trim();
@@ -1334,10 +1368,20 @@ async function sendMessage() {
   sendBtn.disabled = true;
 
   const currentCode = editor.value;
-  const context = currentFile && currentCode
+  const codeContext = currentFile && currentCode
     ? `\n\n[Current file: ${currentFile}]\n\`\`\`\n${currentCode.substring(0, 3000)}\n\`\`\``
     : '';
-  const sysPrompt = `You are Athelgard, a skilled coding assistant. Help the user write, debug, and understand code. The user is editing: ${currentFile || 'no file'}.${context}`;
+  
+  // If asking about GitHub/connections, fetch real data
+  let integrationContext = '';
+  if (isGitHubQuery(text)) {
+    const gh = await getGitHubContext();
+    const vc = await getVercelContext();
+    const sb = await getSupabaseContext();
+    integrationContext = `\n\n[INTEGRATION STATUS]\n${gh}\n${vc}\n${sb}`;
+  }
+
+  const sysPrompt = `You are Athelgard, a skilled coding assistant. Help the user write, debug, and understand code. The user is editing: ${currentFile || 'no file'}.${codeContext}${integrationContext}`;
 
   // AUTO-SWITCH: DeepSeek off-peak, Kimi during peak
   const useKimi = isPeak;
@@ -1348,7 +1392,6 @@ async function sendMessage() {
     let reply, usage, cost;
 
     if (useKimi && config.kimiKey) {
-      // Use Kimi API during peak hours
       modelName = 'Kimi';
       const res = await fetch('https://api.moonshot.cn/v1/chat/completions', {
         method: 'POST',
@@ -1367,9 +1410,8 @@ async function sendMessage() {
       const data = await res.json();
       reply = data.choices?.[0]?.message?.content || 'No response';
       usage = data.usage;
-      cost = (usage?.prompt_tokens + usage?.completion_tokens) * 0.000003 || 0; // Kimi rate
+      cost = (usage?.prompt_tokens + usage?.completion_tokens) * 0.000003 || 0;
     } else if (config.apiKey) {
-      // Use DeepSeek during off-peak
       modelName = 'DeepSeek';
       const res = await fetch('https://api.deepseek.com/chat/completions', {
         method: 'POST',
