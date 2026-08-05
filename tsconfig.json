@@ -1,14 +1,14 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "commonjs",
-    "strict": true,
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "esModuleInterop": true,
+    "strict": true,
     "skipLibCheck": true,
-    "outDir": "dist",
-    "rootDir": ".",
-    "resolveJsonModule": true
+    "outDir": ".vercel/output",
+    "rootDir": "."
   },
-  "include": ["api/**/*", "lib/**/*"],
-  "exclude": ["node_modules"]
+  "include": ["api/**/*", "modes/**/*", "safety/**/*", "integrations/**/*"],
+  "exclude": ["node_modules", ".vercel"]
 }

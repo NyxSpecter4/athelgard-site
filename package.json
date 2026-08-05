@@ -1,10 +1,19 @@
 {
-  "name": "athelgard-eve",
+  "name": "athelgard-site",
   "version": "1.0.0",
-  "description": "EVE - Ethical Vercel Agent - Athelgards complete intelligence",
-  "private": true,
+  "description": "Athelgard — AI Coding Agent",
+  "main": "api/index.ts",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "vercel build",
+    "start": "vercel dev"
+  },
+  "dependencies": {
+    "@vercel/node": "^3.0.0",
+    "uuid": "^9.0.0"
+  },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.2.2",
+    "vercel": "^32.4.0"
   }
 }
