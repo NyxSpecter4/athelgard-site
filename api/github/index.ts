@@ -46,8 +46,7 @@ function appOrigin(req: any): string {
 }
 
 function sign(value: string, secret: string): string {
-  return crypto.createHmac('sha256', secret).update(value)
-.digest('base64url');
+  return crypto.createHmac('sha256', secret).update(value).digest('base64url');
 }
 
 function safeEqual(left: string, right: string): boolean {
@@ -82,112 +81,6 @@ function readSession(req: any): { token: string; expiresAt: number } | null {
   }
 }
 
-function requestGitHub(path: string, token: string | null = null, method = 'GET', body?: any): Promise<any> {
-  return new Promise((resolve, reject) => {
-    const payload = body ? JSON.stringify(body) : null;
-    const request = https.request(
-      {
-        hostname: 'api.github.com',
-        path,
-        method,
-        headers: {
-          Accept: 'application/vnd.github+json',
-          'User-Agent': 'Athelgard',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          ...(payload ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } : {}),
-        },
-      },
-      response => {
-        let data = '';
-        response.on('data', chunk => { data += chunk; });
-        response
-.on('end', () => {
-          let parsed: any = {};
-          try { parsed = data ? JSON.parse(data) : {}; } catch { parsed = { message: 'Unexpected GitHub response' }; }
-          if (response.statusCode! < 200 || response.statusCode! > 299) {
-            const error = new Error(parsed.message || `GitHub ${response.statusCode}`);
-            (error as any).status = response.statusCode;
-            return reject(error);
-          }
-          resolve(parsed);
-        });
-      }
-    );
-    request.on('error', reject);
-    if (payload) request.write(payload);
-    request.end();
-  });
-}
-
-function exchangeCode(code: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const payload = JSON.stringify({
-      client_id: process.env.GITHUB_CLIENT_ID,
-      client_secret: process.env.GITHUB_CLIENT_SECRET,
-      code,
-    });
-    const request = https.request(
-      {
-        hostname: 'github.com',
-        path: '/login/oauth/access_token',
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(payload),
-          'User-Agent': 'Athelgard',
-        },
-      },
-      response => {
-        let data = '';
-        response.on('data', chunk => { data += chunk; });
-        response.on('end', () => {
-          try {
-            const parsed = JSON.parse(data);
-            if (!parsed.access_token) return reject(new Error(parsed.error_description || 'GitHub did not return an access token'));
-            resolve(parsed.access_token);
-          } catch {
-            reject(new Error('Could not read GitHub authorization response'));
-          }
-        });
-      }
-    );
-    request.on('error', reject);
-    request.write(payload);
-    request.end();
-  });
-}
-
-function getMissingConfig(): string[] {
-  return ['GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET'].filter(name => !process.env[name]);
-}
-
-async function buildStatus(req: any) {
-  const missing = getM
-issingConfig();
-  if (missing.length) {
-    return { oauthConfigured: false, connected: false, missing };
-  }
-  const session = readSession(req);
-  if (!session) {
-    return { oauthConfigured: true, connected: false, missing: [] };
-  }
-  const [user, repos] = await Promise.all([
-    requestGitHub('/user', session.token),
-    requestGitHub('/user/repos?sort=updated&per_page=5', session.token),
-  ]);
-  return {
-    oauthConfigured: true,
-    connected: true,
-    missing: [],
-    user: { login: user.login, avatar_url: user.avatar_url, name: user.name || user.login },
-    repos: repos.map((repo: any) => ({
-      id: repo.id, full_name: repo.full_name, private: repo.private,
-      default_branch: repo.default_branch, updated_at: repo.updated_at, html_url: repo.html_url,
-    })),
-  };
-}
-
 export default async function handler(req: any, res: any) {
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -198,27 +91,44 @@ export default async function handler(req: any, res: any) {
 
   const action = req.query.action || 'status';
   const origin = appOrigin(req);
-  const callbackUrl = `${origin}/auth/github/callback`;  // FIXED: No query params
+  const callbackUrl = `${origin}/auth/github/callback`;
 
   if (action === 'status') {
+    const session = readSession(req);
+    if (!session) {
+      return json(res, 200, { oauthConfigured: true, connected: false, missing: [] });
+    }
     try {
-      return json(res, 200, await buildStatus(req));
-    } catch (error: any) {
-      return json(res, error.status || 502, {
-        oauthConfigured: true, connected: false, error: error.message || 'GitHub request failed.',
+      const user = await new Promise((resolve, reject) => {
+        const request = https.request({
+          hostname: 'api.github.com',
+          path: '/user',
+          method: 'GET',
+          headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'Athelgard', Authorization: `Bearer ${session.token}` },
+        }, response => {
+          let data = '';
+          response.on('data', chunk => { data += chunk; });
+          response.on('end', () => {
+            try { resolve(JSON.parse(data)); } catch { resolve({}); }
+          });
+        });
+        request.on('error', reject);
+        request.end();
       });
+      return json(res, 200, { oauthConfigured: true, connected: true, user: { login: user.login, avatar_url: user.avatar_url, name: user.name || user.login } });
+    } catch {
+      return json(res, 200, { oauthConfigured: true, connected: false, error: 'GitHub request failed' });
     }
   }
 
   if (action === 'start') {
-    if (getMissingConfig().length) {
-      return json(res, 503, { error: 'GitHub OAuth is not configured on this deployment yet.' });
+    if (!process.env.GITHUB_CLIENT_ID || !process.env.GITHUB_CLIENT_SECRET) {
+      return json(res, 503, { error: 'GitHub OAuth is not configured' });
     }
     const state = crypto.randomBytes(32).toString('hex');
     const authorize = new URL('https://github.com/login/oauth/authorize');
-    authorize.searchParams.set('client_id', process.env.GITHUB_CLIENT_ID!);
-    authorize.searchParams.set('redi
-rect_uri', callbackUrl);
+    authorize.searchParams.set('client_id', process.env.GITHUB_CLIENT_ID);
+    authorize.searchParams.set('redirect_uri', callbackUrl);
     authorize.searchParams.set('scope', 'read:user repo');
     authorize.searchParams.set('state', state);
     return redirect(res, authorize.toString(), [cookie(STATE_COOKIE, state, { maxAge: 600 })]);
@@ -227,13 +137,43 @@ rect_uri', callbackUrl);
   if (req.url?.includes('/callback') || action === 'callback') {
     const cookies = parseCookies(req.headers.cookie);
     const clearState = cookie(STATE_COOKIE, '', { maxAge: 0 });
-    if (req.query.error) return redirect(res, `/?github_error=${encodeURIComponent(req.query.error)}`, [clearState]);
-    if (!safeEqual(req.query.state, cookies[STATE_COOKIE]) || !req.query.code) {
+    if (req.query.error) return redirect(res, `/?github_error=${encodeURIComponent(String(req.query.error))}`, [clearState]);
+    if (!safeEqual(String(req.query.state), cookies[STATE_COOKIE]) || !req.query.code) {
       return redirect(res, '/?github_error=invalid_state', [clearState]);
     }
     try {
-      const token = await exchangeCode(req.query.code);
-      await requestGitHub('/user', token);
+      const token = await new Promise<string>((resolve, reject) => {
+        const payload = JSON.stringify({ client_id: process.env.GITHUB_CLIENT_ID, client_secret: process.env.GITHUB_CLIENT_SECRET, code: req.query.code });
+        const request = https.request({
+          hostname: 'github.com',
+          path: '/login/oauth/access_token',
+          method: 'POST',
+          headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload), 'User-Agent': 'Athelgard' },
+        }, response => {
+          let data = '';
+          response.on('data', chunk => { data += chunk; });
+          response.on('end', () => {
+            try { const parsed = JSON.parse(data); resolve(parsed.access_token); } catch { reject(new Error('Invalid response')); }
+          });
+        });
+        request.on('error', reject);
+        request.write(payload);
+        request.end();
+      });
+      await new Promise((resolve, reject) => {
+        const request = https.request({
+          hostname: 'api.github.com',
+          path: '/user',
+          method: 'GET',
+          headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'Athelgard', Authorization: `Bearer ${token}` },
+        }, response => {
+          let data = '';
+          response.on('data', chunk => { data += chunk; });
+          response.on('end', () => { resolve(null); });
+        });
+        request.on('error', reject);
+        request.end();
+      });
       return redirect(res, '/?github=connected', [clearState, cookie(SESSION_COOKIE, createSession(token), { maxAge: SESSION_TTL_SECONDS })]);
     } catch (error: any) {
       return redirect(res, `/?github_error=${encodeURIComponent(error.message)}`, [clearState]);
@@ -244,38 +184,30 @@ rect_uri', callbackUrl);
     return json(res, 200, { connected: false }, [cookie(SESSION_COOKIE, '', { maxAge: 0 })]);
   }
 
-  const session = readSession(req, res);
-  if (!session) return;
+  const session = readSession(req);
+  if (!session) return json(res, 401, { error: 'Not authenticated' });
 
-  try {
-    if (action === 'repos') {
-      const repos = await requestGitHub('/user/repos?sort=updated&per_page=30', session.token);
-      return json(res, 200, {
-        repos: repos.map((repo: any) => ({
-          id: repo.id, full_name: repo.full_name, private: repo.private,
-          default_branch: repo.default_branch, updated_at: repo.updated_at, html_url: repo.html_url,
-        })),
+  if (action === 'repos') {
+    try {
+      const repos = await new Promise<any[]>((resolve, reject) => {
+        const request = https.request({
+          hostname: 'api.github.com',
+          path: '/user/repos?sort=updated&per_page=30',
+          method: 'GET',
+          headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'Athelgard', Authorization: `Bearer ${session.token}` },
+        }, response => {
+          let data = '';
+          response.on('data', chunk => { data += chunk; });
+          response.on('end', () => { try { resolve(JSON.parse(data)); } catch { resolve([]); } });
+        });
+        request.on('error', reject);
+        request.end();
       });
+      return json(res, 200, { repos: repos.map(r => ({ id: r.id, full_name: r.full_name, private: r.private, default_branch: r.default_branch, html_url: r.html_url })) });
+    } catch {
+      return json(res, 502, { error: 'GitHub request failed' });
     }
-    if (action === 'contents') {
-      const { owner, repo, path: filePath = '' } = req.query;
-      if (!owner || !repo || !/^[A-Za-z0-9_.-]+$/.test(owner) || !/^[A-Za-z0-9_.-]+$/.test(repo)) {
-        return json(res, 400, { error: 'A valid owner and repository are required.' });
-      }
-      const ref = req.q
-uery.ref ? `?ref=${encodeURIComponent(req.query.ref)}` : '';
-      return json(res, 200, await requestGitHub(
-        `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${filePath.split('/').map(encodeURIComponent).join('/')}${ref}`,
-        session.token
-      ));
-    }
-    if (action === 'search') {
-      const query = String(req.query.q || '').trim();
-      if (!query || query.length > 200) return json(res, 400, { error: 'A short repository search query is required.' });
-      return json(res, 200, await requestGitHub(`/search/repositories?q=${encodeURIComponent(query)}&per_page=5`, session.token));
-    }
-    return json(res, 404, { error: 'Unknown GitHub action.' });
-  } catch (error: any) {
-    return json(res, error.status || 502, { error: error.message || 'GitHub request failed.' });
   }
+
+  return json(res, 404, { error: 'Unknown action' });
 }
