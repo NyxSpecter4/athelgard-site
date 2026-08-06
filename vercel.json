@@ -32,5 +32,15 @@
       "src": "/(.*)",
       "dest": "frontend/index.html"
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/frontend/index.html"
+    },
+    {
+      "source": "/frontend/(.*)",
+      "destination": "/frontend/$1"
+    }
   ]
 }
