@@ -47,7 +47,8 @@ function safeEq(a: string, b: string): boolean {
 function getSessionSecret(): string {
   return process.env.GITHUB_SESSION_SECRET || 
     (process.env.GITHUB_CLIENT_SECRET 
-      ? crypto.createHash('sha256').update(process.env.GITHUB_CLIENT_SECRET).digest('hex') 
+      ? crypto.createHash('sha256')
+.update(process.env.GITHUB_CLIENT_SECRET).digest('hex') 
       : 'athelgard-dev-secret-change-me');
 }
 
@@ -94,7 +95,8 @@ function requestGH(path: string, token: string, method = 'GET', body?: any): Pro
         let parsed: any = {};
         try { parsed = d ? JSON.parse(d) : {}; } catch { parsed = { message: 'Unexpected response' }; }
         if (res.statusCode! < 200 || res.statusCode! > 299) {
-          const err = new Error(parsed.message || `GitHub ${res.statusCode}`) as any;
+          const err = new Error(parsed.message || `
+GitHub ${res.statusCode}`) as any;
           err.status = res.statusCode;
           return reject(err);
         }
@@ -151,7 +153,8 @@ async function handleAgent(req: VercelRequest, res: VercelResponse) {
   if (!key) return res.status(503).json({ error: 'AI service not configured' });
 
   const { message, model = 'deepseek-chat' } = req.body || {};
-  if (!message) return res.status(400).json({ error: 'Message required' });
+  if (!message) return res.status(400).json({ error: 'Message
+ required' });
 
   try {
     const result: any = await new Promise((resolve, reject) => {
@@ -200,7 +203,8 @@ async function handleGitHub(req: VercelRequest, res: VercelResponse) {
 
   // OAuth Start
   if (action === 'login') {
-    if (!process.env.GITHUB_CLIENT_ID || !process.env.GITHUB_CLIENT_SECRET) {
+    if (!proce
+ss.env.GITHUB_CLIENT_ID || !process.env.GITHUB_CLIENT_SECRET) {
       return res.status(503).json({ error: 'GitHub OAuth not configured' });
     }
     const state = crypto.randomBytes(32).toString('hex');
@@ -243,7 +247,8 @@ async function handleGitHub(req: VercelRequest, res: VercelResponse) {
     const session = readSession(req);
     if (session) userSessions.delete(session.userId);
     res.setHeader('Set-Cookie', cookie(SESSION_COOKIE, '', { maxAge: 0 }));
-    return res.status(200).json({ connected: false });
+    return res.
+status(200).json({ connected: false });
   }
 
   // Status
@@ -297,7 +302,8 @@ async function handleGitHub(req: VercelRequest, res: VercelResponse) {
     try {
       if (action === 'repos') {
         const repos = await requestGH('/user/repos?sort=updated&per_page=30', session.token);
-        return res.status(200).json({ repos: repos.map((r: any) => ({ full_name: r.full_name, private: r.private, updated_at: r.updated_at })) });
+        return res
+.status(200).json({ repos: repos.map((r: any) => ({ full_name: r.full_name, private: r.private, updated_at: r.updated_at })) });
       }
       if (action === 'contents') {
         try {
@@ -336,7 +342,8 @@ async function handleBountyWarz(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'POST') {
     const { userId, mode = 'drone', difficulty = 'normal' } = req.body || {};
     const id = 'session_' + Date.now();
-    const session = { id, userId, createdAt: Date.now(), mode, difficulty };
+    const session = { id, userId, createdAt: Date.now(), mode, difficul
+ty };
     bwSessions.set(id, session);
     return res.status(200).json({ status: 'ok', session });
   }
@@ -372,3 +379,5 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     ]
   });
 }
+
+// Redeploy trigger: 1785994672794
