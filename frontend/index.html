@@ -1,78 +1,35 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Athelgard — AI Coding Agent v2.0</title>
-<link rel="manifest" href="/manifest.json">
-<script src="/modules/brain.js"></script>
-<script src="/modules/config.js"></script>
-<style>
-:root{--bg:#0a0a0f;--bg2:#12121a;--cyan:#12e0ff;--green:#3dff9a;--text:#e0e0e0;--border:#1a1a2e}
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:var(--text);font-family:system-ui;height:100vh;display:flex;flex-direction:column}
-.header{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:16px}
-.logo{font-size:24px;font-weight:800;color:var(--cyan)}
-.status{display:flex;gap:10px;margin-left:auto;font-size:11px}
-.status span{padding:4px 10px;border-radius:20px;background:var(--bg3);border:1px solid var(--border)}
-.status .ok{background:rgba(61,255,154,0.15);color:var(--green);border-color:var(--green)}
-.main{flex:1;display:flex;flex-direction:column;overflow:hidden;max-width:900px;width:100%;margin:0 auto}
-.messages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:12px}
-.msg{max-width:80%;padding:12px 16px;border-radius:16px;font-size:14px;line-height:1.5;word-wrap:break-word}
-.msg.user{align-self:flex-end;background:var(--cyan);color:#000}
-.msg.ai{align-self:flex-start;background:var(--bg3);border:1px solid var(--border)}
-.msg .name{font-size:11px;font-weight:700;margin-bottom:4px;opacity:0.7}
-.msg.ai .name{color:var(--cyan)}
-.input-area{display:flex;gap:10px;padding:16px 20px;border-top:1px solid var(--border)}
-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:12px 16px;color:var(--text);font-size:14px;outline:none}
-input:focus{border-color:var(--cyan)}
-button{background:var(--cyan);border:none;border-radius:12px;padding:12px 20px;color:#000;font-weight:700;cursor:pointer}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Athelgard — Coding Agent</title>
+  <style>
+    :root{color-scheme:dark;--bg:#090b10;--panel:#111620;--line:#253044;--text:#e8eef8;--muted:#9badc4;--cyan:#49d8ff;--red:#ff8a9b;--green:#5de8aa}*{box-sizing:border-box}body{margin:0;min-height:100vh;font:16px system-ui,sans-serif;background:var(--bg);color:var(--text);display:grid;place-items:center;padding:24px}.shell{width:min(760px,100%);background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:clamp(24px,6vw,52px);box-shadow:0 30px 90px #0008}h1{margin:0 0 10px;font-size:clamp(2rem,6vw,3.8rem)}p{line-height:1.6;color:var(--muted);max-width:62ch}.badge{display:inline-flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:999px;padding:7px 11px;font-size:.86rem;color:var(--muted)}.dot{width:9px;height:9px;border-radius:50%;background:var(--muted)}.connected .dot{background:var(--green)}.error .dot{background:var(--red)}button{margin-top:24px;border:0;border-radius:10px;background:var(--cyan);color:#041017;font-weight:750;font-size:1rem;padding:13px 18px;cursor:pointer}button:disabled{opacity:.6;cursor:wait}.detail{margin-top:18px;font-size:.9rem;min-height:1.5em}.hidden{display:none}</style>
 </head>
 <body>
-<header class="header">
-  <div class="logo">🦉 Athelgard</div>
-  <div class="status"><span class="ok">Brain: Active</span><span class="ok">GitHub: Ready</span></div>
-</header>
-<main class="main">
-  <div class="messages" id="messages"></div>
-</main>
-<div class="input-area">
-  <input type="text" id="userInput" placeholder="Ask Athelgard anything..." onkeydown="if(event.key==='Enter') sendMessage()">
-  <button onclick="sendMessage()">Send</button>
-</div>
-<script>
-const messages = document.getElementById('messages');
-const userInput = document.getElementById('userInput');
-function addMessage(sender, text, isUser=false) {
-  const msg = document.createElement('div');
-  msg.className = 'msg ' + (isUser ? 'user' : 'ai');
-  if (!isUser) {
-    const name = document.createElement('div');
-    name.className = 'name';
-    name.textContent = sender;
-    msg.appendChild(name);
-  }
-  msg.innerHTML += text;
-  messages.appendChild(msg);
-  messages.scrollTop = messages.scrollHeight;
-}
-function sendMessage() {
-  const text = userInput.value.trim();
-  if (!text) return;
-  userInput.value = '';
-  addMessage('You', text, true);
-  setTimeout(() => {
-    if (text.toLowerCase().includes('github')) {
-      addMessage('Athelgard', 'GitHub OAuth is ready. Connect your account to access repositories.');
-    } else if (text.toLowerCase().includes('bounty') || text.toLowerCase().includes('game')) {
-      addMessage('Athelgard', 'BountyWarz integration active. Game bridge operational.');
-    } else {
-      addMessage('Athelgard', '🦉 All systems operational. Team synthesis complete. Merge master active.');
+  <main class="shell">
+    <div id="status" class="badge"><span class="dot"></span><span id="statusText">Checking GitHub connection…</span></div>
+    <h1>🦉 Athelgard</h1>
+    <p>Your coding agent works from repositories you explicitly connect. GitHub access is held in a secure server-side session, not pasted into this page.</p>
+    <button id="connect" type="button" class="hidden">Connect GitHub</button>
+    <p id="detail" class="detail" role="status"></p>
+  </main>
+  <script>
+    const statusEl=document.getElementById('status');const statusText=document.getElementById('statusText');const button=document.getElementById('connect');const detail=document.getElementById('detail');
+    function setStatus(kind,text){statusEl.className='badge '+kind;statusText.textContent=text}
+    async function checkConnection(){
+      const params=new URLSearchParams(location.search);
+      if(params.get('github_error')) detail.textContent='GitHub connection did not finish: '+params.get('github_error');
+      try{
+        const response=await fetch('/api/github?action=status',{credentials:'same-origin'});
+        const data=await response.json();
+        if(response.ok&&data.connected){setStatus('connected','GitHub connected as '+data.user.login);detail.textContent='Athelgard can now read the repositories you grant it access to.';return;}
+        setStatus('', 'GitHub not connected');button.classList.remove('hidden');
+      }catch(error){setStatus('error','GitHub service unavailable');detail.textContent='The connection endpoint did not respond. Check the current deployment configuration.';button.classList.remove('hidden');}
     }
-  }, 500);
-}
-addMessage('Athelgard', '🦉 Athelgard Agent v2.0 - Merge Master Complete. MELI, Mako, Captain, and all team contributions synthesized.');
-</script>
+    button.addEventListener('click',()=>{button.disabled=true;button.textContent='Opening GitHub…';location.assign('/api/github?action=start')});
+    checkConnection();
+  </script>
 </body>
 </html>
