@@ -53,8 +53,7 @@ function parseCookies(h = '') {
 function cookie(name, value, opts = {}) {
   const parts = [`${name}=${encodeURIComponent(value)}`, 'Path=/', 'HttpOnly', 'SameSite=Lax'];
   if (process.env.VERCEL) parts.push('Secure');
-  if (opts.maxAge !== undefined) par
-ts.push(`Max-Age=${opts.maxAge}`);
+  if (opts.maxAge !== undefined) parts.push(`Max-Age=${opts.maxAge}`);
   return parts.join('; ');
 }
 
@@ -169,8 +168,7 @@ async function handleAgent(req, res) {
   const session = requireAuth(req, res);
   if (!session) return;
 
-  const key = process
-.env.DEEPSEEK_API_KEY || process.env.DEEPSEEK_KEY;
+  const key = process.env.DEEPSEEK_API_KEY || process.env.DEEPSEEK_KEY;
   if (!key) return res.status(503).json({ error: 'AI service not configured' });
 
   const { message, model = 'deepseek-chat' } = req.body || {};

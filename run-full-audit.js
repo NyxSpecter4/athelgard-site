@@ -173,16 +173,26 @@ async function testGitHub() {
     record(`File: ${f}`, exists, exists ? 'present' : 'MISSING');
   });
 
-  // ===== TEST 5: Deploy Status =====
+  // ===== TEST 5: Production smoke gate (real, not aspirational) =====
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('🚀 TEST 5: Deployment Status');
+  console.log('🚀 TEST 5: Production Smoke Gate');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
-  record('Vercel Project', true, 'makothoth/athelgard-site');
-  record('Custom Domain', true, 'https://athelgard.io');
-  record('GitHub Repo', true, 'github.com/NyxSpecter4/athelgard-site');
-  record('PWA Manifest', true, 'manifest.json present');
-  record('Service Worker', true, 'sw.js present');
+  const { spawnSync } = require('child_process');
+  const smokeScript = require('path').join(__dirname, 'scripts/smoke-prod.js');
+  const smoke = spawnSync(process.execPath, [smokeScript], { encoding: 'utf8' });
+  record('Local smoke gate (cookie + vercel routes + syntax)', smoke.status === 0,
+    smoke.status === 0 ? 'passed' : (smoke.stdout || smoke.stderr || '').split('\n').filter(l => l.includes('❌')).join('; ') || `exit ${smoke.status}`);
+
+  // Live probes are optional — do not claim green without running them
+  if (process.env.ATHELGARD_LIVE_AUDIT === '1') {
+    const live = spawnSync(process.execPath, [smokeScript, '--live'], { encoding: 'utf8' });
+    record('Live athelgard.io vertical slice', live.status === 0,
+      live.status === 0 ? 'login + modules JS OK' : 'FAILED — do not ship');
+  } else {
+    console.log('  ⚠️  Live athelgard.io vertical slice — SKIPPED (set ATHELGARD_LIVE_AUDIT=1 after deploy)');
+    console.log('     Do NOT claim production-ready without: npm run smoke:live');
+  }
 
   // ===== SUMMARY =====
   console.log('\n╔═══════════════════════════════════════════════════════════════╗');
@@ -193,8 +203,13 @@ async function testGitHub() {
   console.log(`  ❌ Failed:    ${results.failed}`);
   console.log(`  📈 Rate:      ${Math.round(results.passed / (results.passed + results.failed) * 100)}%`);
 
-  if (results.failed === 0) {
+  const liveRan = process.env.ATHELGARD_LIVE_AUDIT === '1';
+  const liveOk = results.tests.some(t => t.name.includes('Live athelgard.io') && t.ok);
+
+  if (results.failed === 0 && liveRan && liveOk) {
     console.log('\n  🦉 ALL SYSTEMS OPERATIONAL — ATHELGARD IS READY!');
+  } else if (results.failed === 0 && !liveRan) {
+    console.log('\n  ✅ Local gates passed — production NOT verified (run ATHELGARD_LIVE_AUDIT=1 npm run audit)');
   } else {
     console.log(`\n  ⚠️  ${results.failed} issues need attention`);
     results.tests.filter(t => !t.ok).forEach(t => console.log(`     - ${t.name}: ${t.detail}`));

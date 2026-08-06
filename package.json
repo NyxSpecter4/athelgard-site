@@ -7,8 +7,10 @@
     "dev": "node server.js",
     "start": "node server.js",
     "build": "echo 'No build needed - JS files are ready'",
-    "test": "node run-full-audit.js",
-    "audit": "node run-full-audit.js"
+    "smoke": "node scripts/smoke-prod.js",
+    "smoke:live": "node scripts/smoke-prod.js --live",
+    "test": "node scripts/smoke-prod.js && node run-full-audit.js",
+    "audit": "node scripts/smoke-prod.js && node run-full-audit.js"
   },
   "dependencies": {
     "@vercel/node": "^3.0.0",
