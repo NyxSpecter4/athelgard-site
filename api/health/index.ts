@@ -305,24 +305,8 @@ async function handleGitHub(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({ repos: repos.map((r: any) => ({ full_name: r.full_name, private: r.private, updated_at: r.updated_at })) });
       }
       if (action === 'contents') {
-        // Use URL parsing instead of req.query to avoid crashes
-        try {
-          const url = new URL(req.url || '', `https://${req.headers.host}`);
-          const owner = url.searchParams.get('owner') || '';
-          const repo = url.searchParams.get('repo') || '';
-          const filePath = url.searchParams.get('path') || '';
-          
-          if (!owner || !repo) {
-            return res.status(400).json({ error: 'owner and repo query params required' });
-          }
-          
-          const apiPath = `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodeURIComponent(filePath)}`;
-          const data = await requestGH(apiPath, session.token);
-          return res.status(200).json(data);
-        } catch (innerErr: any) {
-          console.error('Contents error:', innerErr);
-          return res.status(502).json({ error: innerErr.message || 'Failed to load contents' });
-        }
+        // DEBUG: Return immediately to test if this block is reached
+        return res.status(200).json({ debug: true, message: 'Contents endpoint reached', action, hasSession: !!session });
       }
       if (action === 'search') {
         const query = String(req.query.q || '').trim();
