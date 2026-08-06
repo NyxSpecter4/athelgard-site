@@ -1,37 +1,37 @@
-// Vercel serverless GitHub OAuth bridge. Keep secrets in Vercel environment variables.
-const crypto = require('crypto');
-const https = require('https');
+// Vercel serverless GitHub OAuth bridge (TypeScript)
+import https from 'https';
+import crypto from 'crypto';
 
 const SESSION_COOKIE = 'athelgard_github_session';
 const STATE_COOKIE = 'athelgard_github_oauth_state';
 const SESSION_TTL_SECONDS = 60 * 60 * 8;
 
-function base64url(value) {
+function base64url(value: string | Buffer): string {
   return Buffer.from(value).toString('base64url');
 }
 
-function parseCookies(header = '') {
+function parseCookies(header = ''): Record<string, string> {
   return header.split(';').reduce((cookies, pair) => {
     const index = pair.indexOf('=');
     if (index > -1) cookies[pair.slice(0, index).trim()] = decodeURIComponent(pair.slice(index + 1).trim());
     return cookies;
-  }, {});
+  }, {} as Record<string, string>);
 }
 
-function cookie(name, value, options = {}) {
+function cookie(name: string, value: string, options: { maxAge?: number } = {}): string {
   const parts = [`${name}=${encodeURIComponent(value)}`, 'Path=/', 'HttpOnly', 'SameSite=Lax'];
   if (process.env.VERCEL || process.env.NODE_ENV === 'production') parts.push('Secure');
   if (options.maxAge !== undefined) parts.push(`Max-Age=${options.maxAge}`);
   return parts.join('; ');
 }
 
-function redirect(res, location, cookies = []) {
+function redirect(res: any, location: string, cookies: string[] = []) {
   if (cookies.length) res.setHeader('Set-Cookie', cookies);
   res.writeHead(302, { Location: location });
   res.end();
 }
 
-function json(res, status, body, cookies = []) {
+function json(res: any, status: number, body: any, cookies: string[] = []) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -39,43 +39,42 @@ function json(res, status, body, cookies = []) {
   res.status(status).json(body);
 }
 
-function appOrigin(req) {
+function appOrigin(req: any): string {
   const protocol = (req.headers['x-forwarded-proto'] || 'https').split(',')[0].trim();
   const host = req.headers['x-forwarded-host'] || req.headers.host;
   return `${protocol}://${host}`;
 }
 
-function sign(value) {
-  return crypto.createHmac('sha256', process.env.GITHUB_SESSION_SECRET).update(value).digest('base64url');
+function sign(value: string, secret: string): string {
+  return crypto.createHmac('sha256', secret).update(value).digest('base64url');
 }
 
-function safeEqual(left, right) {
+function safeEqual(left: string, right: string): boolean {
   if (!left || !right) return false;
   const a = Buffer.from(left);
   const b = Buffer.from(right);
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
-function createSession(token) {
+function createSession(token: string): string {
   const payload = base64url(JSON.stringify({ token, expiresAt: Date.now() + SESSION_TTL_SECONDS * 1000 }));
-  return `${payload}.${sign(payload)}`;
+  const secret = process.env.GITHUB_SESSION_SECRET!;
+  return `${payload}.${sign(payload, secret)}`;
 }
 
-function readSession(req) {
+function readSession(req: any): { token: string; expiresAt: number } | null {
   if (!process.env.GITHUB_SESSION_SECRET) return null;
   const raw = parseCookies(req.headers.cookie)[SESSION_COOKIE];
   if (!raw) return null;
   const [payload, signature] = raw.split('.');
-  if (!payload || !safeEqual(sign(payload), signature)) return null;
+  if (!payload || !safeEqual(sign(payload, process.env.GITHUB_SESSION_SECRET), signature)) return null;
   try {
     const session = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
     return session.expiresAt > Date.now() && session.token ? session : null;
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
 
-function requestGitHub(path, token, method = 'GET', body) {
+function requestGitHub(path: string, token: string | null = null, method = 'GET', body?: any): Promise<any> {
   return new Promise((resolve, reject) => {
     const payload = body ? JSON.stringify(body) : null;
     const request = https.request({
@@ -90,11 +89,11 @@ function requestGitHub(path, token, method = 'GET', body) {
       let data = '';
       response.on('data', chunk => { data += chunk; });
       response.on('end', () => {
-        let parsed = {};
+        let parsed: any = {};
         try { parsed = data ? JSON.parse(data) : {}; } catch { parsed = { message: 'Unexpected GitHub response' }; }
-        if (response.statusCode < 200 || response.statusCode > 299) {
+        if (response.statusCode! < 200 || response.statusCode! > 299) {
           const error = new Error(parsed.message || `GitHub ${response.statusCode}`);
-          error.status = response.statusCode;
+          (error as any).status = response.statusCode;
           return reject(error);
         }
         resolve(parsed);
@@ -106,9 +105,13 @@ function requestGitHub(path, token, method = 'GET', body) {
   });
 }
 
-function exchangeCode(code) {
+function exchangeCode(code: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    const payload = JSON.stringify({ client_id: process.env.GITHUB_CLIENT_ID, client_secret: process.env.GITHUB_CLIENT_SECRET, code });
+    const payload = JSON.stringify({
+      client_id: process.env.GITHUB_CLIENT_ID,
+      client_secret: process.env.GITHUB_CLIENT_SECRET,
+      code
+    });
     const request = https.request({
       hostname: 'github.com', path: '/login/oauth/access_token', method: 'POST',
       headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload), 'User-Agent': 'Athelgard' },
@@ -129,7 +132,7 @@ function exchangeCode(code) {
   });
 }
 
-function requireSession(req, res) {
+function requireSession(req: any, res: any) {
   const session = readSession(req);
   if (!session) {
     json(res, 401, { error: 'GitHub is not connected' });
@@ -138,7 +141,7 @@ function requireSession(req, res) {
   return session;
 }
 
-module.exports = async (req, res) => {
+export default async function handler(req: any, res: any) {
   // CORS preflight
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -175,7 +178,7 @@ module.exports = async (req, res) => {
       const token = await exchangeCode(req.query.code);
       await requestGitHub('/user', token);
       return redirect(res, '/?github=connected', [clearState, cookie(SESSION_COOKIE, createSession(token), { maxAge: SESSION_TTL_SECONDS })]);
-    } catch (error) {
+    } catch (error: any) {
       return redirect(res, `/?github_error=${encodeURIComponent(error.message)}`, [clearState]);
     }
   }
@@ -194,13 +197,13 @@ module.exports = async (req, res) => {
     }
     if (action === 'repos') {
       const repos = await requestGitHub('/user/repos?sort=updated&per_page=30', session.token);
-      return json(res, 200, { repos: repos.map(repo => ({ id: repo.id, full_name: repo.full_name, private: repo.private, default_branch: repo.default_branch, updated_at: repo.updated_at, html_url: repo.html_url })) });
+      return json(res, 200, { repos: repos.map((repo: any) => ({ id: repo.id, full_name: repo.full_name, private: repo.private, default_branch: repo.default_branch, updated_at: repo.updated_at, html_url: repo.html_url })) });
     }
     if (action === 'contents') {
-      const { owner, repo, path = '' } = req.query;
+      const { owner, repo, path: filePath = '' } = req.query;
       if (!owner || !repo || !/^[A-Za-z0-9_.-]+$/.test(owner) || !/^[A-Za-z0-9_.-]+$/.test(repo)) return json(res, 400, { error: 'A valid owner and repository are required.' });
       const ref = req.query.ref ? `?ref=${encodeURIComponent(req.query.ref)}` : '';
-      return json(res, 200, await requestGitHub(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${path.split('/').map(encodeURIComponent).join('/')}${ref}`, session.token));
+      return json(res, 200, await requestGitHub(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${filePath.split('/').map(encodeURIComponent).join('/')}${ref}`, session.token));
     }
     if (action === 'search') {
       const query = String(req.query.q || '').trim();
@@ -208,7 +211,7 @@ module.exports = async (req, res) => {
       return json(res, 200, await requestGitHub(`/search/repositories?q=${encodeURIComponent(query)}&per_page=5`, session.token));
     }
     return json(res, 404, { error: 'Unknown GitHub action.' });
-  } catch (error) {
+  } catch (error: any) {
     return json(res, error.status || 502, { error: error.message || 'GitHub request failed.' });
   }
-};
+}

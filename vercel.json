@@ -1,13 +1,13 @@
 {
   "version": 2,
   "functions": {
-    "api/agent/index.js": { "runtime": "@vercel/node" },
-    "api/github/index.js": { "runtime": "@vercel/node" },
+    "api/agent/index.ts": { "runtime": "@vercel/node" },
+    "api/github/index.ts": { "runtime": "@vercel/node" },
     "api/athelgard/index.ts": { "runtime": "@vercel/node" }
   },
   "routes": [
-    { "src": "/api/agent", "dest": "/api/agent/index.js" },
-    { "src": "/api/github", "dest": "/api/github/index.js" },
+    { "src": "/api/agent", "dest": "/api/agent/index.ts" },
+    { "src": "/api/github", "dest": "/api/github/index.ts" },
     { "src": "/api/athelgard", "dest": "/api/athelgard/index.ts" },
     { "src": "/(.*)", "dest": "/frontend/$1" }
   ]

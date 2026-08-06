@@ -1,37 +1,35 @@
 // Athelgard Agent — Real tool-calling backend
-// Vercel serverless function
+// Vercel serverless function (TypeScript)
 
-const https = require('https');
+import https from 'https';
+import crypto from 'crypto';
 
-const crypto = require('crypto');
-
-// Same GitHub helpers from api/github.js
 const SESSION_COOKIE = 'athelgard_github_session';
 
-function base64url(value) {
+function base64url(value: string | Buffer): string {
   return Buffer.from(value).toString('base64url');
 }
 
-function parseCookies(header = '') {
+function parseCookies(header = ''): Record<string, string> {
   return header.split(';').reduce((cookies, pair) => {
     const index = pair.indexOf('=');
     if (index > -1) cookies[pair.slice(0, index).trim()] = decodeURIComponent(pair.slice(index + 1).trim());
     return cookies;
-  }, {});
+  }, {} as Record<string, string>);
 }
 
-function sign(value, secret) {
+function sign(value: string, secret: string): string {
   return crypto.createHmac('sha256', secret).update(value).digest('base64url');
 }
 
-function safeEqual(left, right) {
+function safeEqual(left: string, right: string): boolean {
   if (!left || !right) return false;
   const a = Buffer.from(left);
   const b = Buffer.from(right);
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
-function readSession(req) {
+function readSession(req: any): { token: string; expiresAt: number } | null {
   const secret = process.env.GITHUB_SESSION_SECRET;
   if (!secret) return null;
   const raw = parseCookies(req.headers.cookie)[SESSION_COOKIE];
@@ -44,7 +42,7 @@ function readSession(req) {
   } catch { return null; }
 }
 
-function requestGitHub(path, token, method = 'GET', body) {
+function requestGitHub(path: string, token: string | null = null, method = 'GET', body?: any): Promise<any> {
   return new Promise((resolve, reject) => {
     const payload = body ? JSON.stringify(body) : null;
     const request = https.request({
@@ -59,11 +57,11 @@ function requestGitHub(path, token, method = 'GET', body) {
       let data = '';
       response.on('data', chunk => { data += chunk; });
       response.on('end', () => {
-        let parsed = {};
+        let parsed: any = {};
         try { parsed = data ? JSON.parse(data) : {}; } catch { parsed = { message: 'Unexpected response' }; }
-        if (response.statusCode < 200 || response.statusCode > 299) {
+        if (response.statusCode! < 200 || response.statusCode! > 299) {
           const error = new Error(parsed.message || `GitHub ${response.statusCode}`);
-          error.status = response.statusCode;
+          (error as any).status = response.statusCode;
           return reject(error);
         }
         resolve(parsed);
@@ -75,18 +73,18 @@ function requestGitHub(path, token, method = 'GET', body) {
   });
 }
 
-function json(res, status, body) {
+function json(res: any, status: number, body: any) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.status(status).json(body);
 }
 
-function parseBody(req) {
+function parseBody(req: any): Promise<any> {
   return new Promise((resolve, reject) => {
     if (req.body && typeof req.body === 'object') return resolve(req.body);
     let data = '';
-    req.on('data', chunk => data += chunk);
+    req.on('data', (chunk: any) => data += chunk);
     req.on('end', () => {
       try { resolve(data ? JSON.parse(data) : {}); }
       catch { resolve({}); }
@@ -96,13 +94,13 @@ function parseBody(req) {
 }
 
 // ===== AI TOOL SCHEMA =====
-const tools = {
+const tools: Record<string, any> = {
   list_repos: {
     description: 'List the user\'s GitHub repositories',
     parameters: { type: 'object', properties: {}, required: [] },
-    execute: async (token) => {
+    execute: async (token: string) => {
       const repos = await requestGitHub('/user/repos?sort=updated&per_page=30', token);
-      return repos.map(r => ({ name: r.full_name, private: r.private, updated: r.updated_at }));
+      return repos.map((r: any) => ({ name: r.full_name, private: r.private, updated: r.updated_at }));
     }
   },
   read_file: {
@@ -115,7 +113,7 @@ const tools = {
       },
       required: ['repo', 'path']
     },
-    execute: async (token, args) => {
+    execute: async (token: string, args: any) => {
       const [owner, repo] = args.repo.split('/');
       const data = await requestGitHub(`/repos/${owner}/${repo}/contents/${args.path}`, token);
       if (data.content) {
@@ -131,18 +129,18 @@ const tools = {
       properties: { repo: { type: 'string', description: 'Full repo name like owner/repo' } },
       required: ['repo']
     },
-    execute: async (token, args) => {
+    execute: async (token: string, args: any) => {
       const [owner, repo] = args.repo.split('/');
       const data = await requestGitHub(`/repos/${owner}/${repo}/contents/`, token);
-      return data.map(item => ({ name: item.name, type: item.type, path: item.path }));
+      return data.map((item: any) => ({ name: item.name, type: item.type, path: item.path }));
     }
   }
 };
 
 // ===== AI CALL WITH TOOLS =====
-async function callAI(messages, model, apiKey, toolsEnabled = true) {
+async function callAI(messages: any[], model: string, apiKey: string, toolsEnabled = true): Promise<any> {
   const toolsSchema = toolsEnabled ? Object.entries(tools).map(([name, t]) => ({
-    type: 'function',
+    type: 'function' as const,
     function: { name, description: t.description, parameters: t.parameters }
   })) : [];
 
@@ -184,18 +182,18 @@ async function callAI(messages, model, apiKey, toolsEnabled = true) {
 }
 
 // ===== SESSION MEMORY =====
-const sessions = {}; // In-memory for now (Vercel KV later)
+const sessions: Record<string, any> = {};
 
-function getSession(sessionId) {
+function getSession(sessionId: string): any {
   return sessions[sessionId] || { messages: [] };
 }
 
-function saveSession(sessionId, session) {
+function saveSession(sessionId: string, session: any) {
   sessions[sessionId] = session;
 }
 
 // ===== MAIN HANDLER =====
-module.exports = async (req, res) => {
+export default async function handler(req: any, res: any) {
   // CORS preflight
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -225,7 +223,7 @@ Be concise. Use tools naturally. Don't ask for confirmation before using tools.`
   // Build messages
   const msgs = [
     { role: 'system', content: systemPrompt },
-    ...session.messages.slice(-10), // Keep last 10 messages
+    ...session.messages.slice(-10),
     { role: 'user', content: message }
   ];
 
@@ -283,8 +281,8 @@ Be concise. Use tools naturally. Don't ask for confirmation before using tools.`
 
     return json(res, 200, { reply, model: useKimi ? 'Kimi' : 'DeepSeek' });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Agent error:', error.message);
     return json(res, 500, { error: error.message });
   }
-};
+}
