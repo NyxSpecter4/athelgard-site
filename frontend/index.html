@@ -293,6 +293,7 @@
   <!-- Main IDE -->
   <div class="top-bar">
     <span class="logo">🦉 Athelgard</span>
+    <button class="btn" id="builderToggle" onclick="toggleBuilderMode()">🛠️ Builder Mode: OFF</button>
     <button class="btn" onclick="loadRepos()">📁 Repos</button>
     <button class="btn" onclick="runCode()">▶ Run</button>
     <div class="user-info" id="userInfo" style="display:none;">
@@ -439,6 +440,15 @@ hello();`,
     function logout() {
       fetch('/api/health?path=github&action=logout', { method: 'POST' })
         .then(() => location.reload());
+    }
+
+    let builderMode = false;
+    function toggleBuilderMode() {
+      builderMode = !builderMode;
+      const btn = document.getElementById('builderToggle');
+      btn.textContent = builderMode ? '🔧 Builder Mode: ON' : '🛠️ Builder Mode: OFF';
+      btn.style.borderColor = builderMode ? 'var(--success)' : 'var(--border)';
+      addChatMessage('ai', builderMode ? '🔧 **Builder Mode activated.** I will use technical precision, repo-aware analysis, and structured output (Situation → Systems → Plan → Patch → Verify → Risks).' : '🛠️ **Builder Mode off.** Standard mentoring mode.');
     }
 
     function showLoginPrompt() {
@@ -661,7 +671,7 @@ hello();`,
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'same-origin',
-            body: JSON.stringify({ message: text })
+            body: JSON.stringify({ message: text, mode: builderMode ? 'builder' : 'mentor' })
           });
           const data = await res.json();
           

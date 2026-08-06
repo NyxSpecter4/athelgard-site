@@ -93,21 +93,35 @@ function callAI(apiKey, messages, tools) {
 }
 
 // ─── AGENT LOOP ───
-async function agentLoop(message, token, apiKey) {
-  const systemPrompt = `You are Athelgard, a professional coding mentor and GitHub repository analyst.
+async function agentLoop(message, token, apiKey, mode = 'mentor') {
+  const mentorPrompt = `You are Athelgard, a professional coding mentor and GitHub repository analyst.
 You have access to tools that let you interact with the user's GitHub repositories.
 When the user asks about their code, repos, or files, USE the appropriate tool.
 Available tools:
 - list_repos: List all GitHub repositories
-- read_file: Read any file from any repo (format: owner/repo/path)
+- read_file: Read any file from any repo
 - get_repo_tree: Show repo structure
 RULES:
 1. Use tools proactively when asked about code/repos
 2. Be concise but thorough
 3. After reading a file, analyze it and provide insights`;
 
+  const builderPrompt = `You are Athelgard in BUILDER MODE — a technical coding agent for BountyWarz.
+You produce structured, actionable output following this format:
+SITUATION → IMPACTED SYSTEMS → PLAN → PATCH → VERIFY → RISKS
+You have access to GitHub repo tools. Use them to scan, map, plan, patch, and verify.
+Available tools:
+- list_repos: List all GitHub repositories
+- read_file: Read any file from any repo
+- get_repo_tree: Show repo structure
+RULES:
+1. Scan first, then map, then plan, then patch, then verify
+2. Smallest safe changes only
+3. Explicit approvals before destructive operations
+4. Structured output always`;
+
   const messages = [
-    { role: 'system', content: systemPrompt },
+    { role: 'system', content: mode === 'builder' ? builderPrompt : mentorPrompt },
     { role: 'user', content: message }
   ];
 
@@ -168,14 +182,14 @@ module.exports = async function handler(req, res) {
   try { session = JSON.parse(Buffer.from(payload, 'base64url').toString()); } catch { return res.status(401).json({ error: 'Invalid session' }); }
   if (!session.token) return res.status(401).json({ error: 'No token' });
 
-  const { message } = req.body || {};
+  const { message, mode } = req.body || {};
   if (!message) return res.status(400).json({ error: 'Message required' });
 
   const apiKey = process.env.DEEPSEEK_API_KEY || process.env.DEEPSEEK_KEY;
   if (!apiKey) return res.status(503).json({ error: 'AI not configured' });
 
   try {
-    const result = await agentLoop(message, session.token, apiKey);
+    const result = await agentLoop(message, session.token, apiKey, mode);
     return res.status(200).json({ response: result.response, steps: result.steps });
   } catch (e) {
     return res.status(500).json({ error: e.message });
