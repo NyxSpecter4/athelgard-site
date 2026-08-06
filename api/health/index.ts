@@ -64,13 +64,22 @@ function readSession(req: VercelRequest): { userId: string; token: string; exp: 
   } catch { return null; }
 }
 
-function requireAuth(req: VercelRequest, res: VercelResponse) {
+function requireAuth(req: VercelRequest, res: VercelResponse): { userId: string; token: string; exp: number } | null {
   const session = readSession(req);
   if (!session) {
     res.status(401).json({ error: 'Not authenticated. Login with GitHub first.' });
     return null;
   }
   return session;
+}
+
+// Wrapper to ensure auth errors don't crash
+function withAuth(handler: (req: VercelRequest, res: VercelResponse, session: { userId: string; token: string; exp: number }) => Promise<void>) {
+  return async (req: VercelRequest, res: VercelResponse) => {
+    const session = requireAuth(req, res);
+    if (!session) return;
+    return handler(req, res, session);
+  };
 }
 
 function requestGH(path: string, token: string, method = 'GET', body?: any): Promise<any> {
@@ -285,24 +294,35 @@ async function handleGitHub(req: VercelRequest, res: VercelResponse) {
     });
   }
 
-  // API Proxy (repos, contents, etc)
-  const session = requireAuth(req, res);
-  if (!session) return;
+  // API Proxy (repos, contents, etc) - all require auth
+  if (['repos', 'contents', 'search'].includes(action)) {
+    const session = requireAuth(req, res);
+    if (!session) return;
 
-  try {
-    if (action === 'repos') {
-      const repos = await requestGH('/user/repos?sort=updated&per_page=30', session.token);
-      return res.status(200).json({ repos: repos.map((r: any) => ({ full_name: r.full_name, private: r.private, updated_at: r.updated_at })) });
+    try {
+      if (action === 'repos') {
+        const repos = await requestGH('/user/repos?sort=updated&per_page=30', session.token);
+        return res.status(200).json({ repos: repos.map((r: any) => ({ full_name: r.full_name, private: r.private, updated_at: r.updated_at })) });
+      }
+      if (action === 'contents') {
+        const owner = req.query.owner as string;
+        const repo = req.query.repo as string;
+        const filePath = (req.query.path as string) || '';
+        if (!owner || !repo) return res.status(400).json({ error: 'owner and repo required' });
+        return res.status(200).json(await requestGH(`/repos/${owner}/${repo}/contents/${filePath}`, session.token));
+      }
+      if (action === 'search') {
+        const query = String(req.query.q || '').trim();
+        if (!query || query.length > 200) return res.status(400).json({ error: 'Search query required' });
+        return res.status(200).json(await requestGH(`/search/repositories?q=${encodeURIComponent(query)}&per_page=5`, session.token));
+      }
+      return res.status(404).json({ error: 'Unknown action' });
+    } catch (e: any) {
+      return res.status(e.status || 502).json({ error: e.message || 'GitHub request failed' });
     }
-    if (action === 'contents') {
-      const { owner, repo, path = '' } = req.query;
-      if (!owner || !repo) return res.status(400).json({ error: 'owner and repo required' });
-      return res.status(200).json(await requestGH(`/repos/${owner}/${repo}/contents/${path}`, session.token));
-    }
-    return res.status(404).json({ error: 'Unknown action' });
-  } catch (e: any) {
-    return res.status(e.status || 502).json({ error: e.message || 'GitHub request failed' });
   }
+
+  return res.status(404).json({ error: 'Unknown action' });
 }
 
 // ─── BOUNTYWARZ: Session bridge ───
