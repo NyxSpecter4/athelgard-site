@@ -20,7 +20,7 @@
     }
   ],
   "rewrites": [
-    { "source": "/login", "destination": "/login.html" },
+    { "source": "/login", "destination": "/frontend/login.html" },
     { "source": "/", "destination": "/frontend/index.html" }
   ]
 }
