@@ -46,7 +46,8 @@ function appOrigin(req: any): string {
 }
 
 function sign(value: string, secret: string): string {
-  return crypto.createHmac('sha256', secret).update(value).digest('base64url');
+  return crypto.createHmac('sha256', secret).update(value)
+.digest('base64url');
 }
 
 function safeEqual(left: string, right: string): boolean {
@@ -99,7 +100,8 @@ function requestGitHub(path: string, token: string | null = null, method = 'GET'
       response => {
         let data = '';
         response.on('data', chunk => { data += chunk; });
-        response.on('end', () => {
+        response
+.on('end', () => {
           let parsed: any = {};
           try { parsed = data ? JSON.parse(data) : {}; } catch { parsed = { message: 'Unexpected GitHub response' }; }
           if (response.statusCode! < 200 || response.statusCode! > 299) {
@@ -161,7 +163,8 @@ function getMissingConfig(): string[] {
 }
 
 async function buildStatus(req: any) {
-  const missing = getMissingConfig();
+  const missing = getM
+issingConfig();
   if (missing.length) {
     return { oauthConfigured: false, connected: false, missing };
   }
@@ -214,7 +217,8 @@ export default async function handler(req: any, res: any) {
     const state = crypto.randomBytes(32).toString('hex');
     const authorize = new URL('https://github.com/login/oauth/authorize');
     authorize.searchParams.set('client_id', process.env.GITHUB_CLIENT_ID!);
-    authorize.searchParams.set('redirect_uri', callbackUrl);
+    authorize.searchParams.set('redi
+rect_uri', callbackUrl);
     authorize.searchParams.set('scope', 'read:user repo');
     authorize.searchParams.set('state', state);
     return redirect(res, authorize.toString(), [cookie(STATE_COOKIE, state, { maxAge: 600 })]);
@@ -258,7 +262,8 @@ export default async function handler(req: any, res: any) {
       if (!owner || !repo || !/^[A-Za-z0-9_.-]+$/.test(owner) || !/^[A-Za-z0-9_.-]+$/.test(repo)) {
         return json(res, 400, { error: 'A valid owner and repository are required.' });
       }
-      const ref = req.query.ref ? `?ref=${encodeURIComponent(req.query.ref)}` : '';
+      const ref = req.q
+uery.ref ? `?ref=${encodeURIComponent(req.query.ref)}` : '';
       return json(res, 200, await requestGitHub(
         `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${filePath.split('/').map(encodeURIComponent).join('/')}${ref}`,
         session.token
