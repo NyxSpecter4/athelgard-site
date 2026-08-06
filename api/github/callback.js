@@ -57,8 +57,7 @@ function exchangeCode(code) {
     const request = https.request({
       hostname: 'github.com',
       path: '/login/oauth/access_token',
-      method: 'P
-OST',
+      method: 'POST',
       headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json',
@@ -117,8 +116,7 @@ module.exports = async function handler(req, res) {
     }, userRes => {
       let data = '';
       userRes.on('data', chunk => { data += chunk; });
-      userRes.on('e
-nd', () => {
+      userRes.on('end', () => {
         try {
           const user = JSON.parse(data);
           const session = createSession(token);

@@ -53,8 +53,7 @@ function parseCookies(h = '') {
 function cookie(name, value, opts = {}) {
   const parts = [`${name}=${encodeURIComponent(value)}`, 'Path=/', 'HttpOnly', 'SameSite=Lax'];
   if (process.env.VERCEL) parts.push('Secure');
-  if (opts.maxAge !== undefined) par
-ts.push(`Max-Age=${opts.maxAge}`);
+  if (opts.maxAge !== undefined) parts.push(`Max-Age=${opts.maxAge}`);
   return parts.join('; ');
 }
 
@@ -159,6 +158,46 @@ function exchangeCode(code) {
   });
 }
 
+/**
+ * Optional bridge to Bountywarz Eve runtime (from vercel-agent Eve PR).
+ * Soft-fail: missing/partial config or runtime errors never block local mentor chat.
+ */
+async function loadEveContract(userId, message) {
+  const base = process.env.BOUNTYWARZ_EVE_URL;
+  const secret = process.env.ATHELGARD_EVE_BRIDGE_SECRET;
+  if (!base && !secret) return null;
+  if (!base || !secret) {
+    console.warn('Eve bridge incomplete: set both BOUNTYWARZ_EVE_URL and ATHELGARD_EVE_BRIDGE_SECRET');
+    return null;
+  }
+  const payload = { channel: 'cli', mode: 'brief', message: String(message).slice(0, 10000) };
+  const timestamp = String(Date.now());
+  const canonical = JSON.stringify(payload);
+  const signature = crypto.createHmac('sha256', secret).update(`${userId}.${timestamp}.${canonical}`).digest('hex');
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  try {
+    const response = await fetch(`${base.replace(/\/$/, '')}/api/athelgard-eve`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-athelgard-identity': userId,
+        'x-athelgard-timestamp': timestamp,
+        'x-athelgard-signature': signature,
+      },
+      body: canonical,
+      signal: controller.signal,
+    });
+    const contract = await response.json();
+    if (!response.ok || !contract.ok) {
+      throw new Error(contract.error || 'Eve runtime rejected the request');
+    }
+    return contract;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function handleAgent(req, res) {
   setSecurityHeaders(res);
   setCorsHeaders(res);
@@ -169,23 +208,44 @@ async function handleAgent(req, res) {
   const session = requireAuth(req, res);
   if (!session) return;
 
-  const key = process
-.env.DEEPSEEK_API_KEY || process.env.DEEPSEEK_KEY;
-  if (!key) return res.status(503).json({ error: 'AI service not configured' });
-
   const { message, model = 'deepseek-chat' } = req.body || {};
   if (!message || typeof message !== 'string' || message.length > 10000) {
     return res.status(400).json({ error: 'Message required (max 10000 chars)' });
   }
 
+  let eveContract = null;
+  try {
+    eveContract = await loadEveContract(session.userId, message);
+  } catch (e) {
+    console.warn('Eve bridge unavailable, continuing with local mentor:', e.message);
+  }
+
+  const key = process.env.DEEPSEEK_API_KEY || process.env.DEEPSEEK_KEY;
+  if (!key) return res.status(503).json({ error: 'AI service not configured' });
+
+  const systemPrompt = [
+    'You are Athelgard, an elite ethical bounty-hunting mentor.',
+    'Teach only within authorized training ranges or verified program scope.',
+    'Guide the learner through scope, asset, evidence, impact, report, and remediation.',
+    eveContract
+      ? `Canonical Eve contract: ${JSON.stringify({
+          safety: eveContract.safety,
+          tools: eveContract.availableTools,
+          liveContext: eveContract.liveContext,
+        })}`
+      : '',
+  ].filter(Boolean).join(' ');
+
   try {
     const result = await new Promise((resolve, reject) => {
       const data = JSON.stringify({
-        model, messages: [
-          { role: 'system', content: 'You are Athelgard, an elite ethical hacking mentor.' },
-          { role: 'user', content: `[User: ${session.userId}]\n\n${message}` }
+        model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: `[User: ${session.userId}]\n\n${message}` },
         ],
-        temperature: 0.7, max_tokens: 2000
+        temperature: 0.7,
+        max_tokens: 2000,
       });
       const r = https.request({
         hostname: 'api.deepseek.com', path: '/v1/chat/completions', method: 'POST',
@@ -199,7 +259,14 @@ async function handleAgent(req, res) {
       r.write(data);
       r.end();
     });
-    return res.status(200).json({ response: result.choices?.[0]?.message?.content || 'No response', model, usage: result.usage || {} });
+    return res.status(200).json({
+      response: result.choices?.[0]?.message?.content || 'No response',
+      model,
+      usage: result.usage || {},
+      eve: eveContract
+        ? { agent: eveContract.agent, safety: eveContract.safety, tools: eveContract.availableTools }
+        : null,
+    });
   } catch (e) {
     console.error('Agent error:', e.message);
     return res.status(502).json({ error: 'AI service unavailable' });
@@ -360,11 +427,17 @@ module.exports = async function handler(req, res) {
 
   setSecurityHeaders(res);
   setCorsHeaders(res);
-  const session = readSession(req);
-  const user = session ? userSessions.get(session.userId) : null;
+  let user = null;
+  try {
+    const session = readSession(req);
+    user = session ? userSessions.get(session.userId) : null;
+  } catch {
+    // Missing session secret must not take down the health endpoint.
+  }
   return res.status(200).json({
-    status: 'healthy', service: 'athelgard', version: '3.0.0',
+    status: 'healthy', service: 'athelgard', version: '3.1.0',
     authenticated: !!user, user: user ? { login: user.login, avatar: user.avatar } : null,
+    eveBridge: Boolean(process.env.BOUNTYWARZ_EVE_URL && process.env.ATHELGARD_EVE_BRIDGE_SECRET),
     routes: [
       '/api/health?path=agent',
       '/api/health?path=github&action=login',
