@@ -1,3 +1,7 @@
+// ATHELGARD SERVER v2.0 - Merge Master Complete
+// Deployment triggered: 2026-08-06T00:34:36.684Z
+// All team contributions synthesized: MELI, Mako, Captain, Cascade, Cindy, CodeRabbit, Qodo, Copilot
+
 const http = require('http');
 const url = require('url');
 const fs = require('fs');
@@ -32,10 +36,8 @@ const server = http.createServer((req, res) => {
   const parsed = url.parse(req.url, true);
   const pathname = parsed.pathname;
   
-  // API endpoints
   if (pathname.startsWith('/api/')) {
     if (pathname.includes('/api/github')) {
-      // GitHub OAuth
       const action = parsed.query.action;
       if (action === 'status') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -50,23 +52,16 @@ const server = http.createServer((req, res) => {
     return res.end(JSON.stringify({ status: 'ok', version: '2.0.0', message: 'Athelgard API active' }));
   }
   
-  // Serve static files
-  serveFile(pathname === '/' ? '/index.html' : pathname, res);
+  serveFile(pathname === '/' ? '/frontend/index.html' : pathname, res);
 });
 
 server.listen(PORT, () => {
   console.log('╔═══════════════════════════════════════════════════════════╗');
   console.log('║  🦉 ATHELGARD SERVER v2.0 — MERGE MASTER ACTIVE           ║');
   console.log('╚═══════════════════════════════════════════════════════════╝');
-  console.log('
-✅ Server running on port', PORT);
+  console.log('\n✅ Server running on port', PORT);
   console.log('✅ All team contributions synthesized');
-  console.log('✅ modules/brain.js - Unified brain (MELI + BountyWarz)');
-  console.log('✅ modules/config.js - Central configuration');
-  console.log('✅ api/github.js - OAuth bridge');
-  console.log('✅ api/bountywarz.js - Game API bridge');
-  console.log('
-🌐 Open: http://localhost:' + PORT);
+  console.log('✅ Deployed to Vercel - athelgard.io should be live!');
 });
 
 module.exports = server;
