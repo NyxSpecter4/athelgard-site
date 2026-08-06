@@ -305,11 +305,18 @@ async function handleGitHub(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({ repos: repos.map((r: any) => ({ full_name: r.full_name, private: r.private, updated_at: r.updated_at })) });
       }
       if (action === 'contents') {
-        const owner = req.query.owner as string;
-        const repo = req.query.repo as string;
-        const filePath = (req.query.path as string) || '';
-        if (!owner || !repo) return res.status(400).json({ error: 'owner and repo required' });
-        return res.status(200).json(await requestGH(`/repos/${owner}/${repo}/contents/${filePath}`, session.token));
+        try {
+          const owner = typeof req.query.owner === 'string' ? req.query.owner : '';
+          const repo = typeof req.query.repo === 'string' ? req.query.repo : '';
+          const filePath = typeof req.query.path === 'string' ? req.query.path : '';
+          if (!owner || !repo) {
+            return res.status(400).json({ error: 'owner and repo required' });
+          }
+          const data = await requestGH(`/repos/${owner}/${repo}/contents/${filePath}`, session.token);
+          return res.status(200).json(data);
+        } catch (innerErr: any) {
+          return res.status(502).json({ error: innerErr.message || 'Failed to load contents' });
+        }
       }
       if (action === 'search') {
         const query = String(req.query.q || '').trim();
