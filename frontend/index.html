@@ -14,6 +14,7 @@ body{background:var(--bg);color:var(--text);font-family:system-ui;height:100vh;d
 .logo{font-size:24px;font-weight:800;color:var(--cyan)}
 .status{display:flex;gap:10px;margin-left:auto;font-size:11px}
 .status span{padding:4px 10px;border-radius:20px;background:rgba(61,255,154,0.15);color:var(--green);border:1px solid var(--green)}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;max-width:900px;width:100%;margin:0 auto}
 .messages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:12px}
 .msg{max-width:80%;padding:12px 16px;border-radius:16px;font-size:14px;line-height:1.5;word-wrap:break-word}
 .msg.user{align-self:flex-end;background:var(--cyan);color:#000}
@@ -24,24 +25,27 @@ body{background:var(--bg);color:var(--text);font-family:system-ui;height:100vh;d
 input{flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 16px;color:var(--text);font-size:14px;outline:none}
 input:focus{border-color:var(--cyan)}
 button{background:var(--cyan);border:none;border-radius:12px;padding:12px 20px;color:#000;font-weight:700;cursor:pointer}
+button:disabled{opacity:0.5;cursor:not-allowed}
+.loading{color:var(--cyan);font-style:italic}
 </style>
 </head>
 <body>
 <header class="header">
   <div class="logo">🦉 Athelgard</div>
-  <div class="status"><span>Brain: Active</span><span>GitHub: <span id="githubStatus">Not Connected</span></span></div>
+  <div class="status"><span>Brain: Active</span><span>GitHub: <span id="githubStatus">Checking...</span></span></div>
 </header>
-<main class="main" style="flex:1;display:flex;flex-direction:column;overflow:hidden;max-width:900px;width:100%;margin:0 auto">
+<main class="main">
   <div class="messages" id="messages"></div>
 </main>
 <div class="input-area">
-  <input type="text" id="userInput" placeholder="Ask Athelgard anything..." onkeydown="if(event.key==='Enter') sendMessage()">
-  <button onclick="sendMessage()">Send</button>
+  <input type="text" id="userInput" placeholder="Ask Athelgard anything..." onkeydown="if(event.key==='Enter') sendMessage()" disabled>
+  <button onclick="sendMessage()" disabled>Send</button>
 </div>
 <script>
 const messages = document.getElementById('messages');
 const userInput = document.getElementById('userInput');
 const githubStatus = document.getElementById('githubStatus');
+let isReady = false;
 
 function addMessage(sender, text, isUser=false) {
   const msg = document.createElement('div');
@@ -52,7 +56,9 @@ function addMessage(sender, text, isUser=false) {
     name.textContent = sender;
     msg.appendChild(name);
   }
-  msg.innerHTML += text;
+  const textNode = document.createElement('div');
+  textNode.innerHTML = text;
+  msg.appendChild(textNode);
   messages.appendChild(msg);
   messages.scrollTop = messages.scrollHeight;
 }
@@ -63,18 +69,28 @@ function checkGitHubStatus() {
     .then(data => {
       githubStatus.textContent = data.connected ? 'Connected ✓' : 'Not Connected';
       if (data.connected) {
-        addMessage('Athelgard', 'GitHub connected! You can now access your repositories.');
+        isReady = true;
+        userInput.disabled = false;
+        document.querySelector('button').disabled = false;
+        addMessage('Athelgard', '✅ GitHub connected! You can now access your repositories and start coding.');
       }
+    })
+    .catch(() => {
+      githubStatus.textContent = 'Error';
     });
 }
 
 function sendMessage() {
+  if (!isReady) {
+    addMessage('Athelgard', 'Please connect GitHub first to enable coding features.');
+    return;
+  }
   const text = userInput.value.trim();
   if (!text) return;
   userInput.value = '';
   addMessage('You', text, true);
+  addMessage('Athelgard', '<span class="loading">Thinking...</span>');
   
-  // Send to brain API
   fetch('/api/brain', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -82,16 +98,27 @@ function sendMessage() {
   })
   .then(r => r.json())
   .then(data => {
-    addMessage('Athelgard', data.response || data.mentor || 'I heard you!');
+    // Remove loading message
+    const loadingMsg = messages.lastChild;
+    if (loadingMsg && loadingMsg.querySelector('.loading')) {
+      messages.removeChild(loadingMsg);
+    }
+    const response = data.response || data.mentor || data.message || 'I heard you!';
+    addMessage('Athelgard', response);
   })
   .catch(() => {
-    addMessage('Athelgard', 'I am processing your request...');
+    const loadingMsg = messages.lastChild;
+    if (loadingMsg && loadingMsg.querySelector('.loading')) {
+      messages.removeChild(loadingMsg);
+    }
+    addMessage('Athelgard', 'I am processing your request. Please try again.');
   });
 }
 
 // Initial messages
-addMessage('Athelgard', '🦉 Athelgard Agent v3.0 - Merge Master Complete. All team contributions synthesized.');
-addMessage('Athelgard', 'Connect your GitHub to unlock repository access and full coding capabilities.');
+addMessage('Athelgard', '🦉 Athelgard Agent v3.0 - Merge Master Complete.');
+addMessage('Athelgard', 'All team contributions synthesized: MELI, Mako, Captain, Cascade, Cindy, CodeRabbit, Qodo, Copilot.');
+addMessage('Athelgard', 'Connect your GitHub to unlock full coding capabilities.');
 
 // Check GitHub status
 checkGitHubStatus();

@@ -21,6 +21,10 @@
     {
       "src": "frontend/**",
       "use": "@vercel/static"
+    },
+    {
+      "src": "modules/**",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
@@ -50,5 +54,6 @@
       "source": "/",
       "destination": "/frontend/index.html"
     }
-  ]
+  ],
+  "cleanUrls": true
 }
