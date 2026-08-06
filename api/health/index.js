@@ -114,8 +114,7 @@ function requestGH(path, token, method = 'GET', body) {
         'Accept': 'application/vnd.github+json',
         'User-Agent': 'Athelgard',
         ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-        ...(data ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLengt
-h(data) } : {}),
+        ...(data ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) } : {}),
       }
     }, response => {
       let d = '';
@@ -341,8 +340,7 @@ async function handleBountyWarz(req, res) {
     const id = 'session_' + Date.now();
     const session = { id, userId, createdAt: Date.now(), mode, difficulty };
     bwSessions.set(id, session);
-    return res.status(200).json({ status: 'ok', sessi
-on });
+    return res.status(200).json({ status: 'ok', session });
   }
   return res.status(200).json({ status: 'ok', message: 'BountyWarz API active', sessions: bwSessions.size });
 }
