@@ -25,18 +25,6 @@
     {
       "src": "modules/**",
       "use": "@vercel/static"
-    },
-    {
-      "src": "*.html",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "*.js",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "*.json",
-      "use": "@vercel/static"
     }
   ],
   "routes": [
@@ -66,5 +54,6 @@
       "source": "/",
       "destination": "/frontend/index.html"
     }
-  ]
+  ],
+  "cleanUrls": true
 }
