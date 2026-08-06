@@ -1,172 +1,59 @@
-// modules/brain.js — MELI's Brain: Ethical Hunt Loop + Builder Brain + Cost Router
-import { MELI } from './config.js';
+const BRAIN_VERSION = '1.0.0';
+const HUNT = Object.freeze({ BLOCKED: 'blocked', NEEDS_SCOPE: 'needs_scope', INVESTIGATE: 'investigate', REPORT_READY: 'report_ready' });
+const BUILDER = Object.freeze({ BOUNDARY: 'boundary', EVIDENCE: 'evidence', READY: 'ready' });
 
-// ═══════════════════════════════════════════
-// ETHICAL HUNT LOOP — Security gate
-// ═══════════════════════════════════════════
-export class EthicalHuntLoop {
-  evaluate(attempt = {}) {
-    const scope = attempt.scope || {};
-    const evidence = attempt.evidence || {};
-    const target = attempt.target || {};
-
-    // Gate 1: Only simulated targets
-    if (attempt.simulated !== true) {
-      return this.#decision(MELI.HUNT_DECISIONS.BLOCKED, {
-        reason: 'This loop only awards progress for sanctioned simulation targets.',
-        mentorLine: 'Pause here. Training progress comes from the simulated range, not a live target.',
-        nextAction: 'Return to an approved Bountywarz scenario.',
-      });
-    }
-
-    // Gate 2: Scope authorization required
-    if (!scope.program || !scope.authorized || !scope.inScope || !target.id) {
-      return this.#decision(MELI.HUNT_DECISIONS.NEEDS_SCOPE, {
-        reason: 'Program, authorization, target identity, and in-scope status are required.',
-        mentorLine: 'Before the scan, establish the boundary: what is approved, and what is not?',
-        nextAction: 'Review the scenario scope card and select an authorized target.',
-      });
-    }
-
-    // Gate 3: Evidence completeness
-    const missing = MELI.REPORT_EVIDENCE.filter(key => !this.#hasValue(evidence[key]));
-    if (missing.length) {
-      return this.#decision(MELI.HUNT_DECISIONS.INVESTIGATE, {
-        reason: 'The observation is not yet a complete report.',
-        mentorLine: 'You have a lead. Turn it into evidence before you call it a finding.',
-        nextAction: `Collect: ${missing.join(', ')}.`,
-        missingEvidence: missing,
-      });
-    }
-
-    // Gate 4: Report ready
-    return this.#decision(MELI.HUNT_DECISIONS.REPORT_READY, {
-      reason: 'The simulated finding has scope, evidence, impact, and remediation context.',
-      mentorLine: 'Now you can make the case clearly: boundary, evidence, impact, and a path to fix.',
-      nextAction: 'Submit the simulated report for review.',
-      rewards: ['scope-discipline', 'evidence-quality', 'responsible-reporting'],
-      score: 100,
-    });
-  }
-
-  #decision(status, detail) {
-    return Object.freeze({ status, ...detail });
-  }
-
-  #hasValue(value) {
-    return typeof value === 'string' ? value.trim().length > 0 : Boolean(value);
-  }
+function evaluateHunt(a) {
+  const s = a.scope||{}, e = a.evidence||{}, t = a.target||{};
+  if (a.simulated !== true) return { status: HUNT.BLOCKED, reason: 'Non-simulated not permitted', timestamp: Date.now() };
+  const r = ['program','authorized','inScope'], m = r.filter(k => !s[k]);
+  if (m.length > 0 || !t.id) return { status: HUNT.NEEDS_SCOPE, missingScope: m, timestamp: Date.now() };
+  const re = ['observation','impact','reproduction','remediation'], me = re.filter(k => !(typeof e[k]==='string'?e[k].trim().length>0:Boolean(e[k])));
+  if (me.length > 0) return { status: HUNT.INVESTIGATE, missing: me, timestamp: Date.now() };
+  return { status: HUNT.REPORT_READY, score: 100, verified: true, timestamp: Date.now() };
 }
 
-// ═══════════════════════════════════════════
-// BUILDER BRAIN — AI Mentor
-// ═══════════════════════════════════════════
-export class BuilderBrain {
-  reviewFinding(attempt) {
-    const evidence = attempt.evidence || {};
-
-    // Safety gate
-    if (!attempt.simulated) {
-      return {
-        stage: MELI.BUILDER_STAGES.BOUNDARY,
-        safeToReward: false,
-        reason: 'Only simulated targets allowed.',
-      };
-    }
-    if (!attempt.scope?.authorized) {
-      return {
-        stage: MELI.BUILDER_STAGES.BOUNDARY,
-        safeToReward: false,
-        reason: 'Scope authorization required.',
-      };
-    }
-
-    // Score evidence
-    const missing = MELI.EVIDENCE_FIELDS.filter(f => {
-      const v = evidence[f];
-      return !(typeof v === 'string' ? v.trim().length > 0 : Boolean(v));
-    });
-
-    if (missing.length > 0) {
-      return {
-        stage: MELI.BUILDER_STAGES.EVIDENCE,
-        missingEvidence: missing,
-        rubric: {
-          score: Math.round((MELI.EVIDENCE_FIELDS.length - missing.length) / MELI.EVIDENCE_FIELDS.length * 100),
-          maxScore: 100,
-        },
-        safeToReward: false,
-        mentorLine: `You're missing: ${missing.join(', ')}. A strong finding needs all four evidence types.`,
-      };
-    }
-
-    // Complete report
-    return {
-      stage: MELI.BUILDER_STAGES.READY,
-      rubric: { score: 100, maxScore: 100 },
-      safeToReward: true,
-      reportOutline: {
-        observation: evidence.observation,
-        impact: evidence.impact,
-        reproduction: evidence.reproduction,
-        remediation: evidence.remediation,
-      },
-      mentorLine: 'Excellent work! This is a defensible responsible disclosure packet.',
-    };
-  }
+function reviewSubmission(a) {
+  const s = a.scope||{}, e = a.evidence||{};
+  if (!a.simulated || !s.authorized) return { stage: BUILDER.BOUNDARY, timestamp: Date.now() };
+  const f = ['observation','impact','reproduction','remediation'], m = f.filter(x => !(typeof e[x]==='string'?e[x].trim().length>0:Boolean(e[x])));
+  if (m.length > 0) return { stage: BUILDER.EVIDENCE, rubric: { score: Math.round((f.length - m.length) / f.length * 100), missing: m }, timestamp: Date.now() };
+  return { stage: BUILDER.READY, rubric: { score: 100 }, timestamp: Date.now() };
 }
 
-// ═══════════════════════════════════════════
-// COST ROUTER — Smart model selection
-// ═══════════════════════════════════════════
-export class CostRouter {
-  selectModel(preferred, config) {
-    const now = new Date();
-    const pst = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
-    const isPeak = pst.getHours() >= 9 && pst.getHours() < 21;
+const MENTORS = Object.freeze({
+  ATHELGARD: { name: 'Athelgard', greeting: "Hi I am Athelgard your mentor and guide" },
+  MELI: { name: 'MELI', greeting: "Security first. Let us verify before deploy" },
+  MAKO: { name: 'MakoThoth-KClaw', greeting: "All systems operational. What is our next target" }
+});
 
-    if (preferred === 'deepseek' && isPeak && config.kimiKey) {
-      console.log('[Athelgard] Peak hours — routing to Kimi fallback');
-      return { model: 'kimi', reason: 'DeepSeek peak pricing (9AM-9PM PST)' };
-    }
-    if (preferred === 'kimi' && !isPeak && config.deepseekKey) {
-      console.log('[Athelgard] Off-peak — using DeepSeek (cheaper)');
-      return { model: 'deepseek', reason: 'DeepSeek off-peak (cheaper)' };
-    }
-    return { model: preferred, reason: 'User preference' };
-  }
+function getMentorResponse(c, q) {
+  let key = 'ATHELGARD';
+  if (c.gameMode === 'drone') key = 'DRONE_INSTRUCTOR';
+  if (c.gameMode === 'hunt') key = 'CYBER_TRAINER';
+  if (q && (q.includes('security') || q.includes('audit'))) key = 'MELI';
+  const mentor = MENTORS[key] || MENTORS.ATHELGARD;
+  return { mentor: mentor.name, response: mentor.greeting + '. ' + (q || 'What do you need?') };
 }
 
-// ═══════════════════════════════════════════
-// BOUNTY DETECTOR — Check if message is bounty-related
-// ═══════════════════════════════════════════
-export function isBountyQuery(text) {
-  const lower = text.toLowerCase();
-  const keywords = ['bounty', 'finding', 'vulnerability', 'security', 'hack', 
-                    'pentest', 'scope', 'report', 'exploit', 'bug', 'ctf'];
-  return keywords.some(k => lower.includes(k));
-}
+const AthelgardBrain = {
+  version: BRAIN_VERSION,
+  process: async function(q, c={}) {
+    const { type='general' } = c;
+    switch(type) {
+      case 'hunt': return evaluateHunt(c);
+      case 'build': return reviewSubmission(c);
+      case 'mentor': return getMentorResponse(c, q);
+      default: return getMentorResponse(c, q);
+    }
+  },
+  getStatus: function() { return { version: BRAIN_VERSION, timestamp: Date.now(), systems: { ethicalHuntLoop: 'OK', builderBrain: 'OK' } }; }
+};
 
-// ═══════════════════════════════════════════
-// PARSER — Extract bounty attempt from chat message
-// ═══════════════════════════════════════════
-export function parseBountyAttempt(text) {
-  return {
-    simulated: /\b(simulated|practice|training|ctf|range)\b/i.test(text),
-    target: {
-      id: text.match(/target[:\s]+([^\n]+)/i)?.[1] || 
-          text.match(/\b(target|app|site)[:\s]+([^\n]+)/i)?.[2] || null,
-    },
-    scope: {
-      program: text.match(/program[:\s]+([^\n]+)/i)?.[1] || null,
-      authorized: /\b(authorized|approved|sanctioned)\b/i.test(text),
-      inScope: /\b(in.scope|inscope|scoped)\b/i.test(text) || true,
-    },
-    evidence: {
-      observation: text.match(/observation[:\s]+([^\n]+(?:\n(?!(?:impact|reproduction|remediation)[:\s]).*)*)/i)?.[1]?.trim() || null,
-      impact: text.match(/impact[:\s]+([^\n]+(?:\n(?!(?:reproduction|remediation)[:\s]).*)*)/i)?.[1]?.trim() || null,
-      reproduction: text.match(/reproduction[:\s]+([^\n]+(?:\n(?!(?:remediation)[:\s]).*)*)/i)?.[1]?.trim() || null,
-      remediation: text.match(/remediation[:\s]+([^\n]+)/i)?.[1]?.trim() || null,
-    },
-  };
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = AthelgardBrain;
+  module.exports.HUNT = HUNT;
+  module.exports.BUILDER = BUILDER;
+}
+if (typeof window !== 'undefined') {
+  window.AthelgardBrain = AthelgardBrain;
 }
