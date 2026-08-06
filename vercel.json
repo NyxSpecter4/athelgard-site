@@ -19,8 +19,18 @@
       }
     }
   ],
-  "rewrites": [
-    { "source": "/login", "destination": "/frontend/login.html" },
-    { "source": "/", "destination": "/frontend/index.html" }
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "api/$1",
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS"
+      }
+    },
+    {
+      "src": "/(.*)",
+      "dest": "frontend/index.html"
+    }
   ]
 }
