@@ -236,7 +236,7 @@ export default async function handler(req: any, res: any) {
 
   const action = req.query.action || 'status';
   const origin = appOrigin(req);
-  const callbackUrl = `${origin}/auth/github/callback`;
+  const callbackUrl = `${origin}/api/github?action=callback`;
 
   if (action === 'status') {
     try {
@@ -264,7 +264,7 @@ export default async function handler(req: any, res: any) {
     return redirect(res, authorize.toString(), [cookie(STATE_COOKIE, state, { maxAge: 600 })]);
   }
 
-  if (req.url?.includes('/callback')) {
+  if (action === 'callback') {
     const cookies = parseCookies(req.headers.cookie);
     const clearState = cookie(STATE_COOKIE, '', { maxAge: 0 });
     if (req.query.error) return redirect(res, `/?github_error=${encodeURIComponent(req.query.error)}`, [clearState]);
@@ -330,3 +330,5 @@ export default async function handler(req: any, res: any) {
     return json(res, error.status || 502, { error: error.message || 'GitHub request failed.' });
   }
 }
+
+// Cache bust: 1785994148704
