@@ -2,6 +2,9 @@ import { VercelRequest, VercelResponse } from '@vercel/node';
 import https from 'https';
 import crypto from 'crypto';
 
+const brain = require('../../modules/brain');
+const Config = require('../../modules/config');
+
 const SESSION_COOKIE = 'athelgard_github_session';
 const STATE_COOKIE = 'athelgard_github_oauth_state';
 const SESSION_TTL = 60 * 60 * 8;
@@ -35,8 +38,8 @@ function safeEq(a: string, b: string): boolean {
   return x.length === y.length && crypto.timingSafeEqual(x, y);
 }
 
+// mELI fix: derive session secret from existing secrets, don't hard-require GITHUB_SESSION_SECRET
 function getSessionSecret(): string {
-  // mELI fix: derive from existing secrets, don't hard-require GITHUB_SESSION_SECRET
   return process.env.GITHUB_SESSION_SECRET || 
     (process.env.GITHUB_CLIENT_SECRET 
       ? crypto.createHash('sha256').update(process.env.GITHUB_CLIENT_SECRET).digest('hex') 
@@ -268,7 +271,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     status: 'healthy',
     service: 'athelgard-site',
     timestamp: new Date().toISOString(),
-    version: '2.0.0',
+    version: '2.1.0',
     routes: ['/api/health?path=agent', '/api/health?path=github', '/api/health?path=bountywarz']
   });
 }
