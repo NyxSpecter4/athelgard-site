@@ -17,6 +17,10 @@
         "memory": 3008,
         "maxDuration": 60
       }
+    },
+    {
+      "src": "frontend/**",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
