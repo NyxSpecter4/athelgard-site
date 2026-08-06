@@ -1,21 +1,26 @@
-// BountyWarz API bridge (TypeScript)
+import { VercelRequest, VercelResponse } from '@vercel/node';
 
-const sessions = new Map<string, any>();
+const sessions = new Map();
 
-export default async function handler(req: any, res: any) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Content-Type', 'application/json');
   
-  if (req.method === 'OPTIONS') return res.status(204).end();
+  const { method } = req;
+  const pathParts = req.url?.split('/') || [];
+  const action = pathParts[pathParts.length - 1];
   
-  if (req.method === 'POST') {
-    const { userId, mode = 'drone', difficulty = 'normal' } = req.body || {};
-    const id = 'session_' + Date.now();
-    const session = { id, userId, createdAt: Date.now(), mode, difficulty };
-    sessions.set(id, session);
-    return res.status(200).json({ status: 'ok', session });
+  if (method === 'POST' && action === 'session') {
+    const { userId, mode, difficulty } = req.body;
+    const sessionId = 'session_' + Date.now();
+    const session = { id: sessionId, userId, mode: mode || 'drone', difficulty: difficulty || 'normal', createdAt: Date.now() };
+    sessions.set(sessionId, session);
+    return res.status(200).json(session);
   }
   
-  return res.status(200).json({ status: 'ok', message: 'BountyWarz API bridge active', sessions: sessions.size });
+  if (method === 'GET') {
+    return res.status(200).json({ status: 'ok', message: 'BountyWarz API bridge active', sessions: sessions.size });
+  }
+  
+  return res.status(200).json({ status: 'ok', message: 'BountyWarz API' });
 }
