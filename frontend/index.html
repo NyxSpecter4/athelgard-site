@@ -657,9 +657,10 @@ hello();`,
         messages.scrollTop = messages.scrollHeight;
         
         try {
-          const res = await fetch('/api/health?path=agent', {
+          const res = await fetch('/api/agent', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
             body: JSON.stringify({ message: text })
           });
           const data = await res.json();
