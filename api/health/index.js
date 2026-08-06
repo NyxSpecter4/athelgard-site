@@ -53,7 +53,8 @@ function parseCookies(h = '') {
 function cookie(name, value, opts = {}) {
   const parts = [`${name}=${encodeURIComponent(value)}`, 'Path=/', 'HttpOnly', 'SameSite=Lax'];
   if (process.env.VERCEL) parts.push('Secure');
-  if (opts.maxAge !== undefined) parts.push(`Max-Age=${opts.maxAge}`);
+  if (opts.maxAge !== undefined) par
+ts.push(`Max-Age=${opts.maxAge}`);
   return parts.join('; ');
 }
 
@@ -113,7 +114,8 @@ function requestGH(path, token, method = 'GET', body) {
         'Accept': 'application/vnd.github+json',
         'User-Agent': 'Athelgard',
         ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-        ...(data ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) } : {}),
+        ...(data ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLengt
+h(data) } : {}),
       }
     }, response => {
       let d = '';
@@ -168,7 +170,8 @@ async function handleAgent(req, res) {
   const session = requireAuth(req, res);
   if (!session) return;
 
-  const key = process.env.DEEPSEEK_API_KEY || process.env.DEEPSEEK_KEY;
+  const key = process
+.env.DEEPSEEK_API_KEY || process.env.DEEPSEEK_KEY;
   if (!key) return res.status(503).json({ error: 'AI service not configured' });
 
   const { message, model = 'deepseek-chat' } = req.body || {};
@@ -215,7 +218,8 @@ async function handleGitHub(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end();
 
   if (action === 'login') {
-    if (!process.env.GITHUB_CLIENT_ID || !process.env.GITHUB_CLIENT_SECRET) {
+    if (!process.env.
+GITHUB_CLIENT_ID || !process.env.GITHUB_CLIENT_SECRET) {
       return res.status(503).json({ error: 'GitHub OAuth not configured' });
     }
     const state = crypto.randomBytes(32).toString('hex');
@@ -228,7 +232,7 @@ async function handleGitHub(req, res) {
     return res.redirect(url.toString());
   }
 
-  if (action === 'callback') {
+  if (action === 'callback' || req.url?.includes('/api/github/callback')) {
     const cookies = parseCookies(req.headers.cookie || '');
     const clear = cookie(STATE_COOKIE, '', { maxAge: 0 });
     if (req.query.error) {
@@ -256,7 +260,8 @@ async function handleGitHub(req, res) {
     const session = readSession(req);
     if (session) userSessions.delete(session.userId);
     res.setHeader('Set-Cookie', cookie(SESSION_COOKIE, '', { maxAge: 0 }));
-    return res.status(200).json({ connected: false });
+    return res.status(200).json({ connected: false })
+;
   }
 
   if (action === 'status') {
@@ -297,7 +302,8 @@ async function handleGitHub(req, res) {
       }
       if (action === 'contents') {
         try {
-          const url = new URL(req.url || '', `https://${req.headers.host}`);
+          const url =
+ new URL(req.url || '', `https://${req.headers.host}`);
           const owner = url.searchParams.get('owner') || '';
           const repo = url.searchParams.get('repo') || '';
           const filePath = url.searchParams.get('path') || '';
@@ -335,7 +341,8 @@ async function handleBountyWarz(req, res) {
     const id = 'session_' + Date.now();
     const session = { id, userId, createdAt: Date.now(), mode, difficulty };
     bwSessions.set(id, session);
-    return res.status(200).json({ status: 'ok', session });
+    return res.status(200).json({ status: 'ok', sessi
+on });
   }
   return res.status(200).json({ status: 'ok', message: 'BountyWarz API active', sessions: bwSessions.size });
 }
