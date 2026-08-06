@@ -1,8 +1,12 @@
 {
   "name": "athelgard-site",
   "version": "1.0.0",
-  "main": "api/index.ts",
-  "scripts": {"dev": "vercel dev", "build": "vercel build"},
-  "dependencies": {"@vercel/node": "^3.0.0", "uuid": "^9.0.0"},
-  "devDependencies": {"typescript": "^5.2.2", "vercel": "^32.4.0"}
+  "private": true,
+  "dependencies": {
+    "@vercel/node": "^3.0.0",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.2.2"
+  }
 }
