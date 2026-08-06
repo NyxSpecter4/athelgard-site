@@ -1,9 +1,11 @@
-const https = require('https');
-const crypto = require('crypto');
+import { VercelRequest, VercelResponse } from '@vercel/node';
+import * as https from 'https';
+import * as crypto from 'crypto';
 
-const userSessions = new Map();
-const cliPairCodes = new Map();
-const requestCounts = new Map();
+const userSessions = new Map<string, { token: string; login: string; avatar: string; createdAt: number }>();
+const cliPairCodes = new Map<string, { userId: string; token: string; createdAt: number; used: boolean }>();
+
+const requestCounts = new Map<string, { count: number; resetTime: number }>();
 const RATE_LIMIT = 60;
 const RATE_WINDOW = 60000;
 const MAX_BODY_SIZE = 1024 * 1024;
@@ -12,8 +14,8 @@ const STATE_COOKIE = 'athelgard_oauth_state';
 const SESSION_TTL = 1000 * 60 * 60 * 24 * 7;
 const PAIR_CODE_TTL = 1000 * 60 * 5;
 
-function checkRateLimit(req) {
-  const key = req.headers['x-forwarded-for'] || 'unknown';
+function checkRateLimit(req: VercelRequest): { allowed: boolean; retryAfter?: number } {
+  const key = String(req.headers['x-forwarded-for'] || 'unknown');
   const now = Date.now();
   const entry = requestCounts.get(key);
   if (!entry || now > entry.resetTime) {
@@ -27,14 +29,14 @@ function checkRateLimit(req) {
   return { allowed: true };
 }
 
-function setSecurityHeaders(res) {
+function setSecurityHeaders(res: VercelResponse) {
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('X-XSS-Protection', '1; mode=block');
 }
 
-function setCorsHeaders(res) {
+function setCorsHeaders(res: VercelResponse) {
   const allowedOrigin = process.env.VERCEL ? 'https://athelgard.io' : 'http://localhost:3000';
   res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -42,46 +44,52 @@ function setCorsHeaders(res) {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
 }
 
-function parseCookies(h = '') {
+function base64url(v: string | Buffer): string {
+  const input = typeof v === 'string' ? v : v.toString();
+  return Buffer.from(input).toString('base64url');
+}
+
+function parseCookies(h = ''): Record<string, string> {
   return h.split(';').reduce((o, p) => {
     const i = p.indexOf('=');
     if (i > -1) o[p.slice(0, i).trim()] = decodeURIComponent(p.slice(i + 1).trim());
     return o;
-  }, {});
+  }, {} as Record<string, string>);
 }
 
-function cookie(name, value, opts = {}) {
+function cookie(name: string, value: string, opts: { maxAge?: number } = {}): string {
   const parts = [`${name}=${encodeURIComponent(value)}`, 'Path=/', 'HttpOnly', 'SameSite=Lax'];
   if (process.env.VERCEL) parts.push('Secure');
   if (opts.maxAge !== undefined) parts.push(`Max-Age=${opts.maxAge}`);
   return parts.join('; ');
 }
 
-function sign(value, secret) {
+function sign(value: string, secret: string): string {
   return crypto.createHmac('sha256', secret).update(value).digest('base64url');
 }
 
-function safeEq(a, b) {
+function safeEq(a: string, b: string): boolean {
   if (!a || !b) return false;
-  try {
-    return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
-  } catch { return false; }
+  const x = Buffer.from(a, 'utf8');
+  const y = Buffer.from(b, 'utf8');
+  if (x.length !== y.length) return false;
+  return crypto.timingSafeEqual(x as unknown as Uint8Array, y as unknown as Uint8Array);
 }
 
-function getSessionSecret() {
+function getSessionSecret(): string {
   if (!process.env.GITHUB_SESSION_SECRET) {
     throw new Error('GITHUB_SESSION_SECRET environment variable is required');
   }
   return process.env.GITHUB_SESSION_SECRET;
 }
 
-function createSession(userId, token) {
-  const payload = Buffer.from(JSON.stringify({ userId, token, exp: Date.now() + SESSION_TTL })).toString('base64url');
+function createSession(userId: string, token: string): string {
+  const payload = base64url(JSON.stringify({ userId, token, exp: Date.now() + SESSION_TTL }));
   return `${payload}.${sign(payload, getSessionSecret())}`;
 }
 
-function readSession(req) {
-  const raw = parseCookies(req.headers.cookie || '')[SESSION_COOKIE];
+function readSession(req: VercelRequest): { userId: string; token: string; exp: number } | null {
+  const raw = parseCookies(req.headers.cookie)[SESSION_COOKIE];
   if (!raw) return null;
   const [payload, sig] = raw.split('.');
   if (!payload || !safeEq(sig, sign(payload, getSessionSecret()))) return null;
@@ -91,7 +99,7 @@ function readSession(req) {
   } catch { return null; }
 }
 
-function requireAuth(req, res) {
+function requireAuth(req: VercelRequest, res: VercelResponse) {
   const session = readSession(req);
   if (!session) {
     res.status(401).json({ error: 'Not authenticated. Login with GitHub first.' });
@@ -100,51 +108,51 @@ function requireAuth(req, res) {
   return session;
 }
 
-function checkBodySize(req) {
+function checkBodySize(req: VercelRequest): boolean {
   return parseInt(req.headers['content-length'] || '0') <= MAX_BODY_SIZE;
 }
 
-function requestGH(path, token, method = 'GET', body) {
+function requestGH(path: string, token: string, method = 'GET', body?: any): Promise<any> {
   return new Promise((resolve, reject) => {
     const data = body ? JSON.stringify(body) : null;
-    const request = https.request({
+    const req = https.request({
       hostname: 'api.github.com', path, method,
       headers: {
-        'Accept': 'application/vnd.github+json',
+        Accept: 'application/vnd.github+json',
         'User-Agent': 'Athelgard',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(data ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) } : {}),
       }
-    }, response => {
+    }, res => {
       let d = '';
-      response.on('data', c => d += c);
-      response.on('end', () => {
-        let parsed = {};
+      res.on('data', c => d += c);
+      res.on('end', () => {
+        let parsed: any = {};
         try { parsed = d ? JSON.parse(d) : {}; } catch { parsed = { message: 'Unexpected response' }; }
-        if (response.statusCode < 200 || response.statusCode > 299) {
-          const err = new Error(parsed.message || `GitHub ${response.statusCode}`);
-          err.status = response.statusCode;
+        if (res.statusCode! < 200 || res.statusCode! > 299) {
+          const err = new Error(parsed.message || `GitHub ${res.statusCode}`) as any;
+          err.status = res.statusCode;
           return reject(err);
         }
         resolve(parsed);
       });
     });
-    request.on('error', reject);
-    if (data) request.write(data);
-    request.end();
+    req.on('error', reject);
+    if (data) req.write(data);
+    req.end();
   });
 }
 
-function exchangeCode(code) {
+function exchangeCode(code: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const payload = JSON.stringify({ client_id: process.env.GITHUB_CLIENT_ID, client_secret: process.env.GITHUB_CLIENT_SECRET, code });
-    const request = https.request({
+    const req = https.request({
       hostname: 'github.com', path: '/login/oauth/access_token', method: 'POST',
-      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload), 'User-Agent': 'Athelgard' }
-    }, response => {
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload), 'User-Agent': 'Athelgard' }
+    }, res => {
       let d = '';
-      response.on('data', c => d += c);
-      response.on('end', () => {
+      res.on('data', c => d += c);
+      res.on('end', () => {
         try {
           const p = JSON.parse(d);
           if (!p.access_token) return reject(new Error(p.error_description || 'No token'));
@@ -152,13 +160,56 @@ function exchangeCode(code) {
         } catch { reject(new Error('Bad response')); }
       });
     });
-    request.on('error', reject);
-    request.write(payload);
-    request.end();
+    req.on('error', reject);
+    req.write(payload);
+    req.end();
   });
 }
 
-async function handleAgent(req, res) {
+async function loadEveContract(userId: string, message: string) {
+  const base = process.env.BOUNTYWARZ_EVE_URL;
+  const secret = process.env.ATHELGARD_EVE_BRIDGE_SECRET;
+  if (!base && !secret) return null;
+  if (!base || !secret) throw new Error('Eve bridge configuration is incomplete');
+  const payload = { channel: 'cli', mode: 'brief', message: String(message).slice(0, 10000) };
+  const timestamp = String(Date.now());
+  const canonical = JSON.stringify(payload);
+  const signature = crypto.createHmac('sha256', secret).update(`${userId}.${timestamp}.${canonical}`).digest('hex');
+  const response = await fetch(base.replace(/\/$/, '') + '/api/athelgard-eve', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-athelgard-identity': userId,
+      'x-athelgard-timestamp': timestamp,
+      'x-athelgard-signature': signature
+    },
+    body: canonical,
+    signal: AbortSignal.timeout(8000)
+  });
+  const contract = await response.json();
+  if (!response.ok || !contract.ok) throw new Error(contract.error || 'Eve runtime rejected the request');
+  return contract;
+}
+
+async function loadEveContract(userId: string, message: string) {
+  const base = process.env.BOUNTYWARZ_EVE_URL;
+  const secret = process.env.ATHELGARD_EVE_BRIDGE_SECRET;
+  if (!base && !secret) return null;
+  if (!base || !secret) throw new Error('Eve bridge configuration is incomplete');
+  const payload = { channel: 'cli', mode: 'brief', message: String(message).slice(0, 10000) };
+  const timestamp = String(Date.now());
+  const canonical = JSON.stringify(payload);
+  const signature = crypto.createHmac('sha256', secret).update(`${userId}.${timestamp}.${canonical}`).digest('hex');
+  const response = await fetch(base.replace(/\/$/, '') + '/api/athelgard-eve', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'x-athelgard-identity': userId, 'x-athelgard-timestamp': timestamp, 'x-athelgard-signature': signature },
+    body: canonical, signal: AbortSignal.timeout(8000)
+  });
+  const contract = await response.json();
+  if (!response.ok || !contract.ok) throw new Error(contract.error || 'Eve runtime rejected the request');
+  return contract;
+}
+
+async function handleAgent(req: VercelRequest, res: VercelResponse) {
   setSecurityHeaders(res);
   setCorsHeaders(res);
   if (req.method === 'OPTIONS') return res.status(204).end();
@@ -167,6 +218,14 @@ async function handleAgent(req, res) {
 
   const session = requireAuth(req, res);
   if (!session) return;
+
+  let eveContract: any = null;
+  try { eveContract = await loadEveContract(session.userId, String((req.body || {}).message || '')); }
+  catch (e: any) { return res.status(502).json({ error: 'Athelgard Eve runtime unavailable', detail: e.message }); }
+
+  let eveContract: any = null;
+  try { eveContract = await loadEveContract(session.userId, String((req.body || {}).message || '')); }
+  catch (e: any) { return res.status(502).json({ error: 'Athelgard Eve runtime unavailable', detail: e.message }); }
 
   const key = process.env.DEEPSEEK_API_KEY || process.env.DEEPSEEK_KEY;
   if (!key) return res.status(503).json({ error: 'AI service not configured' });
@@ -177,10 +236,10 @@ async function handleAgent(req, res) {
   }
 
   try {
-    const result = await new Promise((resolve, reject) => {
+    const result: any = await new Promise((resolve, reject) => {
       const data = JSON.stringify({
         model, messages: [
-          { role: 'system', content: 'You are Athelgard, an elite ethical hacking mentor.' },
+          { role: 'system', content: 'You are Athelgard, an elite ethical bounty-hunting mentor. Teach only within authorized training ranges or verified program scope. Guide the learner through scope, asset, evidence, impact, report, and remediation. ' + (eveContract ? 'Canonical Eve contract: ' + JSON.stringify({ safety: eveContract.safety, tools: eveContract.availableTools, liveContext: eveContract.liveContext }) : '') },
           { role: 'user', content: `[User: ${session.userId}]\n\n${message}` }
         ],
         temperature: 0.7, max_tokens: 2000
@@ -197,14 +256,14 @@ async function handleAgent(req, res) {
       r.write(data);
       r.end();
     });
-    return res.status(200).json({ response: result.choices?.[0]?.message?.content || 'No response', model, usage: result.usage || {} });
-  } catch (e) {
+    return res.status(200).json({ response: result.choices?.[0]?.message?.content || 'No response', model, usage: result.usage || {}, eve: eveContract ? { agent: eveContract.agent, safety: eveContract.safety, tools: eveContract.availableTools } : null });
+  } catch (e: any) {
     console.error('Agent error:', e.message);
     return res.status(502).json({ error: 'AI service unavailable' });
   }
 }
 
-async function handleGitHub(req, res) {
+async function handleGitHub(req: VercelRequest, res: VercelResponse) {
   setSecurityHeaders(res);
   setCorsHeaders(res);
   const action = String(req.query.action || 'status');
@@ -229,7 +288,7 @@ async function handleGitHub(req, res) {
   }
 
   if (action === 'callback') {
-    const cookies = parseCookies(req.headers.cookie || '');
+    const cookies = parseCookies(req.headers.cookie);
     const clear = cookie(STATE_COOKIE, '', { maxAge: 0 });
     if (req.query.error) {
       res.setHeader('Set-Cookie', clear);
@@ -246,7 +305,7 @@ async function handleGitHub(req, res) {
       userSessions.set(userId, { token, login: user.login, avatar: user.avatar_url, createdAt: Date.now() });
       res.setHeader('Set-Cookie', [clear, cookie(SESSION_COOKIE, createSession(userId, token), { maxAge: 604800 })]);
       return res.redirect('/?github=connected');
-    } catch (e) {
+    } catch (e: any) {
       res.setHeader('Set-Cookie', clear);
       return res.redirect(`/?github_error=${encodeURIComponent(e.message)}`);
     }
@@ -293,7 +352,7 @@ async function handleGitHub(req, res) {
     try {
       if (action === 'repos') {
         const repos = await requestGH('/user/repos?sort=updated&per_page=30', session.token);
-        return res.status(200).json({ repos: repos.map(r => ({ full_name: r.full_name, private: r.private, updated_at: r.updated_at })) });
+        return res.status(200).json({ repos: repos.map((r: any) => ({ full_name: r.full_name, private: r.private, updated_at: r.updated_at })) });
       }
       if (action === 'contents') {
         try {
@@ -304,7 +363,7 @@ async function handleGitHub(req, res) {
           if (!owner || !repo) return res.status(400).json({ error: 'owner and repo query params required' });
           const data = await requestGH(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${encodeURIComponent(filePath)}`, session.token);
           return res.status(200).json(data);
-        } catch (innerErr) {
+        } catch (innerErr: any) {
           console.error('Contents error:', innerErr.message);
           return res.status(502).json({ error: 'Failed to load contents' });
         }
@@ -315,7 +374,7 @@ async function handleGitHub(req, res) {
         return res.status(200).json(await requestGH(`/search/repositories?q=${encodeURIComponent(query)}&per_page=5`, session.token));
       }
       return res.status(404).json({ error: 'Unknown action' });
-    } catch (e) {
+    } catch (e: any) {
       console.error('GitHub proxy error:', e.message);
       return res.status(502).json({ error: 'GitHub request failed' });
     }
@@ -324,8 +383,8 @@ async function handleGitHub(req, res) {
   return res.status(404).json({ error: 'Unknown action' });
 }
 
-const bwSessions = new Map();
-async function handleBountyWarz(req, res) {
+const bwSessions = new Map<string, any>();
+async function handleBountyWarz(req: VercelRequest, res: VercelResponse) {
   setSecurityHeaders(res);
   setCorsHeaders(res);
   if (!checkBodySize(req)) return res.status(413).json({ error: 'Request body too large' });
@@ -340,7 +399,7 @@ async function handleBountyWarz(req, res) {
   return res.status(200).json({ status: 'ok', message: 'BountyWarz API active', sessions: bwSessions.size });
 }
 
-module.exports = async function handler(req, res) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   const rateCheck = checkRateLimit(req);
   if (!rateCheck.allowed) {
     res.setHeader('Retry-After', String(rateCheck.retryAfter));
@@ -348,7 +407,7 @@ module.exports = async function handler(req, res) {
   }
   if (req.method === 'POST' && !checkBodySize(req)) return res.status(413).json({ error: 'Request body too large' });
 
-  const path = String((req.query.path) || req.url?.split('?')[0].replace(/^\/api\//, '') || 'health');
+  const path = String((req.query.path as string) || req.url?.split('?')[0].replace(/^\/api\//, '') || 'health');
   if (path === 'agent' || path.startsWith('agent')) return handleAgent(req, res);
   if (path === 'github' || path.startsWith('github')) return handleGitHub(req, res);
   if (path === 'bountywarz' || path.startsWith('bounty')) return handleBountyWarz(req, res);
@@ -368,4 +427,4 @@ module.exports = async function handler(req, res) {
       '/api/health?path=github&action=repos'
     ]
   });
-};
+}
