@@ -47,6 +47,7 @@ function appOrigin(req: any): string {
 
 function sign(value: string, secret: string): string {
   return crypto.createHmac('sha256', secret).update(value).digest(
+
 'base64url
 
 ');
@@ -101,7 +102,8 @@ function requestGitHub(path: string, token: string | null = null, method = 'GET'
         },
       },
       response => {
-        let data 
+        let data
+ 
 = '';
      
  
@@ -171,7 +173,8 @@ function exchangeCode(code: string): Promise<string> {
   });
 }
 
-function requireSession(req: any
+function requireSession(req: a
+ny
 , res: any) 
 {
 
@@ -250,7 +253,8 @@ export default async function handler(req: any, res: any) {
     } catch (error: any) {
       return json(res, error.status || 502, {
         oauthConf
-igured: true,
+ig
+ured: true,
 
   
       connected: false,
@@ -299,7 +303,8 @@ igured: true,
     if (action === 'repos') {
       const repos = await requestGitHub('/user/repos?sort=updated&per_page=30', session.token);
       return json(res, 200, {
-        repos: repos.map((repo: any) => ({
+        repos: repos.map
+((repo: any) => ({
           id:
  repo.id,
     
@@ -342,3 +347,4 @@ igured: true,
 }
 
 // Cache bust: 1785994148704
+// Redeploy: 1785994985679
