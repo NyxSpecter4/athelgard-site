@@ -5,31 +5,140 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Athelgard — Coding Agent</title>
   <style>
-    :root{color-scheme:dark;--bg:#090b10;--panel:#111620;--line:#253044;--text:#e8eef8;--muted:#9badc4;--cyan:#49d8ff;--red:#ff8a9b;--green:#5de8aa}*{box-sizing:border-box}body{margin:0;min-height:100vh;font:16px system-ui,sans-serif;background:var(--bg);color:var(--text);display:grid;place-items:center;padding:24px}.shell{width:min(760px,100%);background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:clamp(24px,6vw,52px);box-shadow:0 30px 90px #0008}h1{margin:0 0 10px;font-size:clamp(2rem,6vw,3.8rem)}p{line-height:1.6;color:var(--muted);max-width:62ch}.badge{display:inline-flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:999px;padding:7px 11px;font-size:.86rem;color:var(--muted)}.dot{width:9px;height:9px;border-radius:50%;background:var(--muted)}.connected .dot{background:var(--green)}.error .dot{background:var(--red)}button{margin-top:24px;border:0;border-radius:10px;background:var(--cyan);color:#041017;font-weight:750;font-size:1rem;padding:13px 18px;cursor:pointer}button:disabled{opacity:.6;cursor:wait}.detail{margin-top:18px;font-size:.9rem;min-height:1.5em}.hidden{display:none}</style>
+    :root{color-scheme:dark;--bg:#090b10;--panel:#111620;--line:#253044;--text:#e8eef8;--muted:#9badc4;--cyan:#49d8ff;--red:#ff8a9b;--green:#5de8aa;--amber:#ffd166}*{box-sizing:border-box}body{margin:0;min-height:100vh;font:16px system-ui,sans-serif;background:var(--bg);color:var(--text);display:grid;place-items:center;padding:24px}.shell{width:min(860px,100%);background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:clamp(24px,6vw,52px);box-shadow:0 30px 90px #0008}.top{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}h1{margin:10px 0 10px;font-size:clamp(2rem,6vw,3.8rem)}p{line-height:1.6;color:var(--muted);max-width:62ch}.badge{display:inline-flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:999px;padding:7px 11px;font-size:.86rem;color:var(--muted)}.dot{width:9px;height:9px;border-radius:50%;background:var(--muted)}.connected .dot{background:var(--green)}.error .dot{background:var(--red)}.warning .dot{background:var(--amber)}.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}button{border:0;border-radius:10px;background:var(--cyan);color:#041017;font-weight:750;font-size:1rem;padding:13px 18px;cursor:pointer}button.secondary{background:transparent;color:var(--text);border:1px solid var(--line)}button:disabled{opacity:.6;cursor:wait}.detail{margin-top:18px;font-size:.95rem;min-height:1.5em}.hidden{display:none}.panel{margin-top:28px;border:1px solid var(--line);border-radius:16px;padding:18px;background:#0d121b}.panel h2{margin:0 0 12px;font-size:1rem}.repo-list{list-style:none;padding:0;margin:0;display:grid;gap:10px}.repo-list li{display:flex;justify-content:space-between;gap:16px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:#0a0f16}.repo-name{font-weight:650}.repo-meta{font-size:.9rem;color:var(--muted)}code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#0a0f16;border:1px solid var(--line);border-radius:8px;padding:2px 6px;color:var(--text)}a{color:var(--cyan);text-decoration:none}a:hover{text-decoration:underline}@media (max-width:700px){.repo-list li{display:block}.repo-meta{margin-top:6px}}
+  </style>
 </head>
 <body>
   <main class="shell">
-    <div id="status" class="badge"><span class="dot"></span><span id="statusText">Checking GitHub connection…</span></div>
-    <h1>🦉 Athelgard</h1>
-    <p>Your coding agent works from repositories you explicitly connect. GitHub access is held in a secure server-side session, not pasted into this page.</p>
-    <button id="connect" type="button" class="hidden">Connect GitHub</button>
+    <div class="top">
+      <div>
+        <div id="status" class="badge"><span class="dot"></span><span id="statusText">Checking GitHub connection…</span></div>
+        <h1>🦉 Athelgard</h1>
+        <p>One live vertical slice: connect GitHub, verify the session boundary, and show the repos Athelgard can actually work with.</p>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="connect" type="button" class="hidden">Connect GitHub</button>
+      <button id="disconnect" type="button" class="secondary hidden">Disconnect</button>
+      <button id="refresh" type="button" class="secondary hidden">Refresh status</button>
+    </div>
+
     <p id="detail" class="detail" role="status"></p>
+
+    <section id="reposPanel" class="panel hidden">
+      <h2>Connected repositories</h2>
+      <ul id="repoList" class="repo-list"></ul>
+    </section>
   </main>
+
   <script>
-    const statusEl=document.getElementById('status');const statusText=document.getElementById('statusText');const button=document.getElementById('connect');const detail=document.getElementById('detail');
-    function setStatus(kind,text){statusEl.className='badge '+kind;statusText.textContent=text}
-    async function checkConnection(){
-      const params=new URLSearchParams(location.search);
-      if(params.get('github_error')) detail.textContent='GitHub connection did not finish: '+params.get('github_error');
-      try{
-        const response=await fetch('/api/github?action=status',{credentials:'same-origin'});
-        const data=await response.json();
-        if(response.ok&&data.connected){setStatus('connected','GitHub connected as '+data.user.login);detail.textContent='Athelgard can now read the repositories you grant it access to.';return;}
-        setStatus('', 'GitHub not connected');button.classList.remove('hidden');
-      }catch(error){setStatus('error','GitHub service unavailable');detail.textContent='The connection endpoint did not respond. Check the current deployment configuration.';button.classList.remove('hidden');}
+    const statusEl = document.getElementById('status');
+    const statusText = document.getElementById('statusText');
+    const connectButton = document.getElementById('connect');
+    const disconnectButton = document.getElementById('disconnect');
+    const refreshButton = document.getElementById('refresh');
+    const detail = document.getElementById('detail');
+    const reposPanel = document.getElementById('reposPanel');
+    const repoList = document.getElementById('repoList');
+
+    function setStatus(kind, text) {
+      statusEl.className = 'badge ' + kind;
+      statusText.textContent = text;
     }
-    button.addEventListener('click',()=>{button.disabled=true;button.textContent='Opening GitHub…';location.assign('/api/github?action=start')});
-    checkConnection();
+
+    function setButtons({ connect = false, disconnect = false, refresh = false }) {
+      connectButton.classList.toggle('hidden', !connect);
+      disconnectButton.classList.toggle('hidden', !disconnect);
+      refreshButton.classList.toggle('hidden', !refresh);
+    }
+
+    function renderRepos(repos) {
+      repoList.innerHTML = '';
+      if (!Array.isArray(repos) || !repos.length) {
+        reposPanel.classList.add('hidden');
+        return;
+      }
+      reposPanel.classList.remove('hidden');
+      repos.forEach(repo => {
+        const item = document.createElement('li');
+        item.innerHTML = `
+          <div>
+            <div class="repo-name"><a href="${repo.html_url}" target="_blank" rel="noreferrer">${repo.full_name}</a></div>
+            <div class="repo-meta">Default branch: <code>${repo.default_branch}</code></div>
+          </div>
+          <div class="repo-meta">${repo.private ? 'Private' : 'Public'}</div>
+        `;
+        repoList.appendChild(item);
+      });
+    }
+
+    async function loadStatus() {
+      const params = new URLSearchParams(location.search);
+      if (params.get('github_error')) {
+        detail.textContent = 'GitHub connection did not finish: ' + params.get('github_error');
+      }
+
+      setStatus('', 'Checking GitHub connection…');
+      setButtons({});
+      reposPanel.classList.add('hidden');
+
+      try {
+        const response = await fetch('/api/github?action=status', { credentials: 'same-origin' });
+        const data = await response.json();
+
+        if (!response.ok) {
+          setStatus('error', 'GitHub service unavailable');
+          detail.textContent = data.error || 'The connection endpoint did not respond cleanly.';
+          setButtons({ refresh: true });
+          return;
+        }
+
+        if (!data.oauthConfigured) {
+          setStatus('warning', 'GitHub OAuth not configured');
+          detail.textContent = 'This deployment is missing: ' + (data.missing || []).join(', ') + '.';
+          setButtons({ refresh: true });
+          return;
+        }
+
+        if (!data.connected) {
+          setStatus('', 'GitHub not connected');
+          detail.textContent = 'OAuth is wired. Connect GitHub to give Athelgard scoped access to your repositories.';
+          setButtons({ connect: true, refresh: true });
+          return;
+        }
+
+        setStatus('connected', 'GitHub connected as ' + data.user.login);
+        detail.textContent = 'Session is live. Athelgard can work against the repositories shown below.';
+        renderRepos(data.repos || []);
+        setButtons({ disconnect: true, refresh: true });
+      } catch (error) {
+        setStatus('error', 'GitHub service unavailable');
+        detail.textContent = 'The connection endpoint did not respond. Check the current deployment configuration.';
+        setButtons({ refresh: true });
+      }
+    }
+
+    connectButton.addEventListener('click', () => {
+      connectButton.disabled = true;
+      connectButton.textContent = 'Opening GitHub…';
+      location.assign('/api/github?action=start');
+    });
+
+    disconnectButton.addEventListener('click', async () => {
+      disconnectButton.disabled = true;
+      disconnectButton.textContent = 'Disconnecting…';
+      try {
+        await fetch('/api/github?action=logout', { credentials: 'same-origin' });
+      } finally {
+        disconnectButton.disabled = false;
+        disconnectButton.textContent = 'Disconnect';
+        loadStatus();
+      }
+    });
+
+    refreshButton.addEventListener('click', loadStatus);
+    loadStatus();
   </script>
 </body>
 </html>
