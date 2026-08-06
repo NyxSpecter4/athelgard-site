@@ -47,7 +47,6 @@ function appOrigin(req: any): string {
 
 function sign(value: string, secret: string): string {
   return crypto.createHmac('sha256', secret).update(value).digest('base64url
-
 ');
 }
 
@@ -101,8 +100,7 @@ function requestGitHub(path: string, token: string | null = null, method = 'GET'
       },
       response => {
         let data = '';
-     
- 
+      
   response.on('data', chunk => {
           data += chunk;
         });
@@ -169,8 +167,7 @@ function exchangeCode(code: string): Promise<string> {
   });
 }
 
-function requireSession(req: any, res: any) 
-{
+function requireSession(req: any, res: any) {
 
   const session = readSession(req);
   if (!session) {
@@ -239,7 +236,7 @@ export default async function handler(req: any, res: any) {
 
   const action = req.query.action || 'status';
   const origin = appOrigin(req);
-  const callbackUrl = `${origin}/api/github/callback`;
+  const callbackUrl = `${origin}/auth/github/callback`;
 
   if (action === 'status') {
     try {
@@ -248,8 +245,7 @@ export default async function handler(req: any, res: any) {
       return json(res, error.status || 502, {
         oauthConfigured: true,
   
-   
-   connected: false,
+      connected: false,
         error: error.message || 'GitHub request failed.',
       });
     }
@@ -268,7 +264,7 @@ export default async function handler(req: any, res: any) {
     return redirect(res, authorize.toString(), [cookie(STATE_COOKIE, state, { maxAge: 600 })]);
   }
 
-  if (req.url?.includes('/callback') || action === 'callback') {
+  if (req.url?.includes('/callback')) {
     const cookies = parseCookies(req.headers.cookie);
     const clearState = cookie(STATE_COOKIE, '', { maxAge: 0 });
     if (req.query.error) return redirect(res, `/?github_error=${encodeURIComponent(req.query.error)}`, [clearState]);
@@ -296,7 +292,6 @@ export default async function handler(req: any, res: any) {
       const repos = await requestGitHub('/user/repos?sort=updated&per_page=30', session.token);
       return json(res, 200, {
         repos: repos.map((repo: any) => ({
-
           id: repo.id,
         
   full_name: repo.full_name,
