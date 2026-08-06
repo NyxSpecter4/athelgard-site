@@ -1,6 +1,6 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import https from 'https';
-import crypto from 'crypto';
+import * as https from 'https';
+import * as crypto from 'crypto';
 
 // ─── IN-MEMORY STORES (use Redis/DB in production) ───
 const userSessions = new Map<string, { token: string; login: string; avatar: string; createdAt: number }>();
@@ -13,7 +13,8 @@ const PAIR_CODE_TTL = 1000 * 60 * 5; // 5 minutes
 
 // ─── UTILS ───
 function base64url(v: string | Buffer): string {
-  return Buffer.from(v).toString('base64url');
+  const input = typeof v === 'string' ? v : v.toString();
+  return Buffer.from(input).toString('base64url');
 }
 
 function parseCookies(h = ''): Record<string, string> {
@@ -37,8 +38,10 @@ function sign(value: string, secret: string): string {
 
 function safeEq(a: string, b: string): boolean {
   if (!a || !b) return false;
-  const x = Buffer.from(a), y = Buffer.from(b);
-  return x.length === y.length && crypto.timingSafeEqual(x, y);
+  const x = Buffer.from(a, 'utf8');
+  const y = Buffer.from(b, 'utf8');
+  if (x.length !== y.length) return false;
+  return crypto.timingSafeEqual(x as unknown as Uint8Array, y as unknown as Uint8Array);
 }
 
 function getSessionSecret(): string {
@@ -71,15 +74,6 @@ function requireAuth(req: VercelRequest, res: VercelResponse): { userId: string;
     return null;
   }
   return session;
-}
-
-// Wrapper to ensure auth errors don't crash
-function withAuth(handler: (req: VercelRequest, res: VercelResponse, session: { userId: string; token: string; exp: number }) => Promise<void>) {
-  return async (req: VercelRequest, res: VercelResponse) => {
-    const session = requireAuth(req, res);
-    if (!session) return;
-    return handler(req, res, session);
-  };
 }
 
 function requestGH(path: string, token: string, method = 'GET', body?: any): Promise<any> {
@@ -193,9 +187,9 @@ async function handleAgent(req: VercelRequest, res: VercelResponse) {
 
 // ─── GITHUB: OAuth + API Proxy ───
 async function handleGitHub(req: VercelRequest, res: VercelResponse) {
-  const action = req.query.action || 'status';
-  const proto = (req.headers['x-forwarded-proto'] || 'https').toString().split(',')[0].trim();
-  const host = req.headers['x-forwarded-host'] || req.headers.host;
+  const action = String(req.query.action || 'status');
+  const proto = String(req.headers['x-forwarded-proto'] || 'https').split(',')[0].trim();
+  const host = String(req.headers['x-forwarded-host'] || req.headers.host || 'athelgard.io');
   const origin = `${proto}://${host}`;
 
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -248,7 +242,8 @@ async function handleGitHub(req: VercelRequest, res: VercelResponse) {
   if (action === 'logout') {
     const session = readSession(req);
     if (session) userSessions.delete(session.userId);
-    return res.status(200).json({ connected: false }).setHeader('Set-Cookie', cookie(SESSION_COOKIE, '', { maxAge: 0 }));
+    res.setHeader('Set-Cookie', cookie(SESSION_COOKIE, '', { maxAge: 0 }));
+    return res.status(200).json({ connected: false });
   }
 
   // Status
@@ -338,7 +333,7 @@ async function handleBountyWarz(req: VercelRequest, res: VercelResponse) {
 
 // ─── MAIN ROUTER ───
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const path = (req.query.path as string) || req.url?.split('?')[0].replace(/^\/api\//, '') || 'health';
+  const path = String((req.query.path as string) || req.url?.split('?')[0].replace(/^\/api\//, '') || 'health');
 
   if (path === 'agent' || path.startsWith('agent')) return handleAgent(req, res);
   if (path === 'github' || path.startsWith('github')) return handleGitHub(req, res);
