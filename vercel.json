@@ -1,11 +1,28 @@
 {
   "version": 2,
   "name": "athelgard-site",
-  "functions": {
-    "api/**/*.js": { "memory": 3008, "maxDuration": 60 },
-    "api/**/*.ts": { "memory": 3008, "maxDuration": 60 }
-  },
+  "builds": [
+    {
+      "src": "api/**/*.js",
+      "use": "@vercel/node",
+      "config": {
+        "memory": 3008,
+        "maxDuration": 60
+      }
+    },
+    {
+      "src": "api/**/*.ts",
+      "use": "@vercel/node",
+      "config": {
+        "memory": 3008,
+        "maxDuration": 60
+      }
+    }
+  ],
   "rewrites": [
-    { "source": "/", "destination": "/frontend/index.html" }
+    {
+      "source": "/",
+      "destination": "/frontend/index.html"
+    }
   ]
 }
