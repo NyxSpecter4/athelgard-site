@@ -33,8 +33,22 @@
       }
     },
     {
+      "src": "/modules/(.*)",
+      "dest": "modules/$1"
+    },
+    {
+      "src": "/frontend/(.*)",
+      "dest": "frontend/$1"
+    },
+    {
       "src": "/(.*)",
       "dest": "frontend/index.html"
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/frontend/index.html"
     }
   ]
 }
