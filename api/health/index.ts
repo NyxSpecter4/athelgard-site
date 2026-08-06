@@ -305,12 +305,27 @@ async function handleGitHub(req: VercelRequest, res: VercelResponse) {
   }
 }
 
+// ─── BOUNTYWARZ: Session bridge ───
+const bwSessions = new Map<string, any>();
+async function handleBountyWarz(req: VercelRequest, res: VercelResponse) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  if (req.method === 'POST') {
+    const { userId, mode = 'drone', difficulty = 'normal' } = req.body || {};
+    const id = 'session_' + Date.now();
+    const session = { id, userId, createdAt: Date.now(), mode, difficulty };
+    bwSessions.set(id, session);
+    return res.status(200).json({ status: 'ok', session });
+  }
+  return res.status(200).json({ status: 'ok', message: 'BountyWarz API active', sessions: bwSessions.size });
+}
+
 // ─── MAIN ROUTER ───
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const path = (req.query.path as string) || req.url?.split('?')[0].replace(/^\/api\//, '') || 'health';
 
   if (path === 'agent' || path.startsWith('agent')) return handleAgent(req, res);
   if (path === 'github' || path.startsWith('github')) return handleGitHub(req, res);
+  if (path === 'bountywarz' || path.startsWith('bounty')) return handleBountyWarz(req, res);
 
   // Default: health + user info
   const session = readSession(req);
