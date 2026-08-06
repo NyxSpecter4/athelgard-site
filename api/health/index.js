@@ -191,24 +191,6 @@ async function loadEveContract(userId: string, message: string) {
   return contract;
 }
 
-async function loadEveContract(userId: string, message: string) {
-  const base = process.env.BOUNTYWARZ_EVE_URL;
-  const secret = process.env.ATHELGARD_EVE_BRIDGE_SECRET;
-  if (!base && !secret) return null;
-  if (!base || !secret) throw new Error('Eve bridge configuration is incomplete');
-  const payload = { channel: 'cli', mode: 'brief', message: String(message).slice(0, 10000) };
-  const timestamp = String(Date.now());
-  const canonical = JSON.stringify(payload);
-  const signature = crypto.createHmac('sha256', secret).update(`${userId}.${timestamp}.${canonical}`).digest('hex');
-  const response = await fetch(base.replace(/\/$/, '') + '/api/athelgard-eve', {
-    method: 'POST', headers: { 'Content-Type': 'application/json', 'x-athelgard-identity': userId, 'x-athelgard-timestamp': timestamp, 'x-athelgard-signature': signature },
-    body: canonical, signal: AbortSignal.timeout(8000)
-  });
-  const contract = await response.json();
-  if (!response.ok || !contract.ok) throw new Error(contract.error || 'Eve runtime rejected the request');
-  return contract;
-}
-
 async function handleAgent(req: VercelRequest, res: VercelResponse) {
   setSecurityHeaders(res);
   setCorsHeaders(res);
@@ -218,10 +200,6 @@ async function handleAgent(req: VercelRequest, res: VercelResponse) {
 
   const session = requireAuth(req, res);
   if (!session) return;
-
-  let eveContract: any = null;
-  try { eveContract = await loadEveContract(session.userId, String((req.body || {}).message || '')); }
-  catch (e: any) { return res.status(502).json({ error: 'Athelgard Eve runtime unavailable', detail: e.message }); }
 
   let eveContract: any = null;
   try { eveContract = await loadEveContract(session.userId, String((req.body || {}).message || '')); }
