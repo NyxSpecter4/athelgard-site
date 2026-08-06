@@ -25,18 +25,6 @@
     {
       "src": "modules/**",
       "use": "@vercel/static"
-    },
-    {
-      "src": "*.html",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "*.js",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "*.json",
-      "use": "@vercel/static"
     }
   ],
   "routes": [
@@ -49,14 +37,6 @@
       }
     },
     {
-      "src": "/modules/(.*)",
-      "dest": "modules/$1"
-    },
-    {
-      "src": "/frontend/(.*)",
-      "dest": "frontend/$1"
-    },
-    {
       "src": "/(.*)",
       "dest": "frontend/index.html"
     }
@@ -65,11 +45,6 @@
     {
       "source": "/",
       "destination": "/frontend/index.html"
-    },
-    {
-      "source": "/index.html",
-      "destination": "/frontend/index.html"
     }
-  ],
-  "cleanUrls": true
+  ]
 }
