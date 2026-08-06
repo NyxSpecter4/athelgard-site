@@ -6,10 +6,52 @@ import * as crypto from 'crypto';
 const userSessions = new Map<string, { token: string; login: string; avatar: string; createdAt: number }>();
 const cliPairCodes = new Map<string, { userId: string; token: string; createdAt: number; used: boolean }>();
 
+// ─── RATE LIMITING ───
+const requestCounts = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT = 60;
+const RATE_WINDOW = 60 * 1000;
+
+function checkRateLimit(req: VercelRequest): { allowed: boolean; retryAfter?: number } {
+  const key = String(req.headers['x-forwarded-for'] || 'unknown');
+  const now = Date.now();
+  const entry = requestCounts.get(key);
+  
+  if (!entry || now > entry.resetTime) {
+    requestCounts.set(key, { count: 1, resetTime: now + RATE_WINDOW });
+    return { allowed: true };
+  }
+  
+  if (entry.count >= RATE_LIMIT) {
+    return { allowed: false, retryAfter: Math.ceil((entry.resetTime - now) / 1000) };
+  }
+  
+  entry.count++;
+  return { allowed: true };
+}
+
+// ─── SECURITY HEADERS ───
+function setSecurityHeaders(res: VercelResponse) {
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+}
+
+function setCorsHeaders(res: VercelResponse) {
+  const allowedOrigin = process.env.VERCEL || process.env.NODE_ENV === 'production' 
+    ? 'https://athelgard.io' 
+    : 'http://localhost:3000';
+  res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+}
+
 const SESSION_COOKIE = 'athelgard_session';
 const STATE_COOKIE = 'athelgard_oauth_state';
-const SESSION_TTL = 1000 * 60 * 60 * 24 * 7; // 7 days
-const PAIR_CODE_TTL = 1000 * 60 * 5; // 5 minutes
+const SESSION_TTL = 1000 * 60 * 60 * 24 * 7;
+const PAIR_CODE_TTL = 1000 * 60 * 5;
+const MAX_BODY_SIZE = 1024 * 1024; // 1MB
 
 // ─── UTILS ───
 function base64url(v: string | Buffer): string {
@@ -45,10 +87,10 @@ function safeEq(a: string, b: string): boolean {
 }
 
 function getSessionSecret(): string {
-  return process.env.GITHUB_SESSION_SECRET || 
-    (process.env.GITHUB_CLIENT_SECRET 
-      ? crypto.createHash('sha256').update(process.env.GITHUB_CLIENT_SECRET).digest('hex') 
-      : 'athelgard-dev-secret-change-me');
+  if (!process.env.GITHUB_SESSION_SECRET) {
+    throw new Error('GITHUB_SESSION_SECRET environment variable is required');
+  }
+  return process.env.GITHUB_SESSION_SECRET;
 }
 
 function createSession(userId: string, token: string): string {
@@ -74,6 +116,11 @@ function requireAuth(req: VercelRequest, res: VercelResponse): { userId: string;
     return null;
   }
   return session;
+}
+
+function checkBodySize(req: VercelRequest): boolean {
+  const size = parseInt(req.headers['content-length'] || '0');
+  return size <= MAX_BODY_SIZE;
 }
 
 function requestGH(path: string, token: string, method = 'GET', body?: any): Promise<any> {
@@ -136,13 +183,15 @@ function exchangeCode(code: string): Promise<string> {
 
 // ─── AGENT: AI Bridge ───
 async function handleAgent(req: VercelRequest, res: VercelResponse) {
-  if (req.method === 'OPTIONS') {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    return res.status(204).end();
-  }
+  setSecurityHeaders(res);
+  setCorsHeaders(res);
+  
+  if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  
+  if (!checkBodySize(req)) {
+    return res.status(413).json({ error: 'Request body too large' });
+  }
 
   const session = requireAuth(req, res);
   if (!session) return;
@@ -151,14 +200,18 @@ async function handleAgent(req: VercelRequest, res: VercelResponse) {
   if (!key) return res.status(503).json({ error: 'AI service not configured' });
 
   const { message, model = 'deepseek-chat' } = req.body || {};
-  if (!message) return res.status(400).json({ error: 'Message required' });
+  if (!message || typeof message !== 'string' || message.length > 10000) {
+    return res.status(400).json({ error: 'Message required (max 10000 chars)' });
+  }
 
   try {
     const result: any = await new Promise((resolve, reject) => {
       const data = JSON.stringify({
         model, messages: [
           { role: 'system', content: 'You are Athelgard, an elite ethical hacking mentor. Help the user code, review security, and improve their projects.' },
-          { role: 'user', content: `[User: ${session.userId}]\n\n${message}` }
+          { role: 'user', content: `[User: ${session.userId}]
+
+${message}` }
         ],
         temperature: 0.7, max_tokens: 2000
       });
@@ -175,26 +228,25 @@ async function handleAgent(req: VercelRequest, res: VercelResponse) {
       r.end();
     });
 
-    res.setHeader('Access-Control-Allow-Origin', '*');
     return res.status(200).json({
       response: result.choices?.[0]?.message?.content || 'No response',
       model, usage: result.usage || {}
     });
   } catch (e: any) {
-    return res.status(502).json({ error: e.message || 'AI service failed' });
+    console.error('Agent error:', e);
+    return res.status(502).json({ error: 'AI service unavailable' });
   }
 }
 
 // ─── GITHUB: OAuth + API Proxy ───
 async function handleGitHub(req: VercelRequest, res: VercelResponse) {
+  setSecurityHeaders(res);
+  setCorsHeaders(res);
+  
   const action = String(req.query.action || 'status');
   const proto = String(req.headers['x-forwarded-proto'] || 'https').split(',')[0].trim();
   const host = String(req.headers['x-forwarded-host'] || req.headers.host || 'athelgard.io');
   const origin = `${proto}://${host}`;
-
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') return res.status(204).end();
 
@@ -275,7 +327,7 @@ async function handleGitHub(req: VercelRequest, res: VercelResponse) {
   // CLI Token Exchange
   if (action === 'cli-connect') {
     const { code } = req.body || {};
-    if (!code) return res.status(400).json({ error: 'Pairing code required' });
+    if (!code || typeof code !== 'string') return res.status(400).json({ error: 'Pairing code required' });
     const pair = cliPairCodes.get(code.toUpperCase());
     if (!pair || pair.used || Date.now() - pair.createdAt > PAIR_CODE_TTL) {
       return res.status(401).json({ error: 'Invalid or expired code' });
@@ -312,7 +364,8 @@ async function handleGitHub(req: VercelRequest, res: VercelResponse) {
           const data = await requestGH(apiPath, session.token);
           return res.status(200).json(data);
         } catch (innerErr: any) {
-          return res.status(502).json({ error: innerErr.message || 'Failed to load contents' });
+          console.error('Contents error:', innerErr.message);
+          return res.status(502).json({ error: 'Failed to load contents' });
         }
       }
       if (action === 'search') {
@@ -322,7 +375,8 @@ async function handleGitHub(req: VercelRequest, res: VercelResponse) {
       }
       return res.status(404).json({ error: 'Unknown action' });
     } catch (e: any) {
-      return res.status(e.status || 502).json({ error: e.message || 'GitHub request failed' });
+      console.error('GitHub proxy error:', e.message);
+      return res.status(502).json({ error: 'GitHub request failed' });
     }
   }
 
@@ -332,9 +386,18 @@ async function handleGitHub(req: VercelRequest, res: VercelResponse) {
 // ─── BOUNTYWARZ: Session bridge ───
 const bwSessions = new Map<string, any>();
 async function handleBountyWarz(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  setSecurityHeaders(res);
+  setCorsHeaders(res);
+  
+  if (!checkBodySize(req)) {
+    return res.status(413).json({ error: 'Request body too large' });
+  }
+  
   if (req.method === 'POST') {
     const { userId, mode = 'drone', difficulty = 'normal' } = req.body || {};
+    if (!userId || typeof userId !== 'string') {
+      return res.status(400).json({ error: 'userId required' });
+    }
     const id = 'session_' + Date.now();
     const session = { id, userId, createdAt: Date.now(), mode, difficulty };
     bwSessions.set(id, session);
@@ -345,6 +408,18 @@ async function handleBountyWarz(req: VercelRequest, res: VercelResponse) {
 
 // ─── MAIN ROUTER ───
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Rate limiting
+  const rateCheck = checkRateLimit(req);
+  if (!rateCheck.allowed) {
+    res.setHeader('Retry-After', String(rateCheck.retryAfter));
+    return res.status(429).json({ error: 'Too many requests', retryAfter: rateCheck.retryAfter });
+  }
+  
+  // Body size check for POST
+  if (req.method === 'POST' && !checkBodySize(req)) {
+    return res.status(413).json({ error: 'Request body too large' });
+  }
+
   const path = String((req.query.path as string) || req.url?.split('?')[0].replace(/^\/api\//, '') || 'health');
 
   if (path === 'agent' || path.startsWith('agent')) return handleAgent(req, res);
@@ -352,11 +427,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (path === 'bountywarz' || path.startsWith('bounty')) return handleBountyWarz(req, res);
 
   // Default: health + user info
+  setSecurityHeaders(res);
+  setCorsHeaders(res);
+  
   const session = readSession(req);
   const user = session ? userSessions.get(session.userId) : null;
   
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Content-Type', 'application/json');
   return res.status(200).json({
     status: 'healthy',
     service: 'athelgard',
