@@ -1,20 +1,12 @@
 {
   "version": 2,
   "functions": {
-    "api/agent/index.ts": { "runtime": "@vercel/node" },
-    "api/bountywarz/index.ts": { "runtime": "@vercel/node" },
-    "api/github/index.ts": { "runtime": "@vercel/node" },
-    "api/athelgard/index.ts": { "runtime": "@vercel/node" },
     "api/health/index.ts": { "runtime": "@vercel/node" },
-    "api/test/index.ts": { "runtime": "@vercel/node" }
+    "api/athelgard/index.ts": { "runtime": "@vercel/node" }
   },
   "routes": [
-    { "src": "/api/agent", "dest": "/api/agent/index.ts" },
-    { "src": "/api/bountywarz", "dest": "/api/bountywarz/index.ts" },
-    { "src": "/api/github", "dest": "/api/github/index.ts" },
+    { "src": "/api/(agent|github|bountywarz|health)(/.*)?", "dest": "/api/health/index.ts?path=$1" },
     { "src": "/api/athelgard", "dest": "/api/athelgard/index.ts" },
-    { "src": "/api/health", "dest": "/api/health/index.ts" },
-    { "src": "/api/test", "dest": "/api/test/index.ts" },
     { "src": "/(.*)", "dest": "/frontend/$1" }
   ]
 }
