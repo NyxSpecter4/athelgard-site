@@ -264,7 +264,7 @@ export default async function handler(req: any, res: any) {
     return redirect(res, authorize.toString(), [cookie(STATE_COOKIE, state, { maxAge: 600 })]);
   }
 
-  if (req.url?.includes('/callback')) {
+  if (req.url?.includes('/callback') || action === 'callback') {
     const cookies = parseCookies(req.headers.cookie);
     const clearState = cookie(STATE_COOKIE, '', { maxAge: 0 });
     if (req.query.error) return redirect(res, `/?github_error=${encodeURIComponent(req.query.error)}`, [clearState]);
