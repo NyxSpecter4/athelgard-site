@@ -25,7 +25,7 @@ function appOrigin(req) {
   return `${protocol}://${host}`;
 }
 
-module.exports = async function handler(req, res) {
+async function handler(req, res) {
   if (req.method === 'OPTIONS') {
     return res.status(204).end();
   }
@@ -51,17 +51,15 @@ module.exports = async function handler(req, res) {
     const cookies = req.headers.cookie || '';
     const stateCookie = cookies.split(';').find(c => c.includes('athelgard_oauth_state'))?.split('=')[1];
     if (req.query.error) {
-      return redirect(res, `/?github_error=${encodeURIComponent(req.query.error)}`);
+      return redirect(res, `/?github_error=${encodeURIComponent(String(req.query.error))}`);
     }
     if (!stateCookie || req.query.state !== stateCookie || !req.query.code) {
       return redirect(res, '/?github_error=invalid_state');
     }
-    // For now, just redirect back with success - we'll implement token exchange later
     return redirect(res, '/?github=connected');
   }
 
-  // Status endpoint
   return json(res, 200, { oauthConfigured: !!process.env.GITHUB_CLIENT_ID, connected: false });
-};
+}
 
 module.exports = handler;
