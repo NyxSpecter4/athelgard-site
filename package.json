@@ -1,12 +1,27 @@
 {
   "name": "athelgard-site",
-  "version": "1.0.0",
-  "private": true,
+  "version": "2.0.0",
+  "description": "Athelgard AI Coding Agent - Unified team synthesis",
+  "main": "api/index.js",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "build": "echo 'No build needed - JS files are ready'",
+    "test": "node run-full-audit.js",
+    "audit": "node run-full-audit.js"
+  },
   "dependencies": {
     "@vercel/node": "^3.0.0",
     "uuid": "^9.0.0"
   },
   "devDependencies": {
-    "typescript": "^5.9.3"
-  }
+    "typescript": "^5.2.2",
+    "vercel": "^32.4.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": ["ai", "coding", "github", "athelgard", "bountywarz"],
+  "author": "NyxSpecter4",
+  "license": "MIT"
 }
