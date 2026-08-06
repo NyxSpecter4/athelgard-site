@@ -1,6 +1,6 @@
 // Vercel serverless GitHub OAuth bridge (TypeScript)
-import https from 'https';
-import crypto from 'crypto';
+import * as https from 'https';
+import * as crypto from 'crypto';
 
 const SESSION_COOKIE = 'athelgard_github_session';
 const STATE_COOKIE = 'athelgard_github_oauth_state';
@@ -47,6 +47,7 @@ function appOrigin(req: any): string {
 
 function sign(value: string, secret: string): string {
   return crypto.createHmac('sha256', secret).update(value).digest('base64url
+
 ');
 }
 
@@ -100,7 +101,8 @@ function requestGitHub(path: string, token: string | null = null, method = 'GET'
       },
       response => {
         let data = '';
-      
+     
+ 
   response.on('data', chunk => {
           data += chunk;
         });
@@ -167,7 +169,8 @@ function exchangeCode(code: string): Promise<string> {
   });
 }
 
-function requireSession(req: any, res: any) {
+function requireSession(req: any, res: any) 
+{
 
   const session = readSession(req);
   if (!session) {
@@ -236,7 +239,7 @@ export default async function handler(req: any, res: any) {
 
   const action = req.query.action || 'status';
   const origin = appOrigin(req);
-  const callbackUrl = `${origin}/auth/github/callback`;
+  const callbackUrl = `${origin}/api/github?action=callback`;
 
   if (action === 'status') {
     try {
@@ -244,6 +247,7 @@ export default async function handler(req: any, res: any) {
     } catch (error: any) {
       return json(res, error.status || 502, {
         oauthConfigured: true,
+
   
       connected: false,
         error: error.message || 'GitHub request failed.',
@@ -264,7 +268,7 @@ export default async function handler(req: any, res: any) {
     return redirect(res, authorize.toString(), [cookie(STATE_COOKIE, state, { maxAge: 600 })]);
   }
 
-  if (req.url?.includes('/callback') || action === 'callback') {
+  if (action === 'callback') {
     const cookies = parseCookies(req.headers.cookie);
     const clearState = cookie(STATE_COOKIE, '', { maxAge: 0 });
     if (req.query.error) return redirect(res, `/?github_error=${encodeURIComponent(req.query.error)}`, [clearState]);
@@ -293,7 +297,8 @@ export default async function handler(req: any, res: any) {
       return json(res, 200, {
         repos: repos.map((repo: any) => ({
           id: repo.id,
-        
+    
+    
   full_name: repo.full_name,
           private: repo.private,
           default_branch: repo.default_branch,
@@ -330,3 +335,5 @@ export default async function handler(req: any, res: any) {
     return json(res, error.status || 502, { error: error.message || 'GitHub request failed.' });
   }
 }
+
+// Cache bust: 1785994148704
