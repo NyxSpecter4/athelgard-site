@@ -1,4 +1,4 @@
-// Vercel serverless GitHub OAuth bridge (TypeScript)
+import { VercelRequest, VercelResponse } from '@vercel/node';
 import * as https from 'https';
 import * as crypto from 'crypto';
 
@@ -46,11 +46,7 @@ function appOrigin(req: any): string {
 }
 
 function sign(value: string, secret: string): string {
-  return crypto.createHmac('sha256', secret).update(value).digest(
-
-'base64url
-
-');
+  return crypto.createHmac('sha256', secret).update(value).digest('base64url');
 }
 
 function safeEqual(left: string, right: string): boolean {
@@ -61,7 +57,6 @@ function safeEqual(left: string, right: string): boolean {
 }
 
 function getSessionSecret(): string {
-  // mELI fix: derive from existing secrets, don't hard-require GITHUB_SESSION_SECRET
   return process.env.GITHUB_SESSION_SECRET || 
     (process.env.GITHUB_CLIENT_SECRET 
       ? crypto.createHmac('sha256', 'athelgard-salt').update(process.env.GITHUB_CLIENT_SECRET).digest('hex')
@@ -102,21 +97,11 @@ function requestGitHub(path: string, token: string | null = null, method = 'GET'
         },
       },
       response => {
-        let data
- 
-= '';
-     
- 
-  response.on('data', chunk => {
-          data += chunk;
-        });
+        let data = '';
+        response.on('data', chunk => { data += chunk; });
         response.on('end', () => {
           let parsed: any = {};
-          try {
-            parsed = data ? JSON.parse(data) : {};
-          } catch {
-            parsed = { message: 'Unexpected GitHub response' };
-          }
+          try { parsed = data ? JSON.parse(data) : {}; } catch { parsed = { message: 'Unexpected GitHub response' }; }
           if (response.statusCode! < 200 || response.statusCode! > 299) {
             const error = new Error(parsed.message || `GitHub ${response.statusCode}`);
             (error as any).status = response.statusCode;
@@ -153,9 +138,7 @@ function exchangeCode(code: string): Promise<string> {
       },
       response => {
         let data = '';
-        response.on('data', chunk => {
-          data += chunk;
-        });
+        response.on('data', chunk => { data += chunk; });
         response.on('end', () => {
           try {
             const parsed = JSON.parse(data);
@@ -173,64 +156,31 @@ function exchangeCode(code: string): Promise<string> {
   });
 }
 
-function requireSession(req: a
-ny
-, res: any) 
-{
-
-  const session = readSession(req);
-  if (!session) {
-    json(res, 401, { error: 'GitHub is not connected' });
-    return null;
-  }
-  return session;
-}
-
 function getMissingConfig(): string[] {
-  // mELI fix: GITHUB_SESSION_SECRET is now derived from GITHUB_CLIENT_SECRET
   return ['GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET'].filter(name => !process.env[name]);
 }
 
 async function buildStatus(req: any) {
   const missing = getMissingConfig();
   if (missing.length) {
-    return {
-      oauthConfigured: false,
-      connected: false,
-      missing,
-    };
+    return { oauthConfigured: false, connected: false, missing };
   }
-
   const session = readSession(req);
   if (!session) {
-    return {
-      oauthConfigured: true,
-      connected: false,
-      missing: [],
-    };
+    return { oauthConfigured: true, connected: false, missing: [] };
   }
-
   const [user, repos] = await Promise.all([
     requestGitHub('/user', session.token),
     requestGitHub('/user/repos?sort=updated&per_page=5', session.token),
   ]);
-
   return {
     oauthConfigured: true,
     connected: true,
     missing: [],
-    user: {
-      login: user.login,
-      avatar_url: user.avatar_url,
-      name: user.name || user.login,
-    },
+    user: { login: user.login, avatar_url: user.avatar_url, name: user.name || user.login },
     repos: repos.map((repo: any) => ({
-      id: repo.id,
-      full_name: repo.full_name,
-      private: repo.private,
-      default_branch: repo.default_branch,
-      updated_at: repo.updated_at,
-      html_url: repo.html_url,
+      id: repo.id, full_name: repo.full_name, private: repo.private,
+      default_branch: repo.default_branch, updated_at: repo.updated_at, html_url: repo.html_url,
     })),
   };
 }
@@ -245,20 +195,14 @@ export default async function handler(req: any, res: any) {
 
   const action = req.query.action || 'status';
   const origin = appOrigin(req);
-  const callbackUrl = `${origin}/auth/github/callback`;
+  const callbackUrl = `${origin}/auth/github/callback`;  // FIXED: No query params
 
   if (action === 'status') {
     try {
       return json(res, 200, await buildStatus(req));
     } catch (error: any) {
       return json(res, error.status || 502, {
-        oauthConf
-ig
-ured: true,
-
-  
-      connected: false,
-        error: error.message || 'GitHub request failed.',
+        oauthConfigured: true, connected: false, error: error.message || 'GitHub request failed.',
       });
     }
   }
@@ -296,24 +240,16 @@ ured: true,
     return json(res, 200, { connected: false }, [cookie(SESSION_COOKIE, '', { maxAge: 0 })]);
   }
 
-  const session = requireSession(req, res);
+  const session = readSession(req, res);
   if (!session) return;
 
   try {
     if (action === 'repos') {
       const repos = await requestGitHub('/user/repos?sort=updated&per_page=30', session.token);
       return json(res, 200, {
-        repos: repos.map
-((repo: any) => ({
-          id:
- repo.id,
-    
-    
-  full_name: repo.full_name,
-          private: repo.private,
-          default_branch: repo.default_branch,
-          updated_at: repo.updated_at,
-          html_url: repo.html_url,
+        repos: repos.map((repo: any) => ({
+          id: repo.id, full_name: repo.full_name, private: repo.private,
+          default_branch: repo.default_branch, updated_at: repo.updated_at, html_url: repo.html_url,
         })),
       });
     }
@@ -323,17 +259,10 @@ ured: true,
         return json(res, 400, { error: 'A valid owner and repository are required.' });
       }
       const ref = req.query.ref ? `?ref=${encodeURIComponent(req.query.ref)}` : '';
-      return json(
-        res,
-        200,
-        await requestGitHub(
-          `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${filePath
-            .split('/')
-            .map(encodeURIComponent)
-            .join('/')}${ref}`,
-          session.token
-        )
-      );
+      return json(res, 200, await requestGitHub(
+        `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${filePath.split('/').map(encodeURIComponent).join('/')}${ref}`,
+        session.token
+      ));
     }
     if (action === 'search') {
       const query = String(req.query.q || '').trim();
@@ -345,6 +274,3 @@ ured: true,
     return json(res, error.status || 502, { error: error.message || 'GitHub request failed.' });
   }
 }
-
-// Cache bust: 1785994148704
-// Redeploy: 1785994985679
