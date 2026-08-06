@@ -27,12 +27,34 @@ const MENTORS = Object.freeze({
 });
 
 function getMentorResponse(c, q) {
-  let key = 'ATHELGARD';
-  if (c.gameMode === 'drone') key = 'DRONE_INSTRUCTOR';
-  if (c.gameMode === 'hunt') key = 'CYBER_TRAINER';
-  if (q && (q.includes('security') || q.includes('audit'))) key = 'MELI';
-  const mentor = MENTORS[key] || MENTORS.ATHELGARD;
-  return { mentor: mentor.name, response: mentor.greeting + '. ' + (q || 'What do you need?') };
+  const mentor = MENTORS.ATHELGARD;
+  const prompt = String(q || '').trim();
+  const scope = c.scope || {};
+  // Ethical guardrail: block non-simulated exploit language
+  if (/\b(exploit|scan|attack|target)\b/i.test(prompt) && !c.simulated) {
+    return { 
+      mentor: mentor.name, 
+      response: 'Before we proceed: use only an authorized training range or a verified in-scope bounty program. I can help you define scope, evidence, impact, and responsible disclosure.',
+      requiresScope: true 
+    };
+  }
+  // Mission mode routing
+  if (c.gameMode === 'drone' || c.gameMode === 'hunt') {
+    return { 
+      mentor: mentor.name, 
+      response: 'Mission brief: verify scope, identify the simulated target, collect evidence, explain impact, then draft remediation. ' + (prompt || 'What is the next observation?'),
+      rail: ['scope', 'asset', 'evidence', 'impact', 'report'] 
+    };
+  }
+  // Security/audit queries → MELI
+  if (prompt && (prompt.includes('security') || prompt.includes('audit'))) {
+    return { mentor: MENTORS.MELI.name, response: MENTORS.MELI.greeting + '. ' + prompt };
+  }
+  return { 
+    mentor: mentor.name, 
+    response: mentor.greeting + '. ' + (prompt || 'Tell me what you are building or learning.'),
+    scope: scope.authorized ? 'authorized' : 'unknown'
+  };
 }
 
 const AthelgardBrain = {
