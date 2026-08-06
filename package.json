@@ -1,6 +1,6 @@
 {
   "name": "athelgard-site",
-  "version": "3.0.1",
+  "version": "3.0.2" // redeploy 1785996370378,
   "description": "Athelgard AI Coding Agent - Unified team synthesis",
   "main": "api/index.js",
   "scripts": {
