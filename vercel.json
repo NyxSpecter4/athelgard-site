@@ -29,6 +29,14 @@
       }
     },
     {
+      "src": "/modules/(.*)",
+      "dest": "modules/$1"
+    },
+    {
+      "src": "/frontend/(.*)",
+      "dest": "frontend/$1"
+    },
+    {
       "src": "/(.*)",
       "dest": "frontend/index.html"
     }
@@ -37,10 +45,6 @@
     {
       "source": "/",
       "destination": "/frontend/index.html"
-    },
-    {
-      "source": "/frontend/(.*)",
-      "destination": "/frontend/$1"
     }
   ]
 }
