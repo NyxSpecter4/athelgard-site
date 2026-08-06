@@ -1,6 +1,6 @@
 {
   "name": "athelgard-site",
-  "version": "3.0.2",
+  "version": "3.1.0",
   "description": "Athelgard AI Coding Agent - Unified team synthesis",
   "main": "api/index.js",
   "scripts": {
@@ -9,7 +9,7 @@
     "build": "echo 'No build needed - JS files are ready'",
     "smoke": "node scripts/smoke-prod.js",
     "smoke:live": "node scripts/smoke-prod.js --live",
-    "test": "node scripts/smoke-prod.js && node run-full-audit.js",
+    "test": "node scripts/smoke-prod.js && node --test tests/*.cjs && node run-full-audit.js",
     "audit": "node scripts/smoke-prod.js && node run-full-audit.js"
   },
   "dependencies": {
@@ -23,7 +23,13 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "keywords": ["ai", "coding", "github", "athelgard", "bountywarz"],
+  "keywords": [
+    "ai",
+    "coding",
+    "github",
+    "athelgard",
+    "bountywarz"
+  ],
   "author": "NyxSpecter4",
   "license": "MIT"
 }

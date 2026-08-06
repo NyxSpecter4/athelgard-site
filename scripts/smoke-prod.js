@@ -65,6 +65,20 @@ try {
   fail('cookie()', e.message);
 }
 
+// 2b) One health entrypoint only (duplicate .ts was crashing serverless selection)
+console.log('\n━━ Health entrypoint ━━');
+const healthJs = path.join(ROOT, 'api/health/index.js');
+const healthTs = path.join(ROOT, 'api/health/index.ts');
+if (!fs.existsSync(healthJs)) fail('api/health/index.js missing');
+else if (fs.existsSync(healthTs)) fail('duplicate api/health/index.ts present — remove it');
+else {
+  const src = fs.readFileSync(healthJs, 'utf8');
+  if (/^\s*import\s+/m.test(src)) fail('health handler is ESM/TS import in .js');
+  else if (!/module\.exports\s*=/.test(src)) fail('health handler missing module.exports');
+  else if (!/async function loadEveContract/.test(src)) fail('Eve bridge missing from health handler');
+  else pass('single CommonJS health entrypoint + Eve bridge');
+}
+
 // 3) vercel.json must serve /modules before SPA catch-all
 console.log('\n━━ vercel.json routing ━━');
 try {
