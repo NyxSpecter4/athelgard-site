@@ -338,6 +338,55 @@ function callAI(provider, apiKey, messages, tools) {
 
 // ===== COMMANDS =====
 const commands = {
+  async connect(args) {
+    const code = args[0];
+    if (!code) {
+      console.log('Usage: athelgard connect <code>');
+      console.log('');
+      console.log('Get a code from https://athelgard.io after logging in with GitHub.');
+      return;
+    }
+    
+    console.log(`🔗 Connecting CLI with code ${code}...`);
+    
+    try {
+      const result = await new Promise((resolve, reject) => {
+        const payload = JSON.stringify({ code });
+        const req = https.request({
+          hostname: 'athelgard.io',
+          path: '/api/health?path=github&action=cli-connect',
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(payload)
+          }
+        }, res => {
+          let data = '';
+          res.on('data', chunk => data += chunk);
+          res.on('end', () => {
+            try {
+              const parsed = JSON.parse(data);
+              if (res.statusCode >= 400) reject(new Error(parsed.error || `HTTP ${res.statusCode}`));
+              else resolve(parsed);
+            } catch { reject(new Error(data)); }
+          });
+        });
+        req.on('error', reject);
+        req.write(payload);
+        req.end();
+      });
+      
+      // Save the token
+      saveGitHubToken(result.token);
+      console.log(`✅ Connected as ${result.user.login}!`);
+      console.log(`   You can now use: athelgard repo, athelgard chat, etc.`);
+      
+    } catch (e) {
+      console.log(`❌ Connection failed: ${e.message}`);
+      console.log('   Make sure you generated the code at https://athelgard.io');
+    }
+  },
+  
   async github(args) {
     const sub = args[0];
     
@@ -530,8 +579,16 @@ USAGE:
 
 QUICK START:
   athelgard config              # Set your API keys (DeepSeek/Kimi/Mistral)
-  athelgard github login        # Paste your GitHub PAT
+  athelgard connect <code>      # Connect CLI via web login (no PAT needed!)
+  athelgard github login        # Paste your GitHub PAT (alternative)
   athelgard chat                # Start coding with AI + GitHub
+
+WEB LOGIN (Recommended):
+  1. Go to https://athelgard.io
+  2. Click "Login with GitHub"
+  3. Click "Connect CLI" to get a code
+  4. Run: athelgard connect <code>
+  5. Start coding immediately!
 
 GITHUB:
   github login                  # Paste GitHub Personal Access Token
@@ -552,6 +609,7 @@ CONFIG:
   config                        # Set API keys
 
 EXAMPLES:
+  athelgard connect ABCD-1234
   athelgard chat
   athelgard agent "Review my bountywarz repo"
   athelgard repo NyxSpecter4/bountywarz cat README.md
