@@ -358,6 +358,7 @@
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
+  <script src="/modules/brain.js"></script>
   <script>
     // State
     let editor;
@@ -365,6 +366,23 @@
     let openFiles = new Map();
     let githubToken = null;
     let currentRepo = null;
+
+    // MELI Brain Integration
+    function checkEthicalContext(text) {
+      if (typeof window.AthelgardBrain === 'undefined') return null;
+      const lower = text.toLowerCase();
+      const bountyKeywords = ['exploit', 'vulnerability', 'bug bounty', 'pentest', 'scope', 'cve', 'owasp'];
+      const isBounty = bountyKeywords.some(k => lower.includes(k));
+      if (!isBounty) return null;
+      // Run through MELI's brain
+      const result = window.AthelgardBrain.process(text, { 
+        type: 'mentor', 
+        simulated: lower.includes('simulated') || lower.includes('training'),
+        scope: { authorized: lower.includes('authorized') || lower.includes('in-scope') },
+        gameMode: lower.includes('drone') ? 'drone' : lower.includes('hunt') ? 'hunt' : null
+      });
+      return result;
+    }
 
     // Initialize Monaco Editor
     require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});
@@ -617,6 +635,16 @@ hello();`,
         
         addChatMessage('user', text);
         input.value = '';
+        
+        // MELI Brain: Check ethical context
+        const ethical = checkEthicalContext(text);
+        if (ethical && ethical.requiresScope) {
+          addChatMessage('ai', '🛡️ **Ethical Guardrail**: ' + ethical.response);
+          return;
+        }
+        if (ethical && ethical.rail) {
+          addChatMessage('ai', '🎯 **Mission Mode** (' + ethical.rail.join(' → ') + '): ' + ethical.response);
+        }
         
         // Show loading
         const loadingId = 'loading-' + Date.now();
