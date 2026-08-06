@@ -46,7 +46,8 @@ function appOrigin(req: any): string {
 }
 
 function sign(value: string, secret: string): string {
-  return crypto.createHmac('sha256', secret).update(value).digest('base64url');
+  return crypto.createHmac('sha256', secret).update(value).digest('base64url
+');
 }
 
 function safeEqual(left: string, right: string): boolean {
@@ -99,7 +100,8 @@ function requestGitHub(path: string, token: string | null = null, method = 'GET'
       },
       response => {
         let data = '';
-        response.on('data', chunk => {
+      
+  response.on('data', chunk => {
           data += chunk;
         });
         response.on('end', () => {
@@ -166,6 +168,7 @@ function exchangeCode(code: string): Promise<string> {
 }
 
 function requireSession(req: any, res: any) {
+
   const session = readSession(req);
   if (!session) {
     json(res, 401, { error: 'GitHub is not connected' });
@@ -233,7 +236,7 @@ export default async function handler(req: any, res: any) {
 
   const action = req.query.action || 'status';
   const origin = appOrigin(req);
-  const callbackUrl = `${origin}/api/github?action=callback`;
+  const callbackUrl = `${origin}/api/github/callback`;
 
   if (action === 'status') {
     try {
@@ -241,7 +244,8 @@ export default async function handler(req: any, res: any) {
     } catch (error: any) {
       return json(res, error.status || 502, {
         oauthConfigured: true,
-        connected: false,
+  
+      connected: false,
         error: error.message || 'GitHub request failed.',
       });
     }
@@ -260,7 +264,7 @@ export default async function handler(req: any, res: any) {
     return redirect(res, authorize.toString(), [cookie(STATE_COOKIE, state, { maxAge: 600 })]);
   }
 
-  if (action === 'callback') {
+  if (req.url?.includes('/callback')) {
     const cookies = parseCookies(req.headers.cookie);
     const clearState = cookie(STATE_COOKIE, '', { maxAge: 0 });
     if (req.query.error) return redirect(res, `/?github_error=${encodeURIComponent(req.query.error)}`, [clearState]);
@@ -289,7 +293,8 @@ export default async function handler(req: any, res: any) {
       return json(res, 200, {
         repos: repos.map((repo: any) => ({
           id: repo.id,
-          full_name: repo.full_name,
+        
+  full_name: repo.full_name,
           private: repo.private,
           default_branch: repo.default_branch,
           updated_at: repo.updated_at,
