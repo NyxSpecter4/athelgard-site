@@ -390,7 +390,7 @@ hello();`,
     // Auth Check
     async function checkAuth() {
       try {
-        const res = await fetch('/api/health?path=github&action=status');
+        const res = await fetch('/api/health?path=github&action=status', { credentials: 'same-origin' });
         const data = await res.json();
         
         if (data.connected) {
@@ -398,12 +398,18 @@ hello();`,
           document.getElementById('userInfo').style.display = 'flex';
           document.getElementById('userAvatar').src = data.user.avatar_url;
           document.getElementById('userName').textContent = data.user.login;
-          githubToken = data.token;
           loadRepos();
           addChatMessage('ai', `Welcome back, ${data.user.login}! I'm ready to help you code.`);
+        } else {
+          // Show login prompt in explorer
+          document.getElementById('fileTree').innerHTML = `
+            <div class="file-item" onclick="showLoginPrompt()">
+              <span class="icon">🔒</span> Login to browse repos
+            </div>`;
         }
       } catch (e) {
         console.error('Auth check failed:', e);
+        addChatMessage('ai', 'Connection error. Please refresh the page.');
       }
     }
 
@@ -423,17 +429,28 @@ hello();`,
 
     // Load Repos
     async function loadRepos() {
-      if (!githubToken) {
-        checkAuth();
-        return;
-      }
-      
       try {
-        const res = await fetch('/api/health?path=github&action=repos');
+        const res = await fetch('/api/health?path=github&action=repos', { credentials: 'same-origin' });
+        
+        if (res.status === 401) {
+          showLoginPrompt();
+          return;
+        }
+        
         const data = await res.json();
         
+        if (data.error) {
+          addTerminalOutput('Error: ' + data.error);
+          return;
+        }
+        
         const tree = document.getElementById('fileTree');
-        tree.innerHTML = '';
+        tree.innerHTML = '<div class="panel-header"><span>Your Repositories</span><button class="btn" onclick="loadRepos()" style="padding:2px 6px;">↻</button></div>';
+        
+        if (!data.repos || data.repos.length === 0) {
+          tree.innerHTML += '<div class="file-item">No repositories found</div>';
+          return;
+        }
         
         data.repos.forEach(repo => {
           const item = document.createElement('div');
