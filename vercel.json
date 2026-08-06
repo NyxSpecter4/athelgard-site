@@ -39,6 +39,14 @@
     {
       "src": "/(.*)",
       "dest": "frontend/index.html"
+    },
+    {
+      "src": "/api/github/callback",
+      "dest": "api/health/index.js?path=github&action=callback",
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS"
+      }
     }
   ],
   "rewrites": [
