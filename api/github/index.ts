@@ -56,18 +56,24 @@ function safeEqual(left: string, right: string): boolean {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
+function getSessionSecret(): string {
+  // mELI fix: derive from existing secrets, don't hard-require GITHUB_SESSION_SECRET
+  return process.env.GITHUB_SESSION_SECRET || 
+    (process.env.GITHUB_CLIENT_SECRET 
+      ? crypto.createHmac('sha256', 'athelgard-salt').update(process.env.GITHUB_CLIENT_SECRET).digest('hex')
+      : 'athelgard-dev-secret-change-me');
+}
+
 function createSession(token: string): string {
   const payload = base64url(JSON.stringify({ token, expiresAt: Date.now() + SESSION_TTL_SECONDS * 1000 }));
-  const secret = process.env.GITHUB_SESSION_SECRET!;
-  return `${payload}.${sign(payload, secret)}`;
+  return `${payload}.${sign(payload, getSessionSecret())}`;
 }
 
 function readSession(req: any): { token: string; expiresAt: number } | null {
-  if (!process.env.GITHUB_SESSION_SECRET) return null;
   const raw = parseCookies(req.headers.cookie)[SESSION_COOKIE];
   if (!raw) return null;
   const [payload, signature] = raw.split('.');
-  if (!payload || !safeEqual(sign(payload, process.env.GITHUB_SESSION_SECRET), signature)) return null;
+  if (!payload || !safeEqual(sign(payload, getSessionSecret()), signature)) return null;
   try {
     const session = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
     return session.expiresAt > Date.now() && session.token ? session : null;
@@ -155,7 +161,7 @@ export default async function handler(req: any, res: any) {
   const callbackUrl = `${origin}/api/github?action=callback`;
 
   if (action === 'start') {
-    if (!process.env.GITHUB_CLIENT_ID || !process.env.GITHUB_CLIENT_SECRET || !process.env.GITHUB_SESSION_SECRET) {
+    if (!process.env.GITHUB_CLIENT_ID || !process.env.GITHUB_CLIENT_SECRET) {
       return json(res, 503, { error: 'GitHub OAuth is not configured on this deployment yet.' });
     }
     const state = crypto.randomBytes(32).toString('hex');

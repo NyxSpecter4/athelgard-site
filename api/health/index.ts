@@ -35,18 +35,24 @@ function safeEq(a: string, b: string): boolean {
   return x.length === y.length && crypto.timingSafeEqual(x, y);
 }
 
+function getSessionSecret(): string {
+  // mELI fix: derive from existing secrets, don't hard-require GITHUB_SESSION_SECRET
+  return process.env.GITHUB_SESSION_SECRET || 
+    (process.env.GITHUB_CLIENT_SECRET 
+      ? crypto.createHash('sha256').update(process.env.GITHUB_CLIENT_SECRET).digest('hex') 
+      : 'athelgard-dev-secret-change-me');
+}
+
 function createSession(token: string): string {
   const payload = base64url(JSON.stringify({ token, exp: Date.now() + SESSION_TTL * 1000 }));
-  return `${payload}.${sign(payload, process.env.GITHUB_SESSION_SECRET || 'fallback')}`;
+  return `${payload}.${sign(payload, getSessionSecret())}`;
 }
 
 function readSession(req: VercelRequest): { token: string; exp: number } | null {
-  const s = process.env.GITHUB_SESSION_SECRET;
-  if (!s) return null;
   const raw = parseCookies(req.headers.cookie)[SESSION_COOKIE];
   if (!raw) return null;
   const [payload, sig] = raw.split('.');
-  if (!payload || !safeEq(sig, sign(payload, s))) return null;
+  if (!payload || !safeEq(sig, sign(payload, getSessionSecret()))) return null;
   try {
     const sess = JSON.parse(Buffer.from(payload, 'base64url').toString());
     return sess.exp > Date.now() && sess.token ? sess : null;
