@@ -18,14 +18,7 @@ const readline = require('readline');
 const CONFIG_PATH = path.join(require('os').homedir(), '.athelgard.json');
 
 // ======== CLEAN OWL (favicon-style) ========
-const OWL = `
-    .---.
-   /     \
-  |  o o  |
-  |   <   |
-   \\  -  /
-    '---'
-`;
+const OWL = '🦉  A T H E L G A R D';
 
 const SIGNATURES = [
   "— Fly safe.",
