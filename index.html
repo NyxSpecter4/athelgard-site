@@ -1,12 +1,16 @@
 <!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>Athelgard</title>
 <script src="/modules/brain.js"></script><script src="/modules/config.js"></script>
-<style>:root{--bg:#0a0a0f;--bg2:#12121a;--cyan:#12e0ff;--text:#e0e0e0;--border:#1a1a2e}
+<script src="/modules/prompt-engineer.js"></script>
+<style>:root{--bg:#0a0a0f;--bg2:#12121a;--cyan:#12e0ff;--gold:#ffcf4d;--text:#e0e0e0;--border:#1a1a2e;--red:#ff3b5c;--green:#3dff9a}
 body{background:var(--bg);color:var(--text);font-family:system-ui;height:100vh;margin:0;display:flex;flex-direction:column}
 .header{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:16px}
 .logo{font-size:24px;font-weight:800;color:var(--cyan)}
-.status{margin-left:auto;font-size:11px}
-.status span{padding:4px 10px;border-radius:20px;background:rgba(61,255,154,0.15);color:#3dff9a;border:1px solid #3dff9a}
+.status{margin-left:auto;font-size:11px;display:flex;gap:8px}
+.status span{padding:4px 10px;border-radius:20px;background:rgba(61,255,154,0.15);color:var(--green);border:1px solid var(--green)}
+.nav-tabs{display:flex;gap:4px;margin-left:20px}
+.nav-tab{padding:8px 16px;border-radius:8px;background:transparent;border:1px solid var(--border);color:var(--text);cursor:pointer;font-size:13px}
+.nav-tab.active{background:var(--cyan);color:#000;border-color:var(--cyan);font-weight:700}
 .messages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:12px}
 .msg{max-width:80%;padding:12px 16px;border-radius:16px;font-size:14px;line-height:1.5}
 .msg.user{align-self:flex-end;background:var(--cyan);color:#000}
@@ -14,15 +18,104 @@ body{background:var(--bg);color:var(--text);font-family:system-ui;height:100vh;m
 .input-area{display:flex;gap:10px;padding:16px 20px;border-top:1px solid var(--border)}
 input{flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 16px;color:var(--text);font-size:14px;outline:none}
 button{background:var(--cyan);border:none;border-radius:12px;padding:12px 20px;color:#000;font-weight:700;cursor:pointer}
+
+/* Prompt Engineer Styles */
+.pe-container{display:flex;height:100%;gap:0}
+.pe-sidebar{width:260px;background:var(--bg2);border-right:1px solid var(--border);padding:16px;overflow-y:auto}
+.pe-sidebar h3{color:var(--cyan);margin:0 0 16px;font-size:16px}
+.pe-category{margin-bottom:16px}
+.pe-category h4{color:var(--gold);margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:1px}
+.pe-template-item{padding:8px 12px;border-radius:8px;cursor:pointer;margin-bottom:4px;border:1px solid transparent}
+.pe-template-item:hover{background:rgba(18,224,255,0.1);border-color:var(--cyan)}
+.pe-template-item.active{background:rgba(18,224,255,0.2);border-color:var(--cyan)}
+.pe-template-item strong{display:block;font-size:13px}
+.pe-template-item small{display:block;font-size:11px;color:#888;margin-top:2px}
+.pe-main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.pe-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--bg2)}
+.pe-tab{padding:12px 20px;background:transparent;border:none;color:var(--text);cursor:pointer;font-size:13px;border-bottom:2px solid transparent}
+.pe-tab.active{border-bottom-color:var(--cyan);color:var(--cyan);font-weight:700}
+.pe-content{flex:1;overflow-y:auto;padding:20px}
+.pe-placeholder{display:flex;align-items:center;justify-content:center;height:100%;color:#666;font-size:16px}
+.pe-input-group{margin-bottom:16px}
+.pe-input-group label{display:block;margin-bottom:6px;font-size:13px;color:var(--cyan)}
+.pe-input-group input,.pe-input-group textarea,.pe-input-group select{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:13px;outline:none;box-sizing:border-box}
+.pe-input-group textarea{resize:vertical;font-family:monospace}
+.pe-btn{padding:10px 16px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text);cursor:pointer;font-size:13px;margin-right:8px}
+.pe-btn:hover{background:rgba(18,224,255,0.1)}
+.pe-btn-primary{background:var(--cyan);color:#000;border-color:var(--cyan);font-weight:700}
+.pe-btn-primary:hover{background:#0ec8e0}
+.pe-actions{margin:16px 0}
+.pe-preview{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;margin:16px 0}
+.pe-preview h4{color:var(--gold);margin:8px 0 4px;font-size:12px;text-transform:uppercase}
+.pe-preview pre{background:#000;padding:12px;border-radius:6px;overflow-x:auto;font-size:12px;margin:0 0 16px}
+.pe-response{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;margin:16px 0;max-height:400px;overflow-y:auto}
+.pe-result{line-height:1.6}
+.pe-result pre{background:#000;padding:12px;border-radius:6px;overflow-x:auto}
+.pe-result code{background:rgba(18,224,255,0.1);padding:2px 6px;border-radius:4px;font-size:12px}
+.pe-loading{padding:20px;text-align:center;color:var(--cyan)}
+.pe-error{padding:12px;background:rgba(255,59,92,0.1);border:1px solid var(--red);border-radius:8px;color:var(--red)}
+.pe-success{padding:12px;background:rgba(61,255,154,0.1);border:1px solid var(--green);border-radius:8px;color:var(--green)}
+.pe-variation{display:flex;gap:8px;align-items:center;margin-bottom:8px;padding:8px;background:var(--bg2);border-radius:8px}
+.pe-variation input{flex:1}
+.pe-variation textarea{flex:2}
+.pe-test-result{padding:12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px}
+.pe-test-result.winner{border-color:var(--gold);background:rgba(255,207,77,0.1)}
+.pe-score{font-weight:700;color:var(--cyan);margin-left:12px}
+.pe-duration{color:#888;font-size:11px;margin-left:8px}
+.pe-breakdown{font-size:11px;color:#888;margin-top:4px}
+.pe-issue{padding:8px;background:rgba(255,207,77,0.1);border-left:3px solid var(--gold);margin-bottom:4px;border-radius:0 4px 4px 0}
+.pe-analysis{padding:16px;background:var(--bg2);border-radius:8px;margin-top:16px}
+.pe-optimized{background:#000;padding:16px;border-radius:8px;overflow-x:auto;margin:8px 0}
 </style></head><body>
-<header class="header"><div class="logo">🦉 Athelgard</div><div class="status"><span>Brain: Active</span><span>GitHub: <span id="gh">Checking...</span></span></div></header>
-<main style="flex:1;max-width:900px;width:100%;margin:0 auto"><div class="messages" id="msg"></div></main>
-<div class="input-area"><input type="text" id="inp" placeholder="Ask..." onkeydown="if(event.key==='Enter') send()" disabled>
-<button onclick="send()" disabled>Send</button></div>
+<header class="header">
+  <div class="logo">🦉 Athelgard</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" data-view="chat" onclick="switchView('chat')">💬 Chat</button>
+    <button class="nav-tab" data-view="prompt" onclick="switchView('prompt')">🎯 Prompt Engineer</button>
+  </div>
+  <div class="status">
+    <span>Brain: Active</span>
+    <span>GitHub: <span id="gh">Checking...</span></span>
+  </div>
+</header>
+
+<main style="flex:1;max-width:900px;width:100%;margin:0 auto;display:flex;flex-direction:column" id="chat-view">
+  <div class="messages" id="msg"></div>
+  <div class="input-area">
+    <input type="text" id="inp" placeholder="Ask..." onkeydown="if(event.key==='Enter') send()" disabled>
+    <button onclick="send()" disabled>Send</button>
+  </div>
+</main>
+
+<main style="flex:1;display:none;" id="prompt-view">
+  <div id="prompt-engineer-container" style="height:100%"></div>
+</main>
+
 <script>
+let promptEngineer = null;
+
+function switchView(view) {
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.view === view));
+  document.getElementById('chat-view').style.display = view === 'chat' ? 'flex' : 'none';
+  document.getElementById('prompt-view').style.display = view === 'prompt' ? 'flex' : 'none';
+  
+  if (view === 'prompt' && !promptEngineer) {
+    promptEngineer = new PromptEngineerUI('prompt-engineer-container', async (prompt, system) => {
+      const res = await fetch('/api/brain', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: prompt, system })
+      });
+      const data = await res.json();
+      return data.response || data.mentor || 'No response';
+    });
+    promptEngineer.render();
+  }
+}
+
 const m=document.getElementById('msg');const i=document.getElementById('inp');const g=document.getElementById('gh');
-function a(s,t,u){const d=document.createElement('div');d.className='msg '+ (u?'user':'ai');if(!u){const n=document.createElement('div');n.className='name';n.textContent=s;d.appendChild(n)}d.innerHTML+=t;m.appendChild(d);m.scrollTop=m.scrollHeight}
+function a(s,t,u){const d=document.createElement('div');d.className='msg '+ (u?'user':'ai');if(!u){const n=document.createElement('div');n.style.fontWeight='bold';n.style.marginBottom='4px';n.style.color='var(--cyan)';n.textContent=s;d.appendChild(n)}const c=document.createElement('div');c.innerHTML=t;d.appendChild(c);m.appendChild(d);m.scrollTop=m.scrollHeight}
 function c(){fetch('/api/github?action=status').then(r=>r.json()).then(d=>{g.textContent=d.connected?'Connected ✓':'Not Connected';if(d.connected){i.disabled=false;document.querySelector('button').disabled=false;a('Athelgard','GitHub connected! Start coding.')}}).catch(()=>{g.textContent='Error'})}
-function send(){const t=i.value.trim();if(!t)return;i.value='';a('You',t,true);fetch('/api/brain',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:t})}).then(r=>r.json()).then(d=>a('Athelgard',d.response||d.mentor||'I heard you!')).catch(()=>a('Athelgard','Error. Try again.'))}
-a('Athelgard','🦉 Athelgard v3.0 - Merge Master Complete');a('Athelgard','Connect GitHub to start coding.');c();setInterval(c,30000);
+function send(){const t=i.value.trim();if(!t)return;i.value='';a('You',t.replace(/</g,'&lt;').replace(/>/g,'&gt;'),true);fetch('/api/brain',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:t})}).then(r=>r.json()).then(d=>a('Athelgard',(d.response||d.mentor||'I heard you!').replace(/\n/g,'<br>'))).catch(()=>a('Athelgard','Error. Try again.'))}
+a('Athelgard','🦉 Athelgard v4.0 - Prompt Engineer Edition');a('Athelgard','💬 Chat for coding | 🎯 Prompt Engineer for templates');a('Athelgard','Connect GitHub to start coding.');c();setInterval(c,30000);
 </script></body></html>
