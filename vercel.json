@@ -16,7 +16,7 @@
       "use": "@vercel/static"
     },
     {
-      "src": "sw.js",
+      "src": "icons/**",
       "use": "@vercel/static"
     },
     {
@@ -80,6 +80,10 @@
     {
       "src": "/manifest.json",
       "dest": "/manifest.json"
+    },
+    {
+      "src": "/icons/(.*)",
+      "dest": "/icons/$1"
     },
     {
       "src": "/(.*)",
