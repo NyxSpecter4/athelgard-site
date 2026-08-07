@@ -1,4 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
-  <rect fill="#0a0e1a" width="192" height="192" rx="32"/>
-  <text x="96" y="135" font-size="110" text-anchor="middle">🦉</text>
+  <!-- Black circle background -->
+  <circle fill="#000000" cx="96" cy="96" r="96"/>
+  
+  <!-- Owl face -->
+  <circle fill="#ffffff" cx="96" cy="85" r="55"/>
+  
+  <!-- Eyes (large, round, with pupils) -->
+  <circle fill="#ffffff" cx="70" cy="75" r="22"/>
+  <circle fill="#ffffff" cx="122" cy="75" r="22"/>
+  <circle fill="#000000" cx="70" cy="75" r="10"/>
+  <circle fill="#000000" cx="122" cy="75" r="10"/>
+  <circle fill="#ffffff" cx="74" cy="71" r="4"/>
+  <circle fill="#ffffff" cx="126" cy="71" r="4"/>
+  
+  <!-- Beak -->
+  <polygon fill="#000000" points="96,92 88,108 104,108"/>
+  
+  <!-- Ear tufts -->
+  <polygon fill="#ffffff" points="50,40 58,65 42,55"/>
+  <polygon fill="#ffffff" points="142,40 134,65 150,55"/>
 </svg>

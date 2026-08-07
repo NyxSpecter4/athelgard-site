@@ -17,8 +17,11 @@ const readline = require('readline');
 
 const CONFIG_PATH = path.join(require('os').homedir(), '.athelgard.json');
 
-// ======== FAVICON: black circle + white owl face ========
-const OWL = '\x1b[40m\x1b[97m 🦉 \x1b[0m';
+// ======== ATHELGARD: black circle + white owl face ========
+const OWL = `
+\x1b[40m  \x1b[37m◉◉\x1b[40m  \x1b[0m
+\x1b[40m  \x1b[37m‿\x1b[40m  \x1b[0m
+`;
 
 const SIGNATURES = [
   "— Fly safe.",
