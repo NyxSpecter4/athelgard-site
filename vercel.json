@@ -30,6 +30,10 @@
       "dest": "api/agent.js"
     },
     {
+      "src": "/api/github/callback",
+      "dest": "api/github/callback.js"
+    },
+    {
       "src": "/api/health",
       "dest": "api/health/index.js"
     },

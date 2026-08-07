@@ -291,7 +291,7 @@ GITHUB_CLIENT_ID || !process.env.GITHUB_CLIENT_SECRET) {
     const state = crypto.randomBytes(32).toString('hex');
     const url = new URL('https://github.com/login/oauth/authorize');
     url.searchParams.set('client_id', process.env.GITHUB_CLIENT_ID);
-    url.searchParams.set('redirect_uri', `${origin}/api/health?path=github&action=callback`);
+    url.searchParams.set('redirect_uri', `${origin}/api/github/callback`);
     url.searchParams.set('scope', 'read:user repo');
     url.searchParams.set('state', state);
     res.setHeader('Set-Cookie', cookie(STATE_COOKIE, state, { maxAge: 600 }));

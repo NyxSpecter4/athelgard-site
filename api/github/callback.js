@@ -2,7 +2,7 @@ const https = require('https');
 const crypto = require('crypto');
 
 const STATE_COOKIE = 'athelgard_oauth_state';
-const SESSION_COOKIE = 'athelgard_github_session';
+const SESSION_COOKIE = 'athelgard_session';
 const SESSION_TTL_SECONDS = 60 * 60 * 8;
 
 function base64url(value) {
