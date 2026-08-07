@@ -1,42 +1,18 @@
 {
   "name": "athelgard",
-  "version": "2.0.0",
-  "description": "Athelgard — Your AI wingmate for ethical bounty hunting. CLI agent with owl personality.",
+  "version": "3.0.0",
+  "description": "Athelgard — Your ethical bounty hunting wingmate. CLI agent.",
   "main": "cli/athelgard.js",
   "bin": {
-    "athelgard": "./cli/athelgard.js"
+    "athelgard": "cli/athelgard.js"
   },
   "scripts": {
-    "dev": "node server.js",
-    "start": "node server.js",
-    "build": "echo 'No build needed - JS files are ready'",
-    "smoke": "node scripts/smoke-prod.js",
-    "smoke:live": "node scripts/smoke-prod.js --live",
-    "test": "node scripts/smoke-prod.js && node --test tests/*.cjs && node run-full-audit.js",
-    "audit": "node scripts/smoke-prod.js && node run-full-audit.js",
-    "install-cli": "npm link"
+    "postinstall": "chmod +x cli/athelgard.js"
   },
-  "dependencies": {
-    "@vercel/node": "^3.0.0",
-    "uuid": "^9.0.0"
-  },
-  "devDependencies": {
-    "typescript": "^5.2.2",
-    "vercel": "^32.4.0"
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "keywords": [
-    "ai",
-    "cli",
-    "agent",
-    "athelgard",
-    "bountywarz",
-    "ethical-hacking",
-    "mentor",
-    "owl"
-  ],
-  "author": "NyxSpecter4 (Captain)",
+  "preferGlobal": true,
+  "dependencies": {},
+  "engines": { "node": ">=18" },
+  "keywords": ["cli", "ai", "athelgard", "bountywarz"],
+  "author": "Captain (NyxSpecter4)",
   "license": "MIT"
 }
