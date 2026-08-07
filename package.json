@@ -1,8 +1,11 @@
 {
-  "name": "athelgard-site",
-  "version": "3.1.0",
-  "description": "Athelgard AI Coding Agent - Unified team synthesis",
-  "main": "api/index.js",
+  "name": "athelgard",
+  "version": "2.0.0",
+  "description": "Athelgard — Your AI wingmate for ethical bounty hunting. CLI agent with owl personality.",
+  "main": "cli/athelgard.js",
+  "bin": {
+    "athelgard": "./cli/athelgard.js"
+  },
   "scripts": {
     "dev": "node server.js",
     "start": "node server.js",
@@ -10,7 +13,8 @@
     "smoke": "node scripts/smoke-prod.js",
     "smoke:live": "node scripts/smoke-prod.js --live",
     "test": "node scripts/smoke-prod.js && node --test tests/*.cjs && node run-full-audit.js",
-    "audit": "node scripts/smoke-prod.js && node run-full-audit.js"
+    "audit": "node scripts/smoke-prod.js && node run-full-audit.js",
+    "install-cli": "npm link"
   },
   "dependencies": {
     "@vercel/node": "^3.0.0",
@@ -25,11 +29,14 @@
   },
   "keywords": [
     "ai",
-    "coding",
-    "github",
+    "cli",
+    "agent",
     "athelgard",
-    "bountywarz"
+    "bountywarz",
+    "ethical-hacking",
+    "mentor",
+    "owl"
   ],
-  "author": "NyxSpecter4",
+  "author": "NyxSpecter4 (Captain)",
   "license": "MIT"
 }
