@@ -107,9 +107,46 @@ athelgard --help
 | `athelgard -s` | Check AI status |
 | `athelgard --config` | Set API keys |
 
+## Mobile Build (Capacitor)
+
+```bash
+# Build web assets
+npm run build:web
+
+# Add Android (first time only)
+npm run cap:add:android
+
+# Build Android APK
+npm run build:android
+
+# Open in Android Studio
+npm run cap:open:android
+```
+
+**Requirements:**
+- Android Studio
+- Android SDK (API 33+)
+- Java 17
+
 ---
 
-## Quick Start
+## Google Play Beta Checklist
+
+### Captain's Action Items
+| Step | What | Status |
+|------|------|--------|
+| 1 | Create Google Play Developer account ($25) | ⬜ |
+| 2 | Add `DEEPSEEK_API_KEY` to Vercel env vars | ⬜ |
+| 3 | Generate Android signing keystore | ⬜ |
+| 4 | Build signed APK/AAB | ⬜ |
+| 5 | Upload to Play Console → Internal Testing | ⬜ |
+| 6 | Invite beta testers | ⬜ |
+
+**App ID:** `com.bountywarz.athelgard`
+**Target SDK:** API 34 (Android 14)
+**Min SDK:** API 26 (Android 8.0)
+
+---
 
 ```bash
 # Deploy to athelgard.io
