@@ -38,7 +38,6 @@
       touch-action: manipulation;
     }
     
-    /* Mobile-optimized layout */
     .app {
       display: flex;
       flex-direction: column;
@@ -72,7 +71,7 @@
       position: relative;
     }
     
-    /* Chat panel (primary on mobile) */
+    /* Chat panel */
     .chat-container {
       height: 100%;
       display: flex;
@@ -141,7 +140,21 @@
       border-color: var(--accent);
     }
     
-    /* Bottom nav for mobile */
+    /* Code panel */
+    .code-panel {
+      height: 100%;
+      display: none;
+    }
+    
+    .code-panel.active {
+      display: block;
+    }
+    
+    #code-editor-container {
+      height: 100%;
+    }
+    
+    /* Bottom nav */
     .bottom-nav {
       height: 56px;
       background: var(--bg-light);
@@ -174,7 +187,6 @@
       font-size: 1.25rem;
     }
     
-    /* Loading state */
     .loading {
       display: flex;
       align-items: center;
@@ -198,7 +210,6 @@
       to { transform: rotate(360deg); }
     }
     
-    /* Battery indicator */
     .battery-indicator {
       position: fixed;
       top: 52px;
@@ -231,7 +242,8 @@
     </header>
     
     <div class="content">
-      <div class="chat-container">
+      <!-- Chat -->
+      <div class="chat-container" id="chatContainer">
         <div class="chat-messages" id="chatMessages">
           <div class="message ai">
             <div class="sender">Athelgard</div>
@@ -248,6 +260,11 @@
             autocomplete="off"
           >
         </div>
+      </div>
+      
+      <!-- Code Editor -->
+      <div class="code-panel" id="codePanel">
+        <div id="code-editor-container"></div>
       </div>
     </div>
     
@@ -275,16 +292,17 @@
     🔋 <span id="batteryLevel">--</span>%
   </div>
   
-  <!-- Lazy-loaded modules -->
   <script src="/modules/asset-loader.js"></script>
+  <script src="/modules/monaco-loader.js"></script>
   <script>
-    // Mobile-optimized Athelgard
     class AthelgardMobile {
       constructor() {
         this.messages = document.getElementById('chatMessages');
         this.input = document.getElementById('chatInput');
         this.batteryIndicator = document.getElementById('batteryIndicator');
         this.batteryLevel = document.getElementById('batteryLevel');
+        this.chatContainer = document.getElementById('chatContainer');
+        this.codePanel = document.getElementById('codePanel');
         
         this.setupEventListeners();
         this.setupBatteryMonitoring();
@@ -292,23 +310,18 @@
       }
       
       setupEventListeners() {
-        // Send on Enter
         this.input.addEventListener('keypress', (e) => {
-          if (e.key === 'Enter') {
-            this.sendMessage();
-          }
+          if (e.key === 'Enter') this.sendMessage();
         });
         
-        // Tab switching
         document.querySelectorAll('.nav-btn').forEach(btn => {
           btn.addEventListener('click', () => {
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             
             const tab = btn.dataset.tab;
-            if (tab === 'code') {
-              this.loadCodeEditor();
-            }
+            if (tab === 'code') this.loadCodeEditor();
+            else if (tab === 'chat') this.showChat();
           });
         });
       }
@@ -317,14 +330,8 @@
         if ('getBattery' in navigator) {
           navigator.getBattery().then(battery => {
             this.updateBatteryUI(battery);
-            
-            battery.addEventListener('levelchange', () => {
-              this.updateBatteryUI(battery);
-            });
-            
-            battery.addEventListener('chargingchange', () => {
-              this.updateBatteryUI(battery);
-            });
+            battery.addEventListener('levelchange', () => this.updateBatteryUI(battery));
+            battery.addEventListener('chargingchange', () => this.updateBatteryUI(battery));
           });
         }
       }
@@ -334,50 +341,33 @@
         this.batteryLevel.textContent = level;
         this.batteryIndicator.classList.add('visible');
         
-        if (level < 20) {
-          this.batteryIndicator.classList.add('low');
-        } else {
-          this.batteryIndicator.classList.remove('low');
-        }
+        if (level < 20) this.batteryIndicator.classList.add('low');
+        else this.batteryIndicator.classList.remove('low');
         
-        // Reduce effects when battery is low
-        if (level < 15 && !battery.charging) {
-          document.body.classList.add('power-save');
-        } else {
-          document.body.classList.remove('power-save');
-        }
+        if (level < 15 && !battery.charging) document.body.classList.add('power-save');
+        else document.body.classList.remove('power-save');
       }
       
       setupTouchGestures() {
         let touchStartX = 0;
-        let touchEndX = 0;
-        
         document.addEventListener('touchstart', (e) => {
           touchStartX = e.changedTouches[0].screenX;
         });
-        
         document.addEventListener('touchend', (e) => {
-          touchEndX = e.changedTouches[0].screenX;
-          this.handleSwipe(touchStartX, touchEndX);
+          const diff = touchStartX - e.changedTouches[0].screenX;
+          if (Math.abs(diff) > 100) this.handleSwipe(diff > 0 ? 'left' : 'right');
         });
       }
       
-      handleSwipe(startX, endX) {
-        const diff = startX - endX;
-        const threshold = 100;
+      handleSwipe(direction) {
+        const tabs = ['chat', 'code', 'missions', 'profile'];
+        const activeTab = document.querySelector('.nav-btn.active');
+        const currentIndex = tabs.indexOf(activeTab.dataset.tab);
         
-        if (Math.abs(diff) > threshold) {
-          const tabs = ['chat', 'code', 'missions', 'profile'];
-          const activeTab = document.querySelector('.nav-btn.active');
-          const currentIndex = tabs.indexOf(activeTab.dataset.tab);
-          
-          if (diff > 0 && currentIndex < tabs.length - 1) {
-            // Swipe left → next tab
-            this.switchTab(tabs[currentIndex + 1]);
-          } else if (diff < 0 && currentIndex > 0) {
-            // Swipe right → prev tab
-            this.switchTab(tabs[currentIndex - 1]);
-          }
+        if (direction === 'left' && currentIndex < tabs.length - 1) {
+          this.switchTab(tabs[currentIndex + 1]);
+        } else if (direction === 'right' && currentIndex > 0) {
+          this.switchTab(tabs[currentIndex - 1]);
         }
       }
       
@@ -385,17 +375,33 @@
         document.querySelectorAll('.nav-btn').forEach(btn => {
           btn.classList.toggle('active', btn.dataset.tab === tabName);
         });
+        if (tabName === 'code') this.loadCodeEditor();
+        else if (tabName === 'chat') this.showChat();
+      }
+      
+      async loadCodeEditor() {
+        this.chatContainer.style.display = 'none';
+        this.codePanel.classList.add('active');
+        
+        if (!window.codeEditorLoaded) {
+          const editor = await MonacoLoader.load('code-editor-container');
+          window.codeEditorLoaded = true;
+          window.currentEditor = editor;
+        }
+      }
+      
+      showChat() {
+        this.chatContainer.style.display = 'flex';
+        this.codePanel.classList.remove('active');
       }
       
       async sendMessage() {
         const text = this.input.value.trim();
         if (!text) return;
         
-        // Add user message
         this.addMessage('user', text);
         this.input.value = '';
         
-        // Show loading
         const loadingId = 'loading-' + Date.now();
         this.addLoading(loadingId);
         
@@ -409,11 +415,8 @@
           const data = await response.json();
           document.getElementById(loadingId)?.remove();
           
-          if (data.error) {
-            this.addMessage('ai', 'Error: ' + data.error);
-          } else {
-            this.addMessage('ai', data.response);
-          }
+          if (data.error) this.addMessage('ai', 'Error: ' + data.error);
+          else this.addMessage('ai', data.response);
         } catch (err) {
           document.getElementById(loadingId)?.remove();
           this.addMessage('ai', 'Connection error. Working offline?');
@@ -423,10 +426,7 @@
       addMessage(role, text) {
         const msg = document.createElement('div');
         msg.className = `message ${role}`;
-        msg.innerHTML = `
-          <div class="sender">${role === 'ai' ? 'Athelgard' : 'You'}</div>
-          ${text}
-        `;
+        msg.innerHTML = `<div class="sender">${role === 'ai' ? 'Athelgard' : 'You'}</div>${text}`;
         this.messages.appendChild(msg);
         this.messages.scrollTop = this.messages.scrollHeight;
       }
@@ -439,20 +439,10 @@
         this.messages.appendChild(loading);
         this.messages.scrollTop = this.messages.scrollHeight;
       }
-      
-      async loadCodeEditor() {
-        // Lazy-load code editor only when needed
-        if (!window.codeEditorLoaded) {
-          await assetLoader.load('/modules/monaco-loader.js');
-          window.codeEditorLoaded = true;
-        }
-      }
     }
     
-    // Initialize
     window.athelgard = new AthelgardMobile();
     
-    // Register service worker
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js')
         .then(() => console.log('[PWA] Service worker registered'))
