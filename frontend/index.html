@@ -2,8 +2,28 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Athelgard IDE</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0e1a">
+  <meta name="background-color" content="#0a0e1a">
+  
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.json">
+  
+  <!-- iOS PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Athelgard">
+  <link rel="apple-touch-icon" href="/icons/icon-192x192.svg">
+  
+  <!-- Android/Chrome -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="icon" type="image/svg+xml" href="/icons/icon-192x192.svg">
+  
+  <!-- Windows -->
+  <meta name="msapplication-TileColor" content="#0a0e1a">
+  <meta name="msapplication-TileImage" content="/icons/icon-144x144.png">
+  
+  <title>Athelgard — AI Bounty Hunter</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/editor/editor.main.min.css">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -25,7 +45,39 @@
       background: var(--bg);
       color: var(--text);
       height: 100vh;
+      height: 100dvh; /* mobile viewport fix */
       overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    
+    /* Mobile responsive */
+    @media (max-width: 768px) {
+      .container {
+        grid-template-columns: 1fr !important;
+        grid-template-rows: auto 1fr auto;
+      }
+      .sidebar { display: none; }
+      .chat-panel { 
+        position: fixed; 
+        bottom: 0; 
+        left: 0; 
+        right: 0; 
+        height: 60vh; 
+        z-index: 50;
+        transform: translateY(100%);
+        transition: transform 0.3s ease;
+      }
+      .chat-panel.open { transform: translateY(0); }
+    }
+    
+    /* PWA Install button */
+    #pwa-install-btn {
+      animation: slideUp 0.3s ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
     }
     
     /* Top Bar */
@@ -708,6 +760,44 @@ hello();`,
 
     // Check auth on load
     checkAuth();
+    
+    // Register Service Worker for PWA
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(reg => console.log('[PWA] Athelgard service worker registered'))
+        .catch(err => console.log('[PWA] SW registration failed:', err));
+    }
+    
+    // PWA Install Prompt
+    let deferredPrompt;
+    const installBtn = document.createElement('button');
+    installBtn.id = 'pwa-install-btn';
+    installBtn.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:999;padding:12px 20px;background:#38bdf8;color:#0a0e1a;border:none;border-radius:8px;font-weight:600;cursor:pointer;display:none;box-shadow:0 4px 12px rgba(56,189,248,0.3);';
+    installBtn.innerHTML = '🦉 Install Athelgard';
+    installBtn.onclick = async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        installBtn.style.display = 'none';
+        console.log('[PWA] Athelgard installed');
+      }
+      deferredPrompt = null;
+    };
+    document.body.appendChild(installBtn);
+    
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installBtn.style.display = 'block';
+      console.log('[PWA] Install prompt ready');
+    });
+    
+    window.addEventListener('appinstalled', () => {
+      installBtn.style.display = 'none';
+      deferredPrompt = null;
+      console.log('[PWA] Athelgard installed!');
+    });
   </script>
 </body>
 </html>

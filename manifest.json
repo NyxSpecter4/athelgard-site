@@ -1,45 +1,106 @@
 {
-  "name": "Athelgard — AI Coding Agent",
+  "name": "Athelgard — AI Bounty Hunter",
   "short_name": "Athelgard",
-  "description": "AI-powered coding agent with voice, GitHub, Vercel, Supabase & DeepSeek integration",
+  "description": "Your AI wingmate for ethical bounty hunting training. Voice chat, code mentoring, and mission briefing.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0e1a",
   "theme_color": "#0a0e1a",
   "orientation": "any",
+  "scope": "/",
+  "id": "/",
+  "categories": ["developer tools", "productivity", "education"],
+  "lang": "en",
+  "dir": "ltr",
   "icons": [
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect fill='%230a0e1a' width='192' height='192' rx='32'/%3E%3Ctext x='96' y='135' font-size='110' text-anchor='middle'%3E🦉%3C/text%3E%3C/svg%3E",
-      "sizes": "192x192",
-      "type": "image/svg+xml"
+      "src": "/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect fill='%230a0e1a' width='512' height='512' rx='64'/%3E%3Ctext x='256' y='360' font-size='300' text-anchor='middle'%3E🦉%3C/text%3E%3C/svg%3E",
+      "src": "/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
-      "type": "image/svg+xml"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ],
-  "categories": ["developer tools", "productivity"],
   "screenshots": [
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1280' height='720'%3E%3Crect fill='%230a0e1a' width='1280' height='720'/%3E%3Ctext x='640' y='360' fill='%2338bdf8' font-size='48' text-anchor='middle' font-family='sans-serif' font-weight='bold'%3EAthelgard%3C/text%3E%3Ctext x='640' y='420' fill='%2394a3b8' font-size='20' text-anchor='middle' font-family='sans-serif'%3EAI Coding Agent%3C/text%3E%3C/svg%3E",
+      "src": "/screenshots/desktop-wide.png",
       "sizes": "1280x720",
-      "type": "image/svg+xml",
-      "form_factor": "wide"
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Athelgard IDE Desktop View"
+    },
+    {
+      "src": "/screenshots/mobile-narrow.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Athelgard on Mobile"
     }
   ],
   "shortcuts": [
     {
-      "name": "Voice Mode",
+      "name": "Voice Chat",
       "short_name": "Voice",
       "description": "Talk to Athelgard",
-      "url": "/?voice=1"
+      "url": "/?voice=1",
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
     },
     {
-      "name": "Jeopardy",
+      "name": "Code Jeopardy",
       "short_name": "Quiz",
-      "description": "Code Jeopardy",
-      "url": "/?jeopardy=1"
+      "description": "Test your skills",
+      "url": "/?jeopardy=1",
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "GitHub Connect",
+      "short_name": "GitHub",
+      "description": "Browse your repos",
+      "url": "/?github=1",
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
     }
-  ]
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
 }
