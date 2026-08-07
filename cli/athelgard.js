@@ -17,18 +17,15 @@ const readline = require('readline');
 
 const CONFIG_PATH = path.join(require('os').homedir(), '.athelgard.json');
 
-// ======== ATHELGARD LOGO: Angular owl face on dark circle ========
+// ======== ATHELGARD: Black circle + white angular owl ========
 const OWL = `
-\x1b[40m       /\\       \x1b[0m
-\x1b[40m      /  \\      \x1b[0m
-\x1b[40m     / /\\ \\     \x1b[0m
-\x1b[40m    / /  \\ \\    \x1b[0m
-\x1b[40m   ( ( ◉◉ ) )   \x1b[0m
-\x1b[40m    \\ \\VV/ /    \x1b[0m
-\x1b[40m     \\ \/\/ /     \x1b[0m
-\x1b[40m      \\    /      \x1b[0m
-\x1b[40m       \\  /       \x1b[0m
-\x1b[40m        \\/        \x1b[0m
+\x1b[40m      _/\\\\_      \x1b[0m
+\x1b[40m     / /  \\ \\     \x1b[0m
+\x1b[40m    / / /\ \\ \\    \x1b[0m
+\x1b[40m   | | (◉◉) | |   \x1b[0m
+\x1b[40m    \\ \\ \/\/ /    \x1b[0m
+\x1b[40m     \\ \\><//     \x1b[0m
+\x1b[40m      \\_/\\_/      \x1b[0m
 `;
 
 const SIGNATURES = [
@@ -125,7 +122,7 @@ async function chatMode() {
   if (!p) { console.log('Run: athelgard --config'); return; }
   
   console.log(OWL);
-  console.log(`\n🦉 Athelgard | ${p.name} | type 'exit' to quit\n`);
+  console.log(`\nAthelgard | ${p.name} | type 'exit' to quit\n`);
   
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
   const history = [];
@@ -159,7 +156,7 @@ async function doConfig() {
   
   const c = loadConfig();
   console.log(OWL);
-  console.log('\n🦉 Setup\n');
+  console.log('\nAthelgard Setup\n');
   
   c.deepseek = await ask('DeepSeek key: ') || c.deepseek;
   c.kimi = await ask('Kimi key (optional): ') || c.kimi;
@@ -185,7 +182,7 @@ async function main() {
   // Default: single question
   const prompt = args.join(' ');
   console.log(OWL);
-  console.log('\n🦉 Thinking...\n');
+  console.log('\nThinking...\n');
   
   try {
     const answer = await ask(prompt);
