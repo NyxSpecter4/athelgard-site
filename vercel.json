@@ -34,6 +34,30 @@
       "dest": "api/health/index.js"
     },
     {
+      "src": "/api/ka-voice",
+      "dest": "api/ka-voice.js"
+    },
+    {
+      "src": "/api/ka-voice-async",
+      "dest": "api/ka-voice-async.js"
+    },
+    {
+      "src": "/api/tts",
+      "dest": "api/tts.js"
+    },
+    {
+      "src": "/api/twilio/voice",
+      "dest": "api/twilio/voice.js"
+    },
+    {
+      "src": "/api/twilio/gather",
+      "dest": "api/twilio/gather.js"
+    },
+    {
+      "src": "/api/twilio/speech",
+      "dest": "api/twilio/speech.js"
+    },
+    {
       "src": "/api/(.*)",
       "dest": "api/$1"
     },
