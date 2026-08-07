@@ -1,97 +1,66 @@
-// sw.js — Athelgard Service Worker
-// Caches core assets for offline PWA support
+// Athelgard Service Worker — Mobile-Optimized
+// Caches core assets, lazy-loads heavy assets
 
-const CACHE_NAME = 'athelgard-v1';
-const STATIC_ASSETS = [
+const CACHE_NAME = 'athelgard-v3';
+const CORE_ASSETS = [
   '/',
-  '/frontend/index.html',
+  '/index.html',
+  '/manifest.json',
+  '/icons/owl.svg',
   '/modules/brain.js',
+  '/modules/chat.js',
   '/modules/config.js',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png'
+  '/modules/voice.js'
 ];
 
-// Install: cache static assets
-self.addEventListener('install', (event) => {
-  console.log('[SW] Installing Athelgard v1...');
+// Install: Cache core assets immediately
+self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS);
-    }).then(() => {
-      self.skipWaiting();
-    })
+    caches.open(CACHE_NAME).then(cache => {
+      return cache.addAll(CORE_ASSETS);
+    }).then(() => self.skipWaiting())
   );
 });
 
-// Activate: clean old caches
-self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating Athelgard v1...');
+// Activate: Clean old caches
+self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
+    caches.keys().then(keys => {
       return Promise.all(
-        cacheNames
-          .filter((name) => name !== CACHE_NAME)
-          .map((name) => caches.delete(name))
+        keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
       );
-    }).then(() => {
-      self.clients.claim();
-    })
+    }).then(() => self.clients.claim())
   );
 });
 
-// Fetch: cache-first for static, network-first for API
-self.addEventListener('fetch', (event) => {
+// Fetch: Cache-first for core, network-first for API
+self.addEventListener('fetch', event => {
   const { request } = event;
   const url = new URL(request.url);
-
-  // API calls: network first, fallback to offline message
+  
+  // API calls: network only
   if (url.pathname.startsWith('/api/')) {
+    event.respondWith(fetch(request));
+    return;
+  }
+  
+  // Core assets: cache-first
+  if (CORE_ASSETS.includes(url.pathname)) {
     event.respondWith(
-      fetch(request)
-        .then((response) => response)
-        .catch(() => {
-          return new Response(
-            JSON.stringify({ error: 'Offline — Athelgard needs connection' }),
-            { status: 503, headers: { 'Content-Type': 'application/json' } }
-          );
-        })
+      caches.match(request).then(response => {
+        return response || fetch(request).then(fetchResponse => {
+          return caches.open(CACHE_NAME).then(cache => {
+            cache.put(request, fetchResponse.clone());
+            return fetchResponse;
+          });
+        });
+      })
     );
     return;
   }
-
-  // Static assets: cache first
+  
+  // Everything else: network with cache fallback
   event.respondWith(
-    caches.match(request).then((cached) => {
-      if (cached) return cached;
-      return fetch(request).then((response) => {
-        // Cache new static assets
-        if (response.ok && request.method === 'GET') {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-        }
-        return response;
-      });
-    })
-  );
-});
-
-// Background sync for messages sent while offline
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'athelgard-sync') {
-    console.log('[SW] Background sync triggered');
-  }
-});
-
-// Push notifications (future)
-self.addEventListener('push', (event) => {
-  const data = event.data?.json() || {};
-  event.waitUntil(
-    self.registration.showNotification(data.title || 'Athelgard', {
-      body: data.body || 'Mission update available',
-      icon: '/icons/icon-192x192.png',
-      badge: '/icons/icon-72x72.png',
-      tag: data.tag || 'default',
-      requireInteraction: false
-    })
+    fetch(request).catch(() => caches.match(request))
   );
 });

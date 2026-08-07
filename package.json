@@ -7,12 +7,30 @@
     "athelgard": "cli/athelgard.js"
   },
   "scripts": {
-    "postinstall": "chmod +x cli/athelgard.js"
+    "postinstall": "chmod +x cli/athelgard.js",
+    "build:web": "mkdir -p dist && cp -r frontend/* dist/ && cp -r icons dist/ && cp manifest.json dist/ && cp sw.js dist/",
+    "build:android": "npm run build:web && npx cap sync android",
+    "build:ios": "npm run build:web && npx cap sync ios",
+    "cap:add:android": "npx cap add android",
+    "cap:add:ios": "npx cap add ios",
+    "cap:sync": "npx cap sync",
+    "cap:open:android": "npx cap open android",
+    "cap:open:ios": "npx cap open ios"
   },
   "preferGlobal": true,
-  "dependencies": {},
-  "engines": { "node": ">=18" },
-  "keywords": ["cli", "ai", "athelgard", "bountywarz"],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "cli",
+    "ai",
+    "athelgard",
+    "bountywarz"
+  ],
   "author": "Captain (NyxSpecter4)",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.0",
+    "@capacitor/core": "^8.5.0"
+  }
 }
