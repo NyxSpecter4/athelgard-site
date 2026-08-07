@@ -15,7 +15,7 @@
 
 function detectCapabilities() {
   const isBrowser = (typeof window !== 'undefined');
-  const isNode = (typeof process !== 'undefined' && process.versions && process.versions.node);
+  const isNode = !!(typeof process !== 'undefined' && process.versions && process.versions.node);
   const isCapacitor = !!(typeof window !== 'undefined' && (window.Capacitor || (window.cordova)));
 
   // --- Runtime feature probes (lazy, never throw) ---
@@ -24,8 +24,10 @@ function detectCapabilities() {
   const browser = has(() => typeof window !== 'undefined' && typeof document !== 'undefined');
   const webAudio = has(() =>
     (typeof window !== 'undefined') && !!(window.AudioContext || window.webkitAudioContext));
-  const camera = has(() =>
-    (typeof navigator !== 'undefined') && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
+  const camera = has(() => {
+    const nav = (typeof window !== 'undefined' && window.navigator) ? window.navigator : (typeof navigator !== 'undefined' ? navigator : null);
+    return !!(nav && nav.mediaDevices && nav.mediaDevices.getUserMedia);
+  });
   const localStorageOk = has(() =>
     (typeof window !== 'undefined') && !!window.localStorage);
   const indexedDbOk = has(() =>
