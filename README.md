@@ -79,7 +79,37 @@ athelgard-site/           ← THE PRODUCT (athelgard.io)
 
 ---
 
-## Deployment
+## CLI Usage
+
+```bash
+# Quick start
+node cli/athelgard.js --help
+
+# Set API keys
+node cli/athelgard.js --config
+
+# Ask a question
+node cli/athelgard.js "How do I write a React hook?"
+
+# Chat mode
+node cli/athelgard.js -c
+
+# Install globally
+npm link
+athelgard --help
+```
+
+**Commands:**
+| Command | Description |
+|---------|-------------|
+| `athelgard "question"` | One-shot AI question |
+| `athelgard -c` | Interactive chat |
+| `athelgard -s` | Check AI status |
+| `athelgard --config` | Set API keys |
+
+---
+
+## Quick Start
 
 ```bash
 # Deploy to athelgard.io
