@@ -17,12 +17,18 @@ const readline = require('readline');
 
 const CONFIG_PATH = path.join(require('os').homedir(), '.athelgard.json');
 
-// ======== ATHELGARD LOGO: white owl face on dark circle ========
+// ======== ATHELGARD LOGO: Angular owl face on dark circle ========
 const OWL = `
-\x1b[40m     /\\_/\\     \x1b[0m
-\x1b[40m    ( o   o )    \x1b[0m
-\x1b[40m     (  >  )     \x1b[0m
-\x1b[40m      \\_-_/      \x1b[0m
+\x1b[40m       /\\       \x1b[0m
+\x1b[40m      /  \\      \x1b[0m
+\x1b[40m     / /\\ \\     \x1b[0m
+\x1b[40m    / /  \\ \\    \x1b[0m
+\x1b[40m   ( ( ◉◉ ) )   \x1b[0m
+\x1b[40m    \\ \\VV/ /    \x1b[0m
+\x1b[40m     \\ \/\/ /     \x1b[0m
+\x1b[40m      \\    /      \x1b[0m
+\x1b[40m       \\  /       \x1b[0m
+\x1b[40m        \\/        \x1b[0m
 `;
 
 const SIGNATURES = [
