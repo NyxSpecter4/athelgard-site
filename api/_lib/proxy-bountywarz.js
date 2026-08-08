@@ -1,19 +1,11 @@
 // Proxy Twilio / voice / TTS traffic to the host that actually serves them.
-//
-// ROOT CAUSE (verified live 2026-08-07):
-//   POST https://athelgard.io/api/ka-voice  -> 404 NOT_FOUND
-//   POST https://bountywarz.com/api/ka-voice -> 200 valid TwiML
-//   GET  https://athelgard.io/api/tts        -> 404
-//   GET  https://bountywarz.com/api/tts      -> 200 audio/mpeg
-//
-// athelgard.io is the IDE project. The real phone agent lives on bountywarz.com.
-// Twilio still webhooks athelgard.io for some numbers → "An application error
-// has occurred. Goodbye." This proxy makes those webhooks succeed without
-// requiring a Twilio Console change (though pointing Twilio at bountywarz.com
-// directly is still the long-term correct config).
+// ROBUST VERSION — catches all errors, always returns TwiML on failure.
+
 'use strict';
 
-const UPSTREAM = (process.env.VOICE_UPSTREAM || 'https://bountywarz.com').replace(/\/$/, '');
+const https = require('https');
+
+const UPSTREAM = (process.env.VOICE_UPSTREAM || '').replace(/\/$/, '');
 
 function buildUpstreamUrl(req, upstreamPath, extraQuery) {
   const raw = String(upstreamPath || '/');
@@ -21,19 +13,17 @@ function buildUpstreamUrl(req, upstreamPath, extraQuery) {
   const pathOnly = qIdx >= 0 ? raw.slice(0, qIdx) : raw;
   const path = pathOnly.startsWith('/') ? pathOnly : '/' + pathOnly;
 
-  const url = new URL(UPSTREAM + path);
+  const baseUrl = UPSTREAM || 'https://bountywarz.com';
+  const url = new URL(baseUrl + path);
 
-  // Query from the path argument (if any)
   if (qIdx >= 0) {
     new URLSearchParams(raw.slice(qIdx + 1)).forEach((v, k) => url.searchParams.set(k, v));
   }
-  // Query from the incoming request
   const reqRaw = req.url || '';
   const reqQ = reqRaw.indexOf('?');
   if (reqQ >= 0) {
     new URLSearchParams(reqRaw.slice(reqQ + 1)).forEach((v, k) => url.searchParams.set(k, v));
   }
-  // Extras fill gaps only (do not clobber Twilio / Console query params)
   if (extraQuery && typeof extraQuery === 'object') {
     for (const [k, v] of Object.entries(extraQuery)) {
       if (v != null && !url.searchParams.has(k)) url.searchParams.set(k, String(v));
@@ -47,7 +37,6 @@ function readBody(req) {
   if (typeof req.body === 'string') return Promise.resolve(req.body);
   if (Buffer.isBuffer(req.body)) return Promise.resolve(req.body);
   if (req.body && typeof req.body === 'object') {
-    // Vercel may have already parsed application/x-www-form-urlencoded
     return Promise.resolve(new URLSearchParams(req.body).toString());
   }
   return new Promise((resolve, reject) => {
@@ -58,9 +47,60 @@ function readBody(req) {
   });
 }
 
+function twimlError(message) {
+  return '<?xml version="1.0" encoding="UTF-8"?>' +
+    '<Response>' +
+    '<Say>' + message + '</Say>' +
+    '<Hangup/>' +
+    '</Response>';
+}
+
+// Node-native fetch with timeout fallback
+function fetchWithTimeout(url, options, timeoutMs = 14000) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error('Upstream timeout'));
+    }, timeoutMs);
+
+    const parsed = new URL(url);
+    const requestOptions = {
+      hostname: parsed.hostname,
+      port: parsed.port || 443,
+      path: parsed.pathname + parsed.search,
+      method: options.method || 'GET',
+      headers: options.headers || {},
+    };
+
+    const request = https.request(requestOptions, (response) => {
+      clearTimeout(timer);
+      const chunks = [];
+      response.on('data', (c) => chunks.push(c));
+      response.on('end', () => {
+        resolve({
+          status: response.statusCode,
+          headers: {
+            get: (name) => response.headers[name.toLowerCase()],
+          },
+          arrayBuffer: () => Promise.resolve(Buffer.concat(chunks)),
+        });
+      });
+    });
+
+    request.on('error', (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+
+    if (options.body && options.method !== 'GET' && options.method !== 'HEAD') {
+      request.write(options.body);
+    }
+    request.end();
+  });
+}
+
 /**
- * Forward the incoming request to bountywarz.com`upstreamPath`.
- * Preserves method, query string, and body.
+ * Forward the incoming request to bountywarz.com/upstreamPath.
+ * ALWAYS returns TwiML — even on complete failure.
  */
 async function proxyToBountywarz(req, res, upstreamPath, extraQuery) {
   const url = buildUpstreamUrl(req, upstreamPath, extraQuery);
@@ -73,47 +113,57 @@ async function proxyToBountywarz(req, res, upstreamPath, extraQuery) {
   }
   headers['x-forwarded-host'] = req.headers.host || 'athelgard.io';
   headers['x-athelgard-voice-proxy'] = '1';
+  headers['user-agent'] = 'Athelgard-Voice-Proxy/1.0';
 
   let body;
   try {
     body = await readBody(req);
   } catch (e) {
+    console.error('[voice-proxy] body read failed:', e.message);
     res.statusCode = 200;
     res.setHeader('content-type', 'text/xml');
-    res.end(
-      '<?xml version="1.0" encoding="UTF-8"?><Response><Say>Upstream read failed.</Say><Hangup/></Response>'
-    );
+    res.end(twimlError('Request read failed. Goodbye.'));
     return;
   }
 
-  let upstream;
+  // If no upstream configured, return TwiML immediately
+  if (!UPSTREAM) {
+    console.warn('[voice-proxy] VOICE_UPSTREAM not configured, using fallback TwiML');
+    res.statusCode = 200;
+    res.setHeader('content-type', 'text/xml');
+    res.end(twimlError('Athelgard voice is not configured. Please contact support.'));
+    return;
+  }
+
   try {
     const method = req.method || 'POST';
-    upstream = await fetch(url, {
+    const upstream = await fetchWithTimeout(url, {
       method,
       headers,
       body: body && method !== 'GET' && method !== 'HEAD' ? body : undefined,
-      signal: AbortSignal.timeout(14000),
-    });
+    }, 14000);
+
+    // If upstream returns server error, log but still try to forward
+    if (upstream.status >= 500) {
+      console.error('[voice-proxy] upstream server error', upstream.status, url);
+    }
+
+    const buf = await upstream.arrayBuffer();
+    const pathHint = String(upstreamPath || '');
+    const outType = upstream.headers.get('content-type') ||
+      (pathHint.includes('/tts') ? 'audio/mpeg' : 'text/xml');
+
+    res.statusCode = upstream.status;
+    res.setHeader('content-type', outType);
+    res.setHeader('cache-control', 'no-store');
+    res.end(Buffer.from(buf));
   } catch (e) {
-    console.error('[voice-proxy] upstream fetch failed', url, e && e.message);
+    console.error('[voice-proxy] upstream unreachable:', url, e && e.message);
     res.statusCode = 200;
     res.setHeader('content-type', 'text/xml');
-    res.end(
-      '<?xml version="1.0" encoding="UTF-8"?><Response><Say>Athelgard is briefly unavailable. Please try again in a moment.</Say><Hangup/></Response>'
-    );
-    return;
+    res.setHeader('cache-control', 'no-store');
+    res.end(twimlError('Athelgard is briefly unavailable. Please try again in a moment.'));
   }
-
-  const buf = Buffer.from(await upstream.arrayBuffer());
-  const pathHint = String(upstreamPath || '');
-  const outType =
-    upstream.headers.get('content-type') ||
-    (pathHint.includes('/tts') ? 'audio/mpeg' : 'text/xml');
-  res.statusCode = upstream.status;
-  res.setHeader('content-type', outType);
-  res.setHeader('cache-control', 'no-store');
-  res.end(buf);
 }
 
 module.exports = { proxyToBountywarz, buildUpstreamUrl, UPSTREAM };
