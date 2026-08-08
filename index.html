@@ -76,6 +76,7 @@ button{background:var(--cyan);border:none;border-radius:12px;padding:12px 20px;c
   <div class="status">
     <span>Brain: Active</span>
     <span>GitHub: <span id="gh">Checking...</span></span>
+    <button id="gh-connect" onclick="location.href='/api/github?action=start'" style="display:none;margin-left:8px;padding:4px 10px;border:1px solid var(--cyan);background:transparent;color:var(--cyan);border-radius:4px;cursor:pointer;font:inherit;font-size:12px">Connect GitHub</button>
   </div>
 </header>
 
@@ -115,7 +116,7 @@ function switchView(view) {
 
 const m=document.getElementById('msg');const i=document.getElementById('inp');const g=document.getElementById('gh');
 function a(s,t,u){const d=document.createElement('div');d.className='msg '+ (u?'user':'ai');if(!u){const n=document.createElement('div');n.style.fontWeight='bold';n.style.marginBottom='4px';n.style.color='var(--cyan)';n.textContent=s;d.appendChild(n)}const c=document.createElement('div');c.innerHTML=t;d.appendChild(c);m.appendChild(d);m.scrollTop=m.scrollHeight}
-function c(){fetch('/api/github?action=status').then(r=>r.json()).then(d=>{g.textContent=d.connected?'Connected ✓':'Not Connected';if(d.connected){i.disabled=false;document.querySelector('button').disabled=false;a('Athelgard','GitHub connected! Start coding.')}}).catch(()=>{g.textContent='Error'})}
+function c(){fetch('/api/github?action=status').then(r=>r.json()).then(d=>{g.textContent=d.connected?'Connected ✓':'Not Connected';var b=document.getElementById('gh-connect');if(b)b.style.display=d.connected?'none':'inline-block';if(d.connected){i.disabled=false;document.querySelector('button').disabled=false;a('Athelgard','GitHub connected! Start coding.')}}).catch(()=>{g.textContent='Error'})}
 function send(){const t=i.value.trim();if(!t)return;i.value='';a('You',t.replace(/</g,'&lt;').replace(/>/g,'&gt;'),true);fetch('/api/brain',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:t})}).then(r=>r.json()).then(d=>a('Athelgard',(d.response||d.mentor||'I heard you!').replace(/\n/g,'<br>'))).catch(()=>a('Athelgard','Error. Try again.'))}
 a('Athelgard','🦉 Athelgard v4.0 - Prompt Engineer Edition');a('Athelgard','💬 Chat for coding | 🎯 Prompt Engineer for templates');a('Athelgard','Connect GitHub to start coding.');c();setInterval(c,30000);
 </script></body></html>
