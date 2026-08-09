@@ -231,9 +231,13 @@ export default async function handler(req: any, res: any) {
     return res.status(204).end();
   }
 
-  const action = req.query.action || 'status';
+  // Accept BOTH callback conventions so this single handler is authoritative:
+  //   - query style  : /api/github?action=callback   (used when starting OAuth here)
+  //   - path style   : /api/github/callback          (used by health/index.js deep-link + GitHub app)
+  const isPathCallback = typeof req.url === 'string' && req.url.split('?')[0] === '/api/github/callback';
+  const action = req.query.action || (isPathCallback ? 'callback' : 'status');
   const origin = appOrigin(req);
-  const callbackUrl = origin + '/api/github?action=callback';
+  const callbackUrl = origin + '/api/github/callback';
 
   if (action === 'status') {
     try {
