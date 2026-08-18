@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EVE Widget Test</title>
+<style>
+  :root{--bg:#0a0a0f;--bg2:#12121a;--cyan:#12e0ff;--gold:#ffcf4d;--text:#e0e0e0;--border:#1a1a2e;--red:#ff3b5c;--green:#3dff9a}
+  body{background:var(--bg);color:var(--text);font-family:system-ui;margin:0;padding:20px;min-height:100vh}
+  .container{max-width:800px;margin:0 auto}
+  h1{color:var(--cyan);margin-bottom:8px}
+  p{color:#888;margin-bottom:24px}
+  #widget-test{background:var(--bg2);border:1px solid var(--border);border-radius:12px;min-height:400px}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🐉 EVE Widget Test Page</h1>
+  <p>If you see the EVE dashboard below, the widget is working!</p>
+  <div id="widget-test"></div>
+</div>
+<script src="/modules/eve-widget.js"></script>
+<script>
+  window.EVE_WIDGET.init('widget-test');
+</script>
+</body>
+</html>
