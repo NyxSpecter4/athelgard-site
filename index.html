@@ -72,6 +72,7 @@ button{background:var(--cyan);border:none;border-radius:12px;padding:12px 20px;c
   <div class="nav-tabs">
     <button class="nav-tab active" data-view="chat" onclick="switchView('chat')">💬 Chat</button>
     <button class="nav-tab" data-view="prompt" onclick="switchView('prompt')">🎯 Prompt Engineer</button>
+    <button class="nav-tab" data-view="eve" onclick="switchView('eve')">🐉 EVE Agent</button>
   </div>
   <div class="status">
     <span>Brain: Active</span>
@@ -92,13 +93,20 @@ button{background:var(--cyan);border:none;border-radius:12px;padding:12px 20px;c
   <div id="prompt-engineer-container" style="height:100%"></div>
 </main>
 
+<main style="flex:1;display:none;height:100vh;overflow:hidden" id="eve-view">
+  <div id="eve-widget-container" style="height:100%"></div>
+</main>
+
+<script src="/modules/eve-widget.js"></script>
 <script>
 let promptEngineer = null;
+let eveWidgetLoaded = false;
 
 function switchView(view) {
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.view === view));
   document.getElementById('chat-view').style.display = view === 'chat' ? 'flex' : 'none';
   document.getElementById('prompt-view').style.display = view === 'prompt' ? 'flex' : 'none';
+  document.getElementById('eve-view').style.display = view === 'eve' ? 'block' : 'none';
   
   if (view === 'prompt' && !promptEngineer) {
     promptEngineer = new PromptEngineerUI('prompt-engineer-container', async (prompt, system) => {
@@ -111,6 +119,11 @@ function switchView(view) {
       return data.response || data.mentor || 'No response';
     });
     promptEngineer.render();
+  }
+  
+  if (view === 'eve' && !eveWidgetLoaded && window.EVE_WIDGET) {
+    window.EVE_WIDGET.init('eve-widget-container');
+    eveWidgetLoaded = true;
   }
 }
 
