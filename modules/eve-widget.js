@@ -97,7 +97,20 @@
     const widget = ce('div', 'eve-widget');
     widget.innerHTML = `
       <div class="eve-header">
-        <h2>🐉 EVE Agent</h2>
+        <div style="white-space:pre;font-family:monospace;line-height:1.1;color:var(--cyan);font-size:10px;margin-right:12px">                    ___  ___
+                 .-'   ''   '-.
+               .'    .-""-.    '.
+              /     /      \     \
+             |     |  o  o  |     |
+             |      \  \/\/  /      |
+              \      '-....-'      /
+               '.    _|""|_    .'
+                 '-.'  ||  '.-'
+                     ' || '</div>
+        <div>
+          <h2>EVE Agent</h2>
+          <div style="font-size:11px;color:#888">Athelgard's Owl Guardian</div>
+        </div>
         <span class="eve-badge ${eveState.running ? 'online' : 'offline'}">${eveState.running ? '● Online' : '○ Offline'}</span>
         <span class="eve-badge ${eveState.config.hasDeepSeek || eveState.config.hasKimi ? 'online' : 'offline'}" style="margin-left:-8px">
           ${eveState.provider === 'deepseek' ? '🔵 DeepSeek' : eveState.provider === 'kimi' ? '🟣 Kimi' : '⚪ No AI'}
