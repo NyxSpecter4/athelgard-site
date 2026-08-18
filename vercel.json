@@ -46,7 +46,7 @@
     },
     {
       "src": "/api/github/callback",
-      "dest": "api/github/callback.js"
+      "dest": "api/github/index.ts"
     },
     {
       "src": "/api/health",
